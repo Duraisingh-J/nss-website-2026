@@ -1,0 +1,152 @@
+.footer {
+  background: var(--navy);
+  color: white;
+  padding: 70px 5vw 30px;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 50px;
+  margin-bottom: 50px;
+}
+
+.footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.footer-logo-mark {
+  width: 52px; height: 52px;
+  background: var(--red);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Playfair Display', serif;
+  font-weight: 900;
+  font-size: 16px;
+  color: white;
+  border: 2px solid var(--gold);
+  flex-shrink: 0;
+}
+
+.footer-logo-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+}
+
+.footer-logo-sub {
+  font-size: 12px;
+  color: var(--gold);
+  font-style: italic;
+  font-family: 'Playfair Display', serif;
+}
+
+.footer-about p {
+  color: rgba(255,255,255,0.55);
+  font-size: 14px;
+  line-height: 1.8;
+  margin-bottom: 24px;
+}
+
+.footer-contact-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.footer-contact-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: rgba(255,255,255,0.55);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.contact-icon { flex-shrink: 0; }
+
+.footer-contact-item a {
+  color: rgba(255,255,255,0.55);
+  transition: color 0.2s;
+}
+.footer-contact-item a:hover { color: var(--gold); }
+
+.footer-col h4 {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px;
+  color: var(--gold);
+  margin-bottom: 18px;
+}
+
+.footer-col a,
+.footer-col p {
+  display: block;
+  color: rgba(255,255,255,0.55);
+  font-size: 14px;
+  line-height: 1;
+  margin-bottom: 12px;
+  transition: color 0.2s;
+}
+
+.footer-col a:hover { color: var(--gold); }
+
+.hours-text {
+  color: rgba(255,255,255,0.55) !important;
+  font-size: 14px !important;
+}
+
+.hours-time {
+  color: white !important;
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  margin-bottom: 20px !important;
+  font-family: 'Playfair Display', serif;
+}
+
+.gov-badge {
+  background: rgba(255,255,255,0.06);
+  border-left: 3px solid var(--gold);
+  padding: 10px 14px;
+}
+
+.gov-badge span {
+  display: block;
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+  line-height: 1.7;
+  letter-spacing: 0.04em;
+}
+
+.footer-bottom {
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: rgba(255,255,255,0.3);
+  font-size: 12px;
+}
+
+.footer-motto {
+  color: var(--gold);
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  opacity: 0.7;
+}
+
+@media (max-width: 900px) {
+  .footer-grid { grid-template-columns: 1fr 1fr; gap: 36px; }
+  .footer-about { grid-column: span 2; }
+}
+
+@media (max-width: 540px) {
+  .footer-grid { grid-template-columns: 1fr; }
+  .footer-about { grid-column: span 1; }
+  .footer-bottom { flex-direction: column; gap: 10px; text-align: center; }
+}

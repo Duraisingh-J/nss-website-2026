@@ -1,0 +1,137 @@
+/* ===== GOV BANNER ===== */
+.gov-banner {
+  width: 100%;
+  background: #fff;
+  text-align: center;
+  padding: 15px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.gov-banner img {
+  max-width: 650px;
+  width: 95%;
+}
+
+/* ===== HERO ===== */
+.about-hero {
+  background: var(--navy);
+  padding: 70px 5vw;
+  display: flex;
+  align-items: center;
+  gap: 50px;
+  flex-wrap: wrap;
+}
+
+.about-logo-wrapper img {
+  width: 180px;
+  max-width: 100%;
+}
+
+.about-hero-text {
+  max-width: 600px;
+}
+
+.about-hero-text h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(30px, 4vw, 48px);
+  font-weight: 900;
+  color: white;
+  margin-bottom: 14px;
+}
+
+.motto-badge {
+  display: inline-block;
+  background: var(--gold);
+  color: var(--navy);
+  padding: 6px 22px;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+
+.about-hero-text p {
+  color: rgba(255,255,255,0.7);
+  line-height: 1.8;
+  font-size: 15px;
+}
+
+/* ===== OBJECTIVES ===== */
+.objectives-section {
+  background: var(--cream);
+}
+
+.objectives-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  margin-top: 40px;
+}
+
+.objectives-grid ul {
+  list-style: none;
+  padding: 0;
+}
+
+.objectives-grid li {
+  background: white;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  border-left: 4px solid var(--red);
+  font-size: 14px;
+  line-height: 1.6;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+}
+
+/* ===== MOTTO ===== */
+.motto-section {
+  background: var(--red);
+  text-align: center;
+  padding: 70px 20px;
+  color: white;
+}
+
+.motto-section h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 30px;
+  margin-bottom: 20px;
+}
+
+.motto-text {
+  font-size: 34px;
+  font-family: 'Playfair Display', serif;
+  font-weight: 900;
+  margin-bottom: 20px;
+}
+
+.motto-section p {
+  max-width: 700px;
+  margin: auto;
+  color: rgba(255,255,255,0.8);
+  line-height: 1.8;
+}
+
+/* ===== CONTACT ===== */
+.contact-section {
+  background: var(--light);
+  text-align: center;
+}
+
+.contact-card {
+  background: white;
+  padding: 30px;
+  max-width: 400px;
+  margin: 40px auto 0;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+  font-size: 16px;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+  .objectives-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .about-hero {
+    flex-direction: column;
+    text-align: center;
+  }
+}

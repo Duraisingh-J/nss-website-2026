@@ -1,0 +1,108 @@
+.person-card {
+  background: white;
+  border-bottom: 3px solid transparent;
+  transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+  text-align: center;
+  overflow: hidden;
+}
+
+.person-card:hover {
+  border-bottom-color: var(--red);
+  transform: translateY(-5px);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.12);
+}
+
+.person-avatar {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  aspect-ratio: 1;
+  width: 100%;
+  overflow: hidden;
+}
+
+.person-card--lg .person-avatar {
+  aspect-ratio: 16/9;
+}
+
+/* Real photo */
+.person-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  display: block;
+}
+
+/* Initials fallback */
+.person-initials {
+  font-family: 'Playfair Display', serif;
+  font-size: 42px;
+  font-weight: 900;
+  color: rgba(255,255,255,0.2);
+  z-index: 1;
+  position: relative;
+}
+
+.person-card--lg .person-initials { font-size: 64px; }
+
+.person-avatar::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 40%;
+  background: linear-gradient(transparent, rgba(200,16,46,0.25));
+  pointer-events: none;
+}
+
+.person-badge {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--red);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 12px;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+.person-info {
+  padding: 18px 16px 22px;
+}
+
+.person-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--navy);
+}
+
+.person-role {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--red);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+}
+
+.person-dept {
+  font-size: 12px;
+  color: var(--gray);
+  margin-bottom: 4px;
+}
+
+.person-contact {
+  font-size: 12px;
+  color: var(--gray);
+  margin-top: 4px;
+  line-height: 1.5;
+}
