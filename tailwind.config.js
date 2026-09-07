@@ -6,20 +6,29 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        background: "#F8FAFC",
+        surface: "#FFFFFF",
+        foreground: "#0F172A",
+        muted: {
+          DEFAULT: "#64748B",
+          dark: "#94A3B8",
+        },
+        border: "#E2E8F0",
         primary: {
-          DEFAULT: "#163B66",
+          DEFAULT: "#174A7E",
           foreground: "#FFFFFF",
+          dark: "#0F172A",
         },
         accent: {
-          DEFAULT: "#C23B3B",
+          DEFAULT: "#D94B4B",
           foreground: "#FFFFFF",
+          hover: "#C53B3B",
+          subtle: "#FEF2F2",
         },
-        background: "#F7F6F2",
-        surface: "#FFFFFF",
-        foreground: "#17202A",
-        muted: "#667085",
-        border: "#E2E8F0",
-        heritage: "#C99A4B",
+        ink: {
+          DEFAULT: "#0F172A",
+          surface: "#1E293B",
+        },
       },
       fontFamily: {
         sans: ["DM Sans", "sans-serif"],
@@ -29,3 +38,4 @@ module.exports = {
   },
   plugins: [],
 }
+

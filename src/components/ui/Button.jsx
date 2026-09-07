@@ -5,10 +5,11 @@ const Button = React.forwardRef(({ className, variant = "primary", size = "md", 
   const baseStyles = "inline-flex items-center justify-center font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none rounded-md";
   
   const variants = {
-    primary: "bg-primary text-primary-foreground hover:bg-primary/90",
-    secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-    outline: "border border-input hover:bg-accent hover:text-accent-foreground",
-    ghost: "hover:bg-accent hover:text-accent-foreground",
+    primary: "bg-primary text-white hover:bg-primary/90 shadow-sm",
+    accent: "bg-accent text-white hover:bg-accent-hover shadow-sm",
+    secondary: "bg-slate-100 text-foreground hover:bg-slate-200 border border-slate-200",
+    outline: "border border-border text-foreground hover:bg-slate-50 hover:border-slate-300",
+    ghost: "text-muted hover:text-foreground hover:bg-slate-100/70",
   };
   
   const sizes = {
