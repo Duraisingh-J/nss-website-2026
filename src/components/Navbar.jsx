@@ -7,7 +7,7 @@ export default function Navbar() {
     <nav className="navbar">
       <NavLink to="/" className="nav-logo">
         <div className="logo">
-          <img src="/images/home/nsss.png" alt="NSS Logo" />
+          <img src="/images/nss-horizontal.png" alt="NSS Logo" />
 
         </div>
         <span>National Service Scheme MIT</span>
