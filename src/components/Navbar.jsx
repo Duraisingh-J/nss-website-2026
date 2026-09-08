@@ -5,7 +5,6 @@ import { cn } from "../lib/utils";
 
 const NAV_LINKS = [
   { name: "Home", path: "/" },
-  { name: "About", path: "/about" },
   { name: "Sessions", path: "/sessions" },
   { name: "Events", path: "/events" },
   { name: "People", path: "/people" },
@@ -50,7 +49,17 @@ export default function Navbar() {
             className="flex items-center gap-3.5 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-md"
           >
             <div className="shrink-0 flex items-center">
-              <img src="/images/nss-horizontal.png" alt="NSS Logo" className="h-9 w-auto object-contain" />
+              <img
+                src={`${process.env.PUBLIC_URL}/images/nss-horizontal.png`}
+                alt="NSS Logo"
+                className="h-9 w-auto object-contain"
+                onError={(e) => {
+                  if (!e.currentTarget.dataset.fallback) {
+                    e.currentTarget.dataset.fallback = "true";
+                    e.currentTarget.src = `${process.env.PUBLIC_URL}/nss-horizontal.png`;
+                  }
+                }}
+              />
             </div>
             <div className="hidden sm:flex flex-col">
               <span className="font-sans font-bold text-[15px] text-foreground tracking-tight leading-tight group-hover:text-primary transition-colors">

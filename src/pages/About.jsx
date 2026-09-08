@@ -8,7 +8,7 @@ export default function About() {
 
       {/* ===== GOVERNMENT BANNER ===== */}
       <div className="gov-banner">
-        <img src="/images/nss-horizontal.png" alt="NSS Government Banner" />
+        <img src={`${process.env.PUBLIC_URL}/images/nss-horizontal.png`} alt="NSS Government Banner" />
       </div>
 
       {/* ===== HERO SECTION ===== */}

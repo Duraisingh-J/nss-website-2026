@@ -1,8 +1,7 @@
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Home     from "./pages/Home";
-import About    from "./pages/About";
 import Sessions from "./pages/Sessions";
 import Events   from "./pages/Events";
 import People   from "./pages/People";
@@ -14,7 +13,7 @@ export default function App() {
       <Navbar />
       <Routes>
         <Route path="/"         element={<Home />}     />
-        <Route path="/about"    element={<About />}    />
+        <Route path="/about"    element={<Navigate to="/" replace />} />
         <Route path="/sessions" element={<Sessions />} />
         <Route path="/events"   element={<Events />}   />
         <Route path="/people"   element={<People />}   />
