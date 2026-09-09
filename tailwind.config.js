@@ -33,6 +33,7 @@ module.exports = {
       fontFamily: {
         sans: ["DM Sans", "sans-serif"],
         display: ["Playfair Display", "serif"],
+        script: ["Caveat", "cursive"],
       },
     },
   },

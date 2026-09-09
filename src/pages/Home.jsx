@@ -30,6 +30,7 @@ export default function Home() {
       {/* 4. Cardinal Objectives (10-Point Numbered System) */}
       <ObjectivesSection />
 
+      
       {/* 5. Guiding Motto: "Not Me But You" */}
       <MottoSection />
 

@@ -40,18 +40,28 @@ export default function AboutSection() {
         
         {/* Official Ministry Banner Header Card - Clean Institutional Integration */}
         <div className="about-reveal bg-slate-50/90 border border-slate-200/90 rounded-xl p-5 sm:p-7 mb-16 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
-          <div className="flex items-center gap-5">
-            <img
-              src={`${process.env.PUBLIC_URL}/images/nss-horizontal.png`}
-              alt="Government of India - National Service Scheme"
-              className="h-12 sm:h-16 w-auto object-contain"
-              onError={(e) => {
-                if (!e.currentTarget.dataset.fallback) {
-                  e.currentTarget.dataset.fallback = "true";
-                  e.currentTarget.src = `${process.env.PUBLIC_URL}/nss-horizontal.png`;
-                }
-              }}
-            />
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white p-1 border border-slate-200 shadow-sm flex items-center justify-center shrink-0">
+              <img
+                src={`${process.env.PUBLIC_URL}/NSS_logo.png`}
+                alt="Government of India - National Service Scheme"
+                className="w-full h-full object-contain rounded-full"
+                onError={(e) => {
+                  if (!e.currentTarget.dataset.fallback) {
+                    e.currentTarget.dataset.fallback = "true";
+                    e.currentTarget.src = `${process.env.PUBLIC_URL}/images/NSS_logo.png`;
+                  }
+                }}
+              />
+            </div>
+            <div>
+              <span className="block font-sans font-bold text-base sm:text-lg text-slate-900 tracking-tight leading-tight">
+                National Service Scheme
+              </span>
+              <span className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mt-0.5">
+                Government of India
+              </span>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-6 sm:gap-8 text-sm text-slate-700 font-medium">
             <span className="flex items-center gap-2">

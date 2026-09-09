@@ -13,16 +13,13 @@ export default function Footer() {
             <div className="flex items-center gap-3 mb-4">
               <div className="flex items-center justify-center h-10 w-10 rounded-full bg-white p-0.5 border border-slate-700 shrink-0 overflow-hidden">
                 <img
-                  src={`${process.env.PUBLIC_URL}/images/nss.png`}
+                  src={`${process.env.PUBLIC_URL}/NSS_logo.png`}
                   alt="NSS Official Emblem"
                   className="w-full h-full object-contain rounded-full"
                   onError={(e) => {
-                    if (!e.currentTarget.dataset.triedRoot) {
-                      e.currentTarget.dataset.triedRoot = "true";
-                      e.currentTarget.src = `${process.env.PUBLIC_URL}/nss.png`;
-                    } else if (!e.currentTarget.dataset.triedAlt) {
-                      e.currentTarget.dataset.triedAlt = "true";
-                      e.currentTarget.src = `${process.env.PUBLIC_URL}/NSS_logo.png`;
+                    if (!e.currentTarget.dataset.fallback) {
+                      e.currentTarget.dataset.fallback = "true";
+                      e.currentTarget.src = `${process.env.PUBLIC_URL}/images/NSS_logo.png`;
                     }
                   }}
                 />

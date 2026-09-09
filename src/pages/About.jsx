@@ -8,13 +8,13 @@ export default function About() {
 
       {/* ===== GOVERNMENT BANNER ===== */}
       <div className="gov-banner">
-        <img src={`${process.env.PUBLIC_URL}/images/nss-horizontal.png`} alt="NSS Government Banner" />
+        <img src={`${process.env.PUBLIC_URL}/NSS_logo.png`} alt="NSS Government Banner" />
       </div>
 
       {/* ===== HERO SECTION ===== */}
       <section className="about-hero">
         {/* <div className="about-logo-wrapper">
-          <img src="/images/nss.png" alt="NSS Logo" />
+          <img src={`${process.env.PUBLIC_URL}/NSS_logo.png`} alt="NSS Logo" />
         </div> */}
 
         <div className="about-hero-text">

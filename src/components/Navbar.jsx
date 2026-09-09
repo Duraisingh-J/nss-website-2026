@@ -50,13 +50,13 @@ export default function Navbar() {
           >
             <div className="shrink-0 flex items-center">
               <img
-                src={`${process.env.PUBLIC_URL}/images/nss-horizontal.png`}
+                src={`${process.env.PUBLIC_URL}/NSS_logo.png`}
                 alt="NSS Logo"
-                className="h-9 w-auto object-contain"
+                className="h-10 w-10 sm:h-11 sm:w-11 object-contain rounded-full"
                 onError={(e) => {
                   if (!e.currentTarget.dataset.fallback) {
                     e.currentTarget.dataset.fallback = "true";
-                    e.currentTarget.src = `${process.env.PUBLIC_URL}/nss-horizontal.png`;
+                    e.currentTarget.src = `${process.env.PUBLIC_URL}/images/NSS_logo.png`;
                   }
                 }}
               />
@@ -71,8 +71,8 @@ export default function Navbar() {
             </div>
           </NavLink>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-1 lg:gap-2">
+          {/* Desktop Navigation & Action */}
+          <div className="hidden md:flex items-center gap-6 lg:gap-8">
             <ul className="flex items-center gap-1 lg:gap-2">
               {NAV_LINKS.map((link) => (
                 <li key={link.name}>
@@ -82,7 +82,7 @@ export default function Navbar() {
                       cn(
                         "text-sm font-medium transition-colors px-3 py-1.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary inline-flex items-center",
                         isActive
-                          ? "text-accent font-semibold bg-accent/5"
+                          ? "text-accent font-semibold"
                           : "text-muted hover:text-foreground hover:bg-slate-100/70"
                       )
                     }
@@ -91,7 +91,7 @@ export default function Navbar() {
                       <span className="relative py-0.5">
                         {link.name}
                         {isActive && (
-                          <span className="absolute -bottom-1.5 left-0 right-0 h-[2px] bg-accent rounded-full" />
+                          <span className="absolute -bottom-1 left-0 right-0 h-[2px] bg-accent rounded-full" />
                         )}
                       </span>
                     )}
@@ -99,6 +99,8 @@ export default function Navbar() {
                 </li>
               ))}
             </ul>
+
+            
           </div>
 
           {/* Mobile Menu Button */}

@@ -1,7 +1,13 @@
 import React, { useRef, useLayoutEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, ChevronDown } from "lucide-react";
+import { ArrowRight, Users, Leaf, Heart } from "lucide-react";
 import { gsap, isReducedMotion } from "../../lib/animations";
+
+// =========================================================================
+// HERO BACKGROUND IMAGE (PLACEHOLDER)
+// Replace the path below with your official campus photograph whenever ready:
+// =========================================================================
+export const HERO_IMAGE_SRC = `${process.env.PUBLIC_URL}/images/hero.png`;
 
 export default function Hero() {
   const navigate = useNavigate();
@@ -13,34 +19,51 @@ export default function Hero() {
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
 
-      // Clean sequential reveal without continuous background animation
       tl.fromTo(
-        ".hero-eyebrow",
-        { opacity: 0, y: 14 },
-        { opacity: 1, y: 0, duration: 0.6 }
+        ".hero-bg-img",
+        { opacity: 0, scale: 1.05 },
+        { opacity: 1, scale: 1, duration: 1.2, ease: "power2.out" }
       )
         .fromTo(
+          ".hero-eyebrow",
+          { opacity: 0, y: 12 },
+          { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" },
+          "-=0.7"
+        )
+        .fromTo(
           ".hero-title-line",
-          { opacity: 0, y: 20 },
-          { opacity: 1, y: 0, duration: 0.7, stagger: 0.15 },
-          "-=0.3"
+          { opacity: 0, y: 30 },
+          { opacity: 1, y: 0, duration: 0.8, stagger: 0.15, ease: "power3.out" },
+          "-=0.4"
         )
         .fromTo(
           ".hero-desc",
           { opacity: 0, y: 16 },
-          { opacity: 1, y: 0, duration: 0.65 },
+          { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" },
           "-=0.4"
         )
         .fromTo(
-          ".hero-actions",
+          ".hero-btn",
           { opacity: 0, y: 14 },
-          { opacity: 1, y: 0, duration: 0.6 },
+          { opacity: 1, y: 0, duration: 0.5, stagger: 0.1, ease: "power2.out" },
           "-=0.3"
         )
         .fromTo(
-          ".hero-emblem-composition",
-          { opacity: 0, y: 24, scale: 0.96 },
-          { opacity: 1, y: 0, scale: 1, duration: 0.85, ease: "power2.out" },
+          ".hero-feature-item",
+          { opacity: 0, y: 12 },
+          { opacity: 1, y: 0, duration: 0.5, stagger: 0.08, ease: "power2.out" },
+          "-=0.2"
+        )
+        .fromTo(
+          ".hero-cursive-tag",
+          { opacity: 0, y: -10, rotate: -8 },
+          { opacity: 1, y: 0, rotate: -6, duration: 0.8, ease: "power2.out" },
+          "-=0.8"
+        )
+        .fromTo(
+          ".hero-motto-card",
+          { opacity: 0, y: 24, scale: 0.95 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.9, ease: "power3.out" },
           "-=0.6"
         );
     }, heroRef);
@@ -49,7 +72,7 @@ export default function Hero() {
   }, []);
 
   const scrollToAbout = () => {
-    const el = document.getElementById("about-nss");
+    const el = document.getElementById("guiding-philosophy") || document.getElementById("about-nss");
     if (el) {
       el.scrollIntoView({ behavior: "smooth" });
     }
@@ -58,118 +81,185 @@ export default function Hero() {
   return (
     <section
       ref={heroRef}
-      className="relative bg-slate-900 text-white pt-28 pb-20 md:pt-36 md:pb-28 overflow-hidden border-b border-slate-800"
+      className="relative min-h-[90vh] lg:min-h-[92vh] flex items-center bg-slate-950 text-white pt-28 pb-20 md:pt-32 md:pb-24 lg:pt-36 lg:pb-28 overflow-hidden"
+      aria-label="NSS MIT Hero Section"
     >
-      {/* Refined subtle institutional background grid lines (static, zero background performance cost) */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-10">
-        <div className="absolute -top-32 -right-32 w-[30rem] h-[30rem] rounded-full border border-slate-500" />
-        <div className="absolute -top-16 -right-16 w-[40rem] h-[40rem] rounded-full border border-slate-500" />
-        <div className="absolute top-1/2 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-slate-600 to-transparent" />
+      {/* Background Image with Dark Vignette Overlay */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        <img
+          src={HERO_IMAGE_SRC}
+          alt="Madras Institute of Technology Campus with NSS Volunteers"
+          className="hero-bg-img w-full h-full object-cover object-center transform transition-transform duration-700"
+          onError={(e) => {
+            if (!e.currentTarget.dataset.fallback) {
+              e.currentTarget.dataset.fallback = "true";
+              e.currentTarget.src = `${process.env.PUBLIC_URL}/images/nss.png`;
+            }
+          }}
+        />
+
+        {/* Ambient tint allowing full image visibility */}
+        <div className="absolute inset-0 bg-slate-950/45 backdrop-brightness-[0.82]" />
+
+        {/* Soft Edge Fades (Top, Bottom, Left, Right) */}
+        <div className="absolute inset-x-0 top-0 h-28 sm:h-36 bg-gradient-to-b from-slate-950 via-slate-950/60 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-32 sm:h-44 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent" />
+        <div className="absolute inset-y-0 left-0 w-32 sm:w-80 bg-gradient-to-r from-slate-950/80 via-slate-950/35 to-transparent" />
+        <div className="absolute inset-y-0 right-0 w-24 sm:w-56 bg-gradient-to-l from-slate-950/50 via-slate-950/15 to-transparent" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-10 items-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
           
-          {/* Left Column: Identity & Purpose */}
-          <div className="lg:col-span-7">
-            <div className="hero-eyebrow inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md bg-accent/15 border border-accent/30 text-accent text-xs font-semibold uppercase tracking-wider mb-6">
-              <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-              National Service Scheme · MIT Campus · Anna University
-            </div>
+          {/* Left Column: Mission, Typography, Actions, Focus Areas */}
+          <div className="lg:col-span-7 flex flex-col justify-center drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
+            
+            {/* Eyebrow */}
+            <p className="hero-eyebrow text-[11px] sm:text-xs font-semibold uppercase tracking-[0.22em] text-slate-300 mb-4 select-none drop-shadow">
+              SERVICE &nbsp;·&nbsp; LEADERSHIP &nbsp;·&nbsp; SOCIAL RESPONSIBILITY
+            </p>
 
-            <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-black text-slate-100 tracking-tight leading-[1.1] mb-6">
-              <span className="hero-title-line block">NSS MIT</span>
-              <span className="hero-title-line block text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-red-500 to-red-700">
+            {/* Main Headline */}
+            <h1 className="tracking-tight leading-[1.05] mb-6 drop-shadow-[0_4px_16px_rgba(0,0,0,0.8)]">
+              <span className="hero-title-line font-display block text-5xl sm:text-6xl lg:text-7xl font-black text-white">
+                NSS MIT
+              </span>
+              <span className="hero-title-line font-display block text-5xl sm:text-6xl lg:text-7xl font-bold text-[#E0533C] mt-1 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
                 Serving Society
               </span>
             </h1>
 
-            <p className="hero-desc font-sans text-slate-300 text-base sm:text-lg leading-relaxed max-w-2xl mb-8 font-normal">
-              The National Service Scheme unit of Madras Institute of Technology nurtures socially conscious engineers by engaging students in community development, environmental conservation, health outreach, and nation-building initiatives.
+            {/* Supporting Description */}
+            <p className="hero-desc font-sans text-slate-100 text-base sm:text-lg leading-relaxed max-w-xl font-normal mb-8 drop-shadow-md">
+              The National Service Scheme at MIT Campus, Anna University empowers students to contribute to society through community service, awareness programmes and nation-building initiatives.
             </p>
 
-            <div className="hero-actions flex flex-wrap items-center gap-4">
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center gap-4 mb-12 sm:mb-14">
               <button
                 type="button"
                 onClick={() => navigate("/events")}
-                className="inline-flex items-center justify-center gap-2.5 bg-accent hover:bg-accent-hover text-white font-sans font-semibold text-sm sm:text-base px-6 py-3.5 rounded-md transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+                className="hero-btn inline-flex items-center justify-center gap-2.5 bg-[#BC3A26] hover:bg-[#A5311F] text-white font-sans font-semibold text-sm sm:text-base px-6 py-3.5 rounded-lg transition-all shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
-                <span>Explore Our Events</span>
+                <span>Explore Our Work</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
 
               <button
                 type="button"
                 onClick={scrollToAbout}
-                className="inline-flex items-center justify-center gap-2.5 bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-700 font-sans font-medium text-sm sm:text-base px-5 py-3.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+                className="hero-btn inline-flex items-center justify-center gap-2.5 bg-slate-950/40 hover:bg-slate-900/60 border border-slate-500/70 hover:border-slate-300 text-white font-sans font-medium text-sm sm:text-base px-6 py-3.5 rounded-lg transition-all backdrop-blur-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
               >
-                <span>Institutional Overview</span>
-                <ChevronDown className="w-4 h-4 text-slate-400" />
+                <span>Learn About NSS</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
-          </div>
 
-          {/* Right Column: Architectural Institutional Identity Composition */}
-          <div className="lg:col-span-5 flex justify-center lg:justify-end">
-            <div className="hero-emblem-composition relative w-full max-w-md">
+            {/* Focus Pillars Row (Icons with Subtitles) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4 border-t border-white/15 max-w-2xl">
               
-              {/* Integrated Institutional Identity Frame */}
-              <div className="relative bg-slate-950/80 border border-slate-700/80 rounded-2xl p-8 sm:p-9 shadow-2xl backdrop-blur-sm text-center">
-                
-                {/* Concentric Architectural Geometry */}
-                <div className="relative mx-auto w-36 h-36 mb-6 flex items-center justify-center">
-                  <div className="absolute inset-0 rounded-full border border-slate-700/60" />
-                  <div className="absolute inset-2 rounded-full border border-dashed border-red-500/40" />
-                  
-                  {/* Clean circular avatar */}
-                  <div className="relative z-10 w-24 h-24 rounded-full bg-white p-2 flex items-center justify-center shadow-xl border-2 border-slate-600/80 overflow-hidden">
-                    <img
-                      src={`${process.env.PUBLIC_URL}/images/nss.png`}
-                      alt="NSS Official Emblem"
-                      className="w-full h-full object-contain rounded-full"
-                      onError={(e) => {
-                        if (!e.currentTarget.dataset.triedRoot) {
-                          e.currentTarget.dataset.triedRoot = "true";
-                          e.currentTarget.src = `${process.env.PUBLIC_URL}/nss.png`;
-                        } else if (!e.currentTarget.dataset.triedAlt) {
-                          e.currentTarget.dataset.triedAlt = "true";
-                          e.currentTarget.src = `${process.env.PUBLIC_URL}/NSS_logo.png`;
-                        }
-                      }}
-                    />
-                  </div>
+              {/* Item 1: Students */}
+              <div className="hero-feature-item flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full border border-white/30 flex items-center justify-center text-white/90 shrink-0 bg-white/5">
+                  <Users className="w-5 h-5" />
                 </div>
-
-                <div className="space-y-2">
-                  <span className="text-xs font-bold uppercase tracking-widest text-red-400 block">
-                    Official NSS Motto
+                <div className="flex flex-col">
+                  <span className="font-bold text-xs tracking-wider text-white uppercase">
+                    STUDENTS
                   </span>
-                  <p className="font-display italic text-2xl sm:text-3xl font-bold text-slate-100 tracking-wide">
-                    "Not Me But You"
-                  </p>
-                  <div className="w-12 h-0.5 bg-accent mx-auto my-3" />
-                  <p className="text-xs sm:text-sm text-slate-300 uppercase tracking-wider font-semibold">
-                    Government of India Initiative
-                  </p>
-                  <p className="text-xs text-slate-400 font-normal mt-1">
-                    Ministry of Youth Affairs & Sports
-                  </p>
+                  <span className="text-[10px] text-slate-300 tracking-wider uppercase mt-0.5">
+                    FOR A BETTER TOMORROW
+                  </span>
                 </div>
+              </div>
 
-                <div className="mt-6 pt-5 border-t border-slate-800/80 grid grid-cols-2 gap-3 text-left">
-                  <div className="bg-slate-900/90 p-3 rounded-lg border border-slate-700/50">
-                    <span className="text-xs text-slate-400 uppercase tracking-wider block font-medium">Affiliation</span>
-                    <span className="text-sm font-semibold text-slate-200">Anna University</span>
-                  </div>
-                  <div className="bg-slate-900/90 p-3 rounded-lg border border-slate-700/50">
-                    <span className="text-xs text-slate-400 uppercase tracking-wider block font-medium">Active Units</span>
-                    <span className="text-sm font-semibold text-slate-200">7 Units (I to VII)</span>
-                  </div>
+              {/* Item 2: Communities */}
+              <div className="hero-feature-item flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full border border-white/30 flex items-center justify-center text-white/90 shrink-0 bg-white/5">
+                  <Leaf className="w-5 h-5" />
                 </div>
+                <div className="flex flex-col">
+                  <span className="font-bold text-xs tracking-wider text-white uppercase">
+                    COMMUNITIES
+                  </span>
+                  <span className="text-[10px] text-slate-300 tracking-wider uppercase mt-0.5">
+                    FOR A STRONGER INDIA
+                  </span>
+                </div>
+              </div>
 
+              {/* Item 3: Service */}
+              <div className="hero-feature-item flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full border border-white/30 flex items-center justify-center text-white/90 shrink-0 bg-white/5">
+                  <Heart className="w-5 h-5" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-bold text-xs tracking-wider text-white uppercase">
+                    SERVICE
+                  </span>
+                  <span className="text-[10px] text-slate-300 tracking-wider uppercase mt-0.5">
+                    BEYOND THE CLASSROOM
+                  </span>
+                </div>
               </div>
 
             </div>
+
+          </div>
+
+          {/* Right Column: Cursive Script Callout & Floating Motto Glass Card */}
+          <div className="lg:col-span-5 flex flex-col items-center lg:items-end justify-between relative min-h-[380px] lg:min-h-[460px]">
+            
+            {/* Handwritten Script Tag: "Together for a brighter Tomorrow" */}
+            <div className="hero-cursive-tag font-script text-white text-3xl sm:text-4xl leading-tight text-center lg:text-right select-none drop-shadow-lg mb-8 lg:mb-0 lg:mr-4">
+              <span className="block">Together</span>
+              <span className="block">for a brighter</span>
+              <span className="block">Tomorrow</span>
+            </div>
+
+            {/* Floating Motto Glassmorphism Card */}
+            <div className="hero-motto-card relative w-full max-w-[260px] bg-[#0d1c31]/80 border border-white/20 rounded-3xl p-6 sm:p-7 text-center backdrop-blur-md shadow-2xl">
+              
+              {/* NSS Official Round Emblem */}
+              <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-white p-1.5 shadow-lg flex items-center justify-center border border-white/40 overflow-hidden">
+                <img
+                  src={`${process.env.PUBLIC_URL}/images/NSS_logo.png`}
+                  alt="NSS Official Emblem"
+                  className="w-full h-full object-contain block"
+                  onError={(e) => {
+                    if (!e.currentTarget.dataset.fallback) {
+                      e.currentTarget.dataset.fallback = "true";
+                      e.currentTarget.src = `${process.env.PUBLIC_URL}/NSS_logo.png`;
+                    }
+                  }}
+                />
+              </div>
+
+              {/* Eyebrow */}
+              <span className="text-[10px] font-bold tracking-[0.25em] text-slate-300 uppercase block mb-1">
+                OUR MOTTO
+              </span>
+
+              {/* Motto Quote */}
+              <p className="font-display italic text-lg sm:text-xl font-bold text-white tracking-wide mb-3">
+                “Not Me But You”
+              </p>
+
+              {/* Values list */}
+              <div className="space-y-1 pt-1 border-t border-white/15">
+                <p className="text-[9px] sm:text-[10px] font-semibold tracking-[0.2em] text-slate-300 uppercase">
+                  SELFLESS SERVICE
+                </p>
+                <p className="text-[9px] sm:text-[10px] font-semibold tracking-[0.2em] text-slate-300 uppercase">
+                  STRONGER COMMUNITIES
+                </p>
+                <p className="text-[9px] sm:text-[10px] font-semibold tracking-[0.2em] text-slate-300 uppercase">
+                  BRIGHTER INDIA
+                </p>
+              </div>
+
+            </div>
+
           </div>
 
         </div>
