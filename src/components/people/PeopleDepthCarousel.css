@@ -1,0 +1,59 @@
+/* ===== PEOPLE DEPTH CAROUSEL SPLIT LAYOUT ===== */
+.people-split-layout {
+  display: grid;
+  grid-template-columns: 0.35fr 0.65fr;
+  align-items: center;
+  gap: 40px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.people-split-layout__info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.people-split-layout__carousel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  overflow: visible;
+}
+
+/* Tablet adjustments */
+@media (max-width: 1024px) {
+  .people-split-layout {
+    grid-template-columns: 0.38fr 0.62fr;
+    gap: 28px;
+  }
+}
+
+/* Mobile: Collapse into single column */
+@media (max-width: 899px) {
+  .people-split-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  /* Carousel on top */
+  .people-split-layout__carousel {
+    order: 1;
+    width: 100%;
+  }
+
+  /* Profile details below on mobile */
+  .people-split-layout__info {
+    order: 2;
+    width: 100%;
+    align-items: center;
+    text-align: center;
+    padding: 0;
+  }
+}

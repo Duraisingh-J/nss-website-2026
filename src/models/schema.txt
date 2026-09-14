@@ -1,0 +1,326 @@
+## Tables for V1
+
+admin_users
+────────────────────────────
+id          uuid        PK auth.users.id
+is_active   boolean     NOT NULL DEFAULT true
+created_at  timestamptz NOT NULL DEFAULT now()
+updated_at  timestamptz NOT NULL DEFAULT now()
+
+
+1. roles
+roles
+────────────────────────────
+id              uuid            PK
+name            text            NOT NULL, UNIQUE  
+display_order   integer         NOT NULL DEFAULT 0
+created_at      timestamptz     NOT NULL DEFAULT now()
+updated_at      timestamptz     NOT NULL DEFAULT now()
+
+
+2. people
+people
+──────────────────────────────
+id                    uuid            PK
+name                  text            NOT NULL
+designation           text            NOT NULL            
+role_id               uuid            NOT NULL, FK -> roles.id   ON DELETE RESTRICT
+registration_number   text            NULL UNIQUE
+department            text            NOT NULL
+year                  smallint        NULL for PO (CHECK year IS NULL OR year BETWEEN 1 AND 4)
+unit                  smallint        NOT NULL (CHECK unit BETWEEN 1 AND 7)
+phone                 text            NOT NULL
+email                 text            NOT NULL
+photo_media_id        uuid            NULL for PO (maybe)   ON DELETE SET NULL
+bio                   text            NULL for PO 
+is_active             boolean         DEFAULT true
+created_at            timestamptz     NOT NULL DEFAULT now()
+updated_at            timestamptz     NOT NULL DEFAULT now()
+
+3. Media
+media
+────────────────────────────
+id            uuid            PK    
+file_name     text            NOT NULL UNIQUE
+storage_path  text            NOT NULL UNIQUE
+mime_type     text            NOT NULL
+file_size     bigint          NOT NULL (CHECK file_size > 0)
+width         integer         NULLABLE for PDF (CHECK width is NULL OR width > 0)
+height        integer         NULLABLE for PDF (CHECK height is NULL OR height > 0)
+alt_text      text            NULLABLE
+caption       text            NULLABLE
+created_at    timestamptz     NOT NULL DEFAULT now()
+updated_at    timestamptz     NOT NULL DEFAULT now()
+
+4. Events
+events
+────────────────────────────
+id              uuid        PK  
+title           text        NOT NULL
+description     text        NULL
+event_type      text        NOT NULL
+start_date      date        NOT NULL 
+end_date        date        NOT NULL (CHECK end_date >= start_date)
+cover_media_id  uuid        NULLABLE, FK -> media.id ON DELETE SET NULL
+is_published    boolean     DEFAULT false
+created_at      timestamptz     NOT NULL DEFAULT now()
+updated_at      timestamptz     NOT NULL DEFAULT now()
+
+event_type IN (
+  'camp',
+  'visit',
+  'drive',
+  'awareness',
+  'workshop',
+  'other'
+)
+
+5. Sessions
+sessions
+────────────────────────────
+id                uuid        PK    
+event_id          uuid        NULL, FK -> events.id ON DELETE CASCADE 
+title             text        NOT NULL
+description       text        NULLABLE
+session_date      date        NOT NULL
+start_time        time        NULLABLE
+end_time          time        NULLABLE (CHECK end_time IS NULL
+OR start_time IS NULL
+OR end_time >= start_time)
+location          text        NOT NULL
+display_order     integer     NOT NULL DEFAULT 0
+is_published boolean NOT NULL DEFAULT false
+created_at        timestamptz NOT NULL DEFAULT now()
+updated_at        timestamptz NOT NULL DEFAULT now()
+
+6. Session Units
+session_units
+────────────────
+id          uuid        PK  
+session_id  uuid        NOT NULL, FK -> sessions.id ON DELETE CASCADE (CHECK unit BETWEEN 1 AND 7)
+unit        smallint    NOT NULL
+UNIQUE(session_id, unit)
+
+7. Event Media
+event_media
+────────────────
+id          uuid        PK  
+event_id    uuid        NOT NULL, FK -> events.id   ON DELETE CASCADE
+media_id    uuid        NOT NULL, FK -> media.id    ON DELETE RESTRICT
+display_order  integer     NOT NULL DEFAULT 0
+UNIQUE(event_id, media_id)
+
+8. Session Media
+session_media
+────────────────
+id              uuid        PK  
+session_id      uuid        NOT NULL, FK -> sessions.id ON DELETE CASCADE
+media_id        uuid        NOT NULL, FK -> media.id ON DELETE RESTRICT
+display_order  integer     NOT NULL DEFAULT 0
+UNIQUE(session_id, media_id)
+
+9. Gallery Albums
+gallery_albums
+────────────────────────
+id              uuid        PK      
+title           text        NOT NULL
+description     text        NULLABLE
+cover_media_id  uuid        NULLABLE, FK -> media.id    ON DELETE SET NULL
+event_id        uuid        NULLABLE, FK -> events.id (NULL for generic albums) ON DELETE SET NULL
+is_published    boolean     DEFAULT false
+display_order   integer     NOT NULL DEFAULT 0 
+created_at      timestamptz NOT NULL DEFAULT now()
+updated_at      timestamptz NOT NULL DEFAULT now()
+
+10. Gallery Album Media
+gallery_album_media
+────────────────────────
+id              uuid        PK
+album_id        uuid        NOT NULL, FK -> gallery_albums.id ON DELETE CASCADE
+media_id        uuid        NOT NULL, FK -> media.id    ON DELETE RESTRICT
+display_order   integer     NOT NULL
+UNIQUE(album_id, media_id)
+
+11. Announcements
+announcements
+────────────────────────
+id             uuid        PK
+title          text        NOT NULL
+content        text        NOT NULL
+category       text        NULL
+priority       integer     NOT NULL DEFAULT 0
+published_at   timestamptz NULL ## For draft
+expires_at     timestamptz NULL (CHECK expires_at IS NULL OR published_at IS NULL OR expires_at >= published_at)
+status         text        NOT NULL DEFAULT 'draft'
+event_id       uuid        NULL, FK -> events.id  ON DELETE SET NULL
+created_at     timestamptz NOT NULL DEFAULT now()
+updated_at     timestamptz NOT NULL DEFAULT now()
+
+status IN (
+  'draft',
+  'published',
+  'archived'
+)
+category IN (
+    'general',
+    'event',
+    'registration',
+    'opportunity',
+    'notice',
+    'achievement',
+    'other'
+  )
+
+12. Achievements
+achievements
+────────────────────────
+id              uuid        PK
+title           text        NOT NULL
+description     text        NULL
+achievement_date date       NOT NULL
+category        text        NULL
+media_id        uuid        NULL, FK -> media.id    ON DELETE SET NULL
+person_id       uuid        NULL, FK -> people.id (NULLABLE)   ON DELETE SET NULL
+unit            smallint    NULL (CHECK unit IS NULL OR unit BETWEEN 1 AND 7)
+is_published    boolean     DEFAULT false
+created_at      timestamptz NOT NULL DEFAULT now()
+updated_at      timestamptz NOT NULL DEFAULT now()
+
+13. Reports
+reports
+────────────────────
+id              uuid        PK
+title           text        NOT NULL
+description     text        NULL
+report_year     text        NOT NULL
+unit            smallint    NULL # For Overall NSS Report (CHECK unit IS NULL OR unit BETWEEN 1 AND 7)
+media_id        uuid        NOT NULL, FK -> media.id    ON DELETE RESTRICT
+is_published    boolean     DEFAULT false
+created_at      timestamptz NOT NULL DEFAULT now()
+updated_at      timestamptz NOT NULL DEFAULT now()
+
+14. Site settings
+site_settings
+────────────────────────
+id              uuid        PK
+site_name       text        NOT NULL
+short_name      text        NOT NULL
+description     text        NOT NULL
+email           text        NULL
+phone           text        NULL
+address         text        NULL
+instagram_url   text        NULL
+linkedin_url    text        NULL
+footer_text     text        NULL
+updated_at      timestamptz NOT NULL DEFAULT now()
+
+15. Hero Slides
+hero_slides
+────────────────────────
+id              uuid        PK
+title           text        NOT NULL
+subtitle        text        NOT NULL
+description     text        NULL
+media_id        uuid        NOT NULL, FK -> media.id    ON DELETE RESTRICT
+button_text     text        NULL
+button_url      text        NULL
+start_at        timestamptz NULL
+end_at          timestamptz NULL (CHECK end_at IS NULL OR start_at IS NULL OR end_at > start_at)
+priority        integer     NOT NULL DEFAULT 0
+is_published    boolean     DEFAULT false
+created_at      timestamptz NOT NULL DEFAULT now()
+updated_at      timestamptz NOT NULL DEFAULT now()
+
+16. statistics
+statistics
+────────────────────
+id              uuid        PK
+label           text        NOT NULL
+value           integer     NOT NULL (CHECK value >= 0)
+suffix          text        NULL
+display_order   integer     NOT NULL DEFAULT 0
+is_published    boolean     DEFAULT false
+created_at      timestamptz NOT NULL DEFAULT now()
+updated_at      timestamptz NOT NULL DEFAULT now()
+
+17. Objectives
+objectives
+────────────────────
+id              uuid        PK
+title           text        NOT NULL
+description     text        NULL
+display_order   integer     NOT NULL DEFAULT 0 
+is_published    boolean     DEFAULT false
+created_at      timestamptz NOT NULL DEFAULT now()
+updated_at      timestamptz NOT NULL DEFAULT now()
+
+18. Impact Domains
+impact_domains
+────────────────────
+id              uuid        PK
+title           text        NOT NULL
+description     text        NULL
+icon            text        NULL
+display_order   integer     NOT NULL DEFAULT 0
+is_published    boolean     DEFAULT false
+created_at      timestamptz NOT NULL DEFAULT now()
+updated_at      timestamptz NOT NULL DEFAULT now()
+
+19. Featured Events
+featured_events
+────────────────
+id              uuid        PK
+event_id        uuid        FK -> events.id ON DELETE CASCADE
+display_order   integer     NOT NULL DEFAULT 0
+UNIQUE(event_id)
+
+
+
+INDEXES
+
+People
+people(unit)
+
+Events
+events(start_date)
+# events(end_date)
+# events(is_published)
+# events(event_type)
+
+Sessions
+sessions(event_id)
+sessions(session_date)
+
+Session units
+session_units(unit)
+# session_units(session_id)
+
+# Event Media event_media(event_id)
+# Session Media session_media(session_id)
+
+# Gallery
+# gallery_albums(is_published)
+# gallery_album_media(album_id)
+
+# Announcements
+# announcements(status)
+# announcements(published_at)
+# announcements(expires_at)
+
+Achievements
+achievements(achievement_date)
+# achievements(is_published)
+# achievements(unit)
+
+# Reports
+# reports(is_published)
+# reports(report_year)
+# reports(unit)
+
+# Hero
+# hero_slides(is_published)
+# hero_slides(start_at)
+# hero_slides(end_at)
+# hero_slides(priority)
+
+

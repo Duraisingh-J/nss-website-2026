@@ -1,0 +1,333 @@
+/* ===== DEPTH CAROUSEL CONTAINER ===== */
+.depth-carousel {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  user-select: none;
+}
+
+.depth-carousel__viewport {
+  position: relative;
+  width: 100%;
+  height: 410px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1400px;
+  perspective-origin: center center;
+  overflow: visible;
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+.depth-carousel__viewport:active {
+  cursor: grabbing;
+}
+
+.depth-carousel__stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-style: preserve-3d;
+}
+
+/* ===== CAROUSEL CARD ===== */
+.depth-carousel__card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 285px;
+  height: 370px;
+  margin-top: -185px;
+  margin-left: -142.5px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 14px 34px -4px rgba(15, 23, 42, 0.14),
+              0 4px 12px -2px rgba(15, 23, 42, 0.08);
+  transform-style: preserve-3d;
+  will-change: transform, opacity, filter;
+  transition: box-shadow 0.3s ease;
+  outline: none;
+  cursor: pointer;
+}
+
+.depth-carousel__card--active {
+  box-shadow: 0 22px 50px -8px rgba(15, 23, 42, 0.22),
+              0 8px 22px -4px rgba(217, 75, 75, 0.14);
+  border-color: rgba(217, 75, 75, 0.35);
+  cursor: default;
+}
+
+.depth-carousel__card:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 4px;
+}
+
+/* Card inner image / avatar */
+.depth-carousel__card-media {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, var(--navy) 0%, #1e293b 100%);
+  overflow: hidden;
+}
+
+.depth-carousel__card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  display: block;
+  pointer-events: none;
+}
+
+/* Fallback initials when image is null */
+.depth-carousel__card-initials {
+  font-family: 'Playfair Display', serif;
+  font-size: 64px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.28);
+  letter-spacing: 0.05em;
+  user-select: none;
+  text-align: center;
+  padding: 0 16px;
+}
+
+/* Card badge */
+.depth-carousel__card-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  z-index: 4;
+}
+
+.depth-carousel__card-badge--accent {
+  background: var(--red);
+  border-color: transparent;
+}
+
+/* NSS Navy overlay for depth effect */
+.depth-carousel__card-tint {
+  position: absolute;
+  inset: 0;
+  background: #0F172A;
+  pointer-events: none;
+  z-index: 3;
+  transition: opacity 0.3s ease;
+}
+
+/* Subtle gradient at bottom of card */
+.depth-carousel__card-gradient {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 45%;
+  background: linear-gradient(to top, rgba(15, 23, 42, 0.75) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Bottom card name preview for rear cards */
+.depth-carousel__card-caption {
+  position: absolute;
+  bottom: 12px;
+  left: 14px;
+  right: 14px;
+  z-index: 4;
+  color: #ffffff;
+  pointer-events: none;
+}
+
+.depth-carousel__card-caption-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+}
+
+/* ===== CAROUSEL CONTROLS ===== */
+.depth-carousel__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 10px;
+  z-index: 10;
+}
+
+.depth-carousel__arrow {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1.5px solid var(--border);
+  color: var(--navy);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0;
+}
+
+.depth-carousel__arrow:hover {
+  background: #ffffff;
+  border-color: var(--red);
+  color: var(--red);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 16px rgba(217, 75, 75, 0.16);
+}
+
+.depth-carousel__arrow:active {
+  transform: translateY(0) scale(0.96);
+}
+
+.depth-carousel__arrow:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 3px;
+}
+
+.depth-carousel__arrow svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.2;
+}
+
+/* ===== INDICATORS ===== */
+.depth-carousel__indicators {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.depth-carousel__indicator {
+  height: 7px;
+  width: 7px;
+  border-radius: 4px;
+  background: #CBD5E1;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.depth-carousel__indicator:hover {
+  background: #94A3B8;
+}
+
+.depth-carousel__indicator--active {
+  width: 24px;
+  background: var(--red);
+  box-shadow: 0 1px 4px rgba(217, 75, 75, 0.4);
+}
+
+.depth-carousel__indicator:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 2px;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1024px) {
+  .depth-carousel__viewport {
+    height: 390px;
+    perspective: 1200px;
+  }
+
+  .depth-carousel__card {
+    width: 260px;
+    height: 345px;
+    margin-top: -172.5px;
+    margin-left: -130px;
+  }
+
+  .depth-carousel__card-initials {
+    font-size: 52px;
+  }
+}
+
+@media (max-width: 768px) {
+  .depth-carousel__viewport {
+    height: 375px;
+    perspective: 1100px;
+  }
+
+  .depth-carousel__card {
+    width: 240px;
+    height: 330px;
+    margin-top: -165px;
+    margin-left: -120px;
+  }
+
+  .depth-carousel__controls {
+    gap: 16px;
+    margin-top: 10px;
+  }
+
+  .depth-carousel__arrow {
+    width: 38px;
+    height: 38px;
+  }
+
+  .depth-carousel__card-initials {
+    font-size: 46px;
+  }
+}
+
+@media (max-width: 480px) {
+  .depth-carousel__viewport {
+    height: 370px;
+    perspective: 900px;
+  }
+
+  .depth-carousel__card {
+    width: min(78vw, 280px);
+    height: 345px;
+    margin-top: -172.5px;
+    margin-left: calc(-1 * min(78vw, 280px) / 2);
+  }
+
+  .depth-carousel__card-initials {
+    font-size: 42px;
+  }
+}
+
+/* Accessibility: Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .depth-carousel__card {
+    transition: none !important;
+  }
+  .depth-carousel__indicator {
+    transition: none !important;
+  }
+  .depth-carousel__arrow {
+    transition: none !important;
+  }
+}

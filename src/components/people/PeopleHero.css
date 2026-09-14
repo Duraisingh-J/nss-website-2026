@@ -1,0 +1,110 @@
+.people-hero {
+  background: var(--navy);
+  padding: 68px 5vw 58px;
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.people-hero__watermark {
+  position: absolute;
+  right: 3vw;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(85px, 15vw, 190px);
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.035);
+  user-select: none;
+  line-height: 1;
+  pointer-events: none;
+  letter-spacing: -0.02em;
+  animation: watermarkFadeIn 0.8s ease-out forwards;
+}
+
+.people-hero__inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+}
+
+.people-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(217, 75, 75, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(217, 75, 75, 0.3);
+  border-radius: 9999px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 14px;
+  margin-bottom: 14px;
+  animation: heroFadeUp 0.6s ease-out forwards;
+}
+
+.people-hero__eyebrow-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--red);
+}
+
+.people-hero__title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: clamp(34px, 5.2vw, 54px);
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  margin: 0 0 10px 0;
+  animation: heroFadeUp 0.65s ease-out 0.08s forwards;
+  opacity: 0;
+}
+
+.people-hero__subtitle {
+  font-family: 'DM Sans', sans-serif;
+  font-size: clamp(14.5px, 2vw, 16.5px);
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 520px;
+  line-height: 1.5;
+  margin: 0;
+  animation: heroFadeUp 0.7s ease-out 0.16s forwards;
+  opacity: 0;
+}
+
+@keyframes heroFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes watermarkFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-46%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+@media (max-width: 768px) {
+  .people-hero {
+    padding: 50px 5vw 44px;
+  }
+  .people-hero__watermark {
+    right: -2vw;
+    font-size: 110px;
+  }
+}
