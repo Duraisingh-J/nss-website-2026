@@ -243,23 +243,28 @@ export async function getAdminPeople() {
   return (data || []).map(transformPerson);
 }
 
-/**
- * Fetches roles from roles table
- */
-export async function getRoles() {
-  const { data, error } = await supabase
-    .from("roles")
-    .select("id, name, description, display_order")
-    .order("display_order", { ascending: true });
-
-  if (error) throw error;
-  return data || [];
-}
+export { getRoles } from "./roleService.js";
 
 /**
  * Creates a new Person in Supabase
  */
 export async function createPerson(payload) {
+  let parsedUnit = null;
+  if (payload.unit !== null && payload.unit !== undefined && payload.unit !== "") {
+    parsedUnit = parseInt(payload.unit, 10);
+    if (isNaN(parsedUnit) || parsedUnit < 1 || parsedUnit > 7) {
+      throw new Error("Unit must be between 1 and 7.");
+    }
+  }
+
+  let parsedYear = null;
+  if (payload.year !== null && payload.year !== undefined && payload.year !== "") {
+    parsedYear = parseInt(payload.year, 10);
+    if (isNaN(parsedYear) || parsedYear < 1 || parsedYear > 4) {
+      throw new Error("Year must be between 1 and 4.");
+    }
+  }
+
   const insertData = {
     name: payload.name.trim(),
     designation: payload.designation.trim(),
@@ -267,8 +272,8 @@ export async function createPerson(payload) {
     department: payload.department.trim(),
     phone: payload.phone.trim(),
     email: payload.email.trim(),
-    unit: payload.unit ? parseInt(payload.unit, 10) : null,
-    year: payload.year ? parseInt(payload.year, 10) : null,
+    unit: parsedUnit,
+    year: parsedYear,
     registration_number: payload.registration_number?.trim() || null,
     bio: payload.bio?.trim() || null,
     photo_media_id: payload.photo_media_id || null,
@@ -317,6 +322,22 @@ export async function createPerson(payload) {
  * Updates an existing Person in Supabase
  */
 export async function updatePerson(id, payload) {
+  let parsedUnit = null;
+  if (payload.unit !== null && payload.unit !== undefined && payload.unit !== "") {
+    parsedUnit = parseInt(payload.unit, 10);
+    if (isNaN(parsedUnit) || parsedUnit < 1 || parsedUnit > 7) {
+      throw new Error("Unit must be between 1 and 7.");
+    }
+  }
+
+  let parsedYear = null;
+  if (payload.year !== null && payload.year !== undefined && payload.year !== "") {
+    parsedYear = parseInt(payload.year, 10);
+    if (isNaN(parsedYear) || parsedYear < 1 || parsedYear > 4) {
+      throw new Error("Year must be between 1 and 4.");
+    }
+  }
+
   const updateData = {
     name: payload.name.trim(),
     designation: payload.designation.trim(),
@@ -324,8 +345,8 @@ export async function updatePerson(id, payload) {
     department: payload.department.trim(),
     phone: payload.phone.trim(),
     email: payload.email.trim(),
-    unit: payload.unit ? parseInt(payload.unit, 10) : null,
-    year: payload.year ? parseInt(payload.year, 10) : null,
+    unit: parsedUnit,
+    year: parsedYear,
     registration_number: payload.registration_number?.trim() || null,
     bio: payload.bio?.trim() || null,
     photo_media_id: payload.photo_media_id !== undefined ? payload.photo_media_id : null,

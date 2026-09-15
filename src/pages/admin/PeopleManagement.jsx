@@ -230,6 +230,20 @@ export default function PeopleManagement() {
       setFormError("Email is required by the database.");
       return;
     }
+    if (formData.unit !== "" && formData.unit !== null && formData.unit !== undefined) {
+      const u = parseInt(formData.unit, 10);
+      if (isNaN(u) || u < 1 || u > 7) {
+        setFormError("Unit must be between 1 and 7.");
+        return;
+      }
+    }
+    if (formData.year !== "" && formData.year !== null && formData.year !== undefined) {
+      const y = parseInt(formData.year, 10);
+      if (isNaN(y) || y < 1 || y > 4) {
+        setFormError("Year must be between 1 and 4.");
+        return;
+      }
+    }
 
     setIsSaving(true);
 
@@ -781,7 +795,7 @@ export default function PeopleManagement() {
 
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Leadership Role <span className="text-red-600">*</span>
+                    NSS Role <span className="text-red-600">*</span>
                   </label>
                   <select
                     required

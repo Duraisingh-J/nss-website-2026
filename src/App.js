@@ -14,6 +14,7 @@ import AdminLayout from "./components/admin/AdminLayout";
 import Login from "./pages/admin/Login";
 import Dashboard from "./pages/admin/Dashboard";
 import PeopleManagement from "./pages/admin/PeopleManagement";
+import RoleManagement from "./pages/admin/RoleManagement";
 
 // Render public navbar only for public customer-facing routes
 function AppNavbar() {
@@ -46,6 +47,7 @@ export default function App() {
               <Route index element={<Navigate to="/admin/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="people" element={<PeopleManagement />} />
+              <Route path="roles" element={<RoleManagement />} />
               <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
             </Route>
           </Route>
