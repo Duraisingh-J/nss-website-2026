@@ -32,6 +32,12 @@
 }
 
 /* Admin Sidebar specific dark scrollbar */
+.admin-sidebar-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(71, 85, 105, 0.5) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
 .admin-sidebar-scrollbar::-webkit-scrollbar {
   width: 4px;
 }

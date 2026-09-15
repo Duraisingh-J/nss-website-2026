@@ -16,23 +16,23 @@ export default function AdminLayout() {
       />
 
       {/* Main Content Area (offset left by sidebar width on lg screens) */}
-      <div className="flex-1 flex flex-col min-w-0 lg:pl-72 transition-[padding] duration-300">
+      <div className="flex-1 flex flex-col min-w-0 lg:pl-64 transition-[padding] duration-200">
         {/* Top Navbar */}
         <AdminTopbar onOpenSidebar={() => setIsSidebarOpen(true)} />
 
         {/* Dynamic Page Content */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto admin-custom-scrollbar">
+        <main className="flex-1 p-6 sm:p-8 lg:p-10 max-w-6xl w-full mx-auto admin-custom-scrollbar">
           <Outlet />
         </main>
 
         {/* Admin Footer */}
-        <footer className="border-t border-slate-200 py-3 px-6 text-center text-xs text-slate-500 bg-white">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 max-w-7xl mx-auto">
+        <footer className="border-t border-slate-200 py-3.5 px-6 text-xs text-slate-500 bg-white">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 max-w-6xl mx-auto">
             <span>
-              &copy; {new Date().getFullYear()} National Service Scheme, Madras Institute of Technology, Anna University.
+              &copy; {new Date().getFullYear()} National Service Scheme &bull; Madras Institute of Technology, Anna University.
             </span>
-            <span className="font-mono text-[11px] text-slate-400">
-              CMS Phase 1 &bull; Connected via Supabase RLS
+            <span className="text-[11px] text-slate-400">
+              Chennai &bull; Tamil Nadu
             </span>
           </div>
         </footer>

@@ -3,154 +3,69 @@ import { NavLink, Link } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
+  Shield,
   Calendar,
-  Layers,
+  Clock,
   Megaphone,
+  Award,
+  FileText,
+  Layers,
+  Image as ImageIcon,
   BarChart3,
   Target,
+  Compass,
+  Star,
   Settings,
-  Image as ImageIcon,
-  FileText,
-  Mail,
-  Shield,
-  HardDrive,
+  FolderArchive,
   ExternalLink,
-  ChevronRight,
   X,
-  Sparkles,
 } from "lucide-react";
 
 const navigationGroups = [
   {
     title: "Overview",
     items: [
-      {
-        name: "Dashboard",
-        path: "/admin/dashboard",
-        icon: LayoutDashboard,
-        isReady: true,
-      },
+      { name: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
     ],
   },
   {
-    title: "People Management",
+    title: "People",
     items: [
-      {
-        name: "All People",
-        path: "/admin/people",
-        icon: Users,
-        isReady: false,
-        phase: "Phase 2",
-      },
-      {
-        name: "Categories & Roles",
-        path: "/admin/people-categories",
-        icon: Layers,
-        isReady: false,
-        phase: "Phase 2",
-      },
+      { name: "People", path: "/admin/people", icon: Users },
+      { name: "Roles", path: "/admin/roles", icon: Shield },
     ],
   },
   {
-    title: "Events & Activities",
+    title: "Activities",
     items: [
-      {
-        name: "Events",
-        path: "/admin/events",
-        icon: Calendar,
-        isReady: false,
-        phase: "Phase 3",
-      },
-      {
-        name: "Sessions & Volunteers",
-        path: "/admin/sessions",
-        icon: Layers,
-        isReady: false,
-        phase: "Phase 3",
-      },
+      { name: "Events", path: "/admin/events", icon: Calendar },
+      { name: "Sessions", path: "/admin/sessions", icon: Clock },
     ],
   },
   {
-    title: "Content & Objectives",
+    title: "Content",
     items: [
-      {
-        name: "Announcements",
-        path: "/admin/announcements",
-        icon: Megaphone,
-        isReady: false,
-        phase: "Phase 4",
-      },
-      {
-        name: "Statistics",
-        path: "/admin/statistics",
-        icon: BarChart3,
-        isReady: false,
-        phase: "Phase 4",
-      },
-      {
-        name: "Site Objectives",
-        path: "/admin/objectives",
-        icon: Target,
-        isReady: false,
-        phase: "Phase 4",
-      },
-      {
-        name: "Site Settings",
-        path: "/admin/settings",
-        icon: Settings,
-        isReady: false,
-        phase: "Phase 4",
-      },
+      { name: "Announcements", path: "/admin/announcements", icon: Megaphone },
+      { name: "Achievements", path: "/admin/achievements", icon: Award },
+      { name: "Reports", path: "/admin/reports", icon: FileText },
     ],
   },
   {
-    title: "Media & Records",
+    title: "Website",
     items: [
-      {
-        name: "Gallery Albums",
-        path: "/admin/gallery",
-        icon: ImageIcon,
-        isReady: false,
-        phase: "Phase 5",
-      },
-      {
-        name: "Annual Reports",
-        path: "/admin/reports",
-        icon: FileText,
-        isReady: false,
-        phase: "Phase 5",
-      },
+      { name: "Hero Slides", path: "/admin/hero-slides", icon: Layers },
+      { name: "Gallery", path: "/admin/gallery", icon: ImageIcon },
+      { name: "Statistics", path: "/admin/statistics", icon: BarChart3 },
+      { name: "Objectives", path: "/admin/objectives", icon: Target },
+      { name: "Impact Domains", path: "/admin/impact-domains", icon: Compass },
+      { name: "Featured Events", path: "/admin/featured-events", icon: Star },
+      { name: "Site Settings", path: "/admin/settings", icon: Settings },
     ],
   },
   {
-    title: "Communications",
+    title: "Media",
     items: [
-      {
-        name: "Contact Messages",
-        path: "/admin/messages",
-        icon: Mail,
-        isReady: false,
-        phase: "Phase 5",
-      },
-    ],
-  },
-  {
-    title: "System & Storage",
-    items: [
-      {
-        name: "Admin Users",
-        path: "/admin/users",
-        icon: Shield,
-        isReady: false,
-        phase: "Phase 6",
-      },
-      {
-        name: "Storage Buckets",
-        path: "/admin/storage",
-        icon: HardDrive,
-        isReady: false,
-        phase: "Phase 6",
-      },
+      { name: "Media Library", path: "/admin/media", icon: FolderArchive },
     ],
   },
 ];
@@ -161,34 +76,31 @@ export default function AdminSidebar({ isOpen, onClose }) {
       {/* Mobile Backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 bg-slate-950/50 z-40 lg:hidden"
           onClick={onClose}
           aria-hidden="true"
         />
       )}
 
-      {/* Sidebar Panel */}
+      {/* Sidebar Container */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 w-72 bg-slate-900 border-r border-slate-800/80 flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 flex flex-col h-screen h-[100dvh] transition-transform duration-200 ease-in-out lg:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {/* Brand Header */}
-        <div className="h-16 flex items-center justify-between px-5 border-b border-slate-800 bg-slate-950/40">
+        {/* Institutional Branding Header */}
+        <div className="h-16 shrink-0 flex items-center justify-between px-5 border-b border-slate-800">
           <Link
             to="/admin/dashboard"
-            className="flex items-center space-x-3 group"
+            className="flex items-center space-x-3"
             onClick={onClose}
           >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-600 to-rose-700 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-red-950/50 group-hover:scale-105 transition-transform">
+            <div className="w-8 h-8 rounded-md bg-red-700 flex items-center justify-center text-white font-bold text-xs">
               NSS
             </div>
             <div>
-              <div className="text-sm font-semibold text-white tracking-wide flex items-center gap-1.5 font-serif">
-                <span>NSS MIT CMS</span>
-                <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-red-950/80 text-red-400 border border-red-800/50">
-                  Admin
-                </span>
+              <div className="text-sm font-semibold text-white tracking-wide">
+                NSS MIT CMS
               </div>
               <div className="text-[11px] text-slate-400">
                 Anna University, Chennai
@@ -200,81 +112,56 @@ export default function AdminSidebar({ isOpen, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="lg:hidden p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+            className="lg:hidden p-1.5 text-slate-400 hover:text-white rounded-md transition-colors"
             aria-label="Close sidebar"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Navigation List */}
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 admin-sidebar-scrollbar">
+        {/* Navigation Menu (Independently scrollable) */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-4 admin-sidebar-scrollbar overscroll-contain">
           {navigationGroups.map((group) => (
-            <div key={group.title} className="space-y-1">
-              <div className="px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400 font-mono">
+            <div key={group.title}>
+              <div className="px-2.5 text-[11px] font-medium uppercase tracking-wider text-slate-400 mb-1">
                 {group.title}
               </div>
-              <div className="space-y-0.5 pt-1">
+              <nav className="space-y-0.5">
                 {group.items.map((item) => {
                   const Icon = item.icon;
-                  if (item.isReady) {
-                    return (
-                      <NavLink
-                        key={item.name}
-                        to={item.path}
-                        onClick={onClose}
-                        className={({ isActive }) =>
-                          `flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                            isActive
-                              ? "bg-red-600/15 text-red-400 border-l-2 border-red-500 font-semibold"
-                              : "text-slate-300 hover:bg-slate-800/70 hover:text-white"
-                          }`
-                        }
-                      >
-                        <div className="flex items-center space-x-2.5">
-                          <Icon className="w-4 h-4 text-slate-400 group-hover:text-white" />
-                          <span>{item.name}</span>
-                        </div>
-                        <ChevronRight className="w-3.5 h-3.5 opacity-40" />
-                      </NavLink>
-                    );
-                  }
-
-                  // Non-ready item (Upcoming Phase)
                   return (
-                    <div
+                    <NavLink
                       key={item.name}
-                      className="flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 cursor-not-allowed select-none opacity-85 hover:bg-slate-800/30 transition-colors"
-                      title={`${item.name} (Scheduled in ${item.phase})`}
+                      to={item.path}
+                      onClick={onClose}
+                      className={({ isActive }) =>
+                        `flex items-center space-x-2.5 px-2.5 py-1.5 rounded-md text-xs transition-colors ${
+                          isActive
+                            ? "bg-slate-800 text-white font-medium border-l-2 border-red-600 pl-2"
+                            : "text-slate-300 hover:text-white hover:bg-slate-800/60"
+                        }`
+                      }
                     >
-                      <div className="flex items-center space-x-2.5">
-                        <Icon className="w-4 h-4 text-slate-400" />
-                        <span>{item.name}</span>
-                      </div>
-                      <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-300 border border-slate-700/50">
-                        {item.phase}
-                      </span>
-                    </div>
+                      <Icon className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span className="leading-snug">{item.name}</span>
+                    </NavLink>
                   );
                 })}
-              </div>
+              </nav>
             </div>
           ))}
         </div>
 
-        {/* Footer / Quick Public Site link */}
-        <div className="p-3 border-t border-slate-800/90 bg-slate-950/30">
+        {/* Footer: View Public Website */}
+        <div className="shrink-0 p-3 border-t border-slate-800">
           <a
             href="/"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors group"
+            className="flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors"
           >
-            <div className="flex items-center space-x-2">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>View Public Website</span>
-            </div>
-            <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-300" />
+            <span>View Website</span>
+            <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
           </a>
         </div>
       </aside>
