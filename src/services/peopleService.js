@@ -1,4 +1,7 @@
 import { supabase } from "../lib/supabase.js";
+import { uploadMedia, getMediaPublicUrl } from "./mediaService.js";
+
+export { getMediaPublicUrl };
 
 /**
  * Maps numeric unit (1-7) to Roman numeral unit string ("Unit I" - "Unit VII")
@@ -41,20 +44,6 @@ export function getInitials(name) {
   if (parts.length === 0) return "NSS";
   if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-/**
- * Resolves a public URL for a storage path in the public-media bucket
- */
-export function getMediaPublicUrl(storagePath) {
-  if (!storagePath) return null;
-  if (storagePath.startsWith("http://") || storagePath.startsWith("https://")) {
-    return storagePath;
-  }
-  const { data } = supabase.storage
-    .from("public-media")
-    .getPublicUrl(storagePath);
-  return data?.publicUrl || null;
 }
 
 /**
@@ -422,44 +411,15 @@ export async function togglePersonStatus(id, isActive) {
 }
 
 /**
- * Uploads a photo to Supabase Storage 'public-media' bucket and creates a row in 'media' table
+ * Uploads a person's photo using the centralized image optimization & media pipeline
  */
-export async function uploadPersonPhoto(file) {
+export async function uploadPersonPhoto(file, personId = null) {
   if (!file) return null;
-  const fileExt = file.name.split(".").pop();
-  const fileName = `person-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
-  const storagePath = `people/${fileName}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("public-media")
-    .upload(storagePath, file, {
-      contentType: file.type || "image/jpeg",
-      upsert: false,
-    });
-
-  if (uploadError) throw uploadError;
-
-  const { data: mediaRow, error: mediaError } = await supabase
-    .from("media")
-    .insert({
-      file_name: fileName,
-      storage_path: storagePath,
-      mime_type: file.type || "image/jpeg",
-      file_size: file.size || 1024,
-      alt_text: file.name,
-    })
-    .select("id, storage_path, file_name")
-    .single();
-
-  if (mediaError) throw mediaError;
-
-  const { data: { publicUrl } } = supabase.storage
-    .from("public-media")
-    .getPublicUrl(storagePath);
-
-  return {
-    id: mediaRow.id,
-    storagePath: mediaRow.storage_path,
-    publicUrl,
-  };
+  return uploadMedia(file, {
+    folder: "people",
+    entityId: personId,
+    altText: file.name,
+    quality: 0.85,
+    maxDimension: 2400,
+  });
 }

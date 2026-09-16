@@ -8,6 +8,7 @@ import {
   togglePersonStatus,
   uploadPersonPhoto,
 } from "../../services/peopleService.js";
+import { validateImageFile } from "../../utils/imageOptimizer.js";
 import {
   Plus,
   Search,
@@ -172,22 +173,17 @@ export default function PeopleManagement() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      setFormError("Please select a valid image file (JPEG, PNG, WebP).");
-      return;
+    try {
+      validateImageFile(file);
+      setPhotoFile(file);
+      setFormData((prev) => ({
+        ...prev,
+        photo_preview: URL.createObjectURL(file),
+      }));
+      setFormError(null);
+    } catch (err) {
+      setFormError(err.message || "Please select a valid image file (JPEG, PNG, WebP).");
     }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setFormError("Image file size must be less than 5MB.");
-      return;
-    }
-
-    setPhotoFile(file);
-    setFormData((prev) => ({
-      ...prev,
-      photo_preview: URL.createObjectURL(file),
-    }));
-    setFormError(null);
   };
 
   // Remove selected photo
