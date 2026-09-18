@@ -1,39 +1,35 @@
 import { supabase } from "../lib/supabase.js";
 
 /**
- * Session Types supported by NSS Admin CMS
+ * Formats time string (e.g. "10:00:00" or "10:00" -> "10:00 AM")
  */
-export const SESSION_TYPES = [
-  { value: "lecture", label: "Lecture" },
-  { value: "workshop", label: "Workshop" },
-  { value: "training", label: "Training" },
-  { value: "activity", label: "Activity" },
-  { value: "discussion", label: "Discussion" },
-  { value: "ceremony", label: "Ceremony" },
-  { value: "break", label: "Break" },
-  { value: "other", label: "Other" },
-];
+export function formatTimeDisplay(timeStr) {
+  if (!timeStr) return "";
+  if (timeStr.toLowerCase().includes("am") || timeStr.toLowerCase().includes("pm")) {
+    return timeStr;
+  }
+  const parts = timeStr.split(":");
+  if (parts.length < 2) return timeStr;
+
+  let hours = parseInt(parts[0], 10);
+  const minutes = parts[1];
+  if (isNaN(hours)) return timeStr;
+
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+
+  return `${hours}:${minutes} ${ampm}`;
+}
 
 /**
- * CMS Status Options
+ * Calculates readable duration between start_time and end_time
  */
-export const STATUS_OPTIONS = [
-  { value: "draft", label: "Draft" },
-  { value: "published", label: "Published" },
-  { value: "archived", label: "Archived" },
-];
-
-/**
- * Calculates readable duration between start and end dates/times
- */
-export function calculateDuration(startDateStr, startTimeStr, endDateStr, endTimeStr) {
+export function calculateDuration(startDateStr, startTimeStr, endTimeStr) {
   if (!startDateStr || !startTimeStr || !endTimeStr) return "—";
 
-  const sDate = startDateStr;
-  const eDate = endDateStr || startDateStr;
-
-  const startIso = `${sDate}T${startTimeStr.length === 5 ? startTimeStr + ":00" : startTimeStr}`;
-  const endIso = `${eDate}T${endTimeStr.length === 5 ? endTimeStr + ":00" : endTimeStr}`;
+  const startIso = `${startDateStr}T${startTimeStr.length === 5 ? startTimeStr + ":00" : startTimeStr}`;
+  const endIso = `${startDateStr}T${endTimeStr.length === 5 ? endTimeStr + ":00" : endTimeStr}`;
 
   const startDT = new Date(startIso);
   const endDT = new Date(endIso);
@@ -60,24 +56,17 @@ export function calculateDuration(startDateStr, startTimeStr, endDateStr, endTim
  * Calculates timing status (Upcoming, Ongoing, Completed)
  */
 export function getSessionTimingStatus(session) {
-  if (!session) return "Upcoming";
+  if (!session || !session.session_date) return "Upcoming";
 
   const now = new Date();
-
-  const startDateStr = session.session_date || session.start_date;
-  if (!startDateStr) return "Upcoming";
+  const startDateStr = session.session_date;
 
   const startTimeStr = session.start_time || "00:00:00";
-  const startIso = startDateStr.includes("T")
-    ? startDateStr
-    : `${startDateStr}T${startTimeStr.length === 5 ? startTimeStr + ":00" : startTimeStr}`;
+  const startIso = `${startDateStr}T${startTimeStr.length === 5 ? startTimeStr + ":00" : startTimeStr}`;
   const startDateTime = new Date(startIso);
 
-  const endDateStr = session.end_date || startDateStr;
   const endTimeStr = session.end_time || "23:59:59";
-  const endIso = endDateStr.includes("T")
-    ? endDateStr
-    : `${endDateStr}T${endTimeStr.length === 5 ? endTimeStr + ":00" : endTimeStr}`;
+  const endIso = `${startDateStr}T${endTimeStr.length === 5 ? endTimeStr + ":00" : endTimeStr}`;
   const endDateTime = new Date(endIso);
 
   if (isNaN(startDateTime.getTime())) return "Upcoming";
@@ -92,38 +81,23 @@ export function getSessionTimingStatus(session) {
 }
 
 /**
- * Formats session type label nicely
- */
-export function formatSessionTypeLabel(type) {
-  if (!type) return "Activity";
-  const found = SESSION_TYPES.find((t) => t.value.toLowerCase() === type.toLowerCase());
-  if (found) return found.label;
-  return type.charAt(0).toUpperCase() + type.slice(1);
-}
-
-/**
- * Transforms raw Supabase row into clean UI object
+ * Transforms raw Supabase row into clean UI object strictly using real database schema
  */
 export function transformSession(row) {
   if (!row) return null;
 
-  const isPublished = Boolean(row.is_published || row.status === "published");
-  let status = row.status || (isPublished ? "published" : "draft");
-  if (row.status === "archived") status = "archived";
-
-  const startDate = row.session_date || (row.start_datetime ? row.start_datetime.split("T")[0] : "");
-  const endDate = row.end_date || startDate;
+  const isPublished = Boolean(row.is_published);
+  const startDate = row.session_date || "";
   const startTime = row.start_time || "10:00";
   const endTime = row.end_time || "11:30";
 
   const timingStatus = getSessionTimingStatus({
     session_date: startDate,
     start_time: startTime,
-    end_date: endDate,
     end_time: endTime,
   });
 
-  const durationText = calculateDuration(startDate, startTime, endDate, endTime);
+  const durationText = calculateDuration(startDate, startTime, endTime);
 
   return {
     id: row.id,
@@ -133,38 +107,38 @@ export function transformSession(row) {
     event_end_date: row.events?.end_date || null,
     title: row.title || "Untitled Session",
     description: row.description || "",
-    session_type: row.session_type || "activity",
-    sessionTypeLabel: formatSessionTypeLabel(row.session_type || "activity"),
     session_date: startDate,
-    start_date: startDate,
     start_time: startTime,
-    end_date: endDate,
     end_time: endTime,
     durationText: durationText,
     location: row.location || "NSS Campus",
-    session_lead: row.session_lead || "",
-    speaker: row.speaker || "",
-    registration_url: row.registration_url || "",
-    max_participants: row.max_participants || "",
-    additional_information: row.additional_information || "",
-    status: status,
     is_published: isPublished,
     timingStatus: timingStatus,
     display_order: row.display_order ?? 0,
     created_at: row.created_at,
     updated_at: row.updated_at,
-    rawEvent: row.events,
   };
 }
 
 /**
- * Fetch all sessions for Admin CMS
+ * Fetch all sessions from Supabase with relational events join
  */
 export async function getAdminSessions() {
   const { data, error } = await supabase
     .from("sessions")
     .select(`
-      *,
+      id,
+      event_id,
+      title,
+      description,
+      session_date,
+      start_time,
+      end_time,
+      location,
+      is_published,
+      display_order,
+      created_at,
+      updated_at,
       events:event_id (
         id,
         title,
@@ -176,14 +150,14 @@ export async function getAdminSessions() {
 
   if (error) {
     console.error("Error fetching admin sessions:", error.message);
-    throw new Error(`Unable to fetch sessions from Supabase: ${error.message}`);
+    throw new Error(`Unable to fetch sessions from database: ${error.message}`);
   }
 
   return (data || []).map(transformSession);
 }
 
 /**
- * Fetch lightweight list of all events for dropdown selection
+ * Fetch list of events for parent event selection dropdown
  */
 export async function getEventsList() {
   const { data, error } = await supabase
@@ -200,39 +174,38 @@ export async function getEventsList() {
 }
 
 /**
- * Create a new Session in Supabase
+ * Create a new Session in Supabase using ONLY existing columns
  */
 export async function createSession(sessionData) {
-  const isPublished = sessionData.status === "published";
-
   const payload = {
     event_id: sessionData.event_id || null,
     title: sessionData.title.trim(),
     description: sessionData.description ? sessionData.description.trim() : null,
-    session_date: sessionData.start_date || sessionData.session_date,
+    session_date: sessionData.session_date,
     start_time: sessionData.start_time || "10:00:00",
     end_time: sessionData.end_time || "11:30:00",
     location: sessionData.location ? sessionData.location.trim() : "NSS Campus",
-    is_published: isPublished,
+    is_published: Boolean(sessionData.is_published),
+    display_order: parseInt(sessionData.display_order, 10) || 0,
     updated_at: new Date().toISOString(),
   };
 
-  const extendedPayload = {
-    ...payload,
-    session_type: sessionData.session_type || "activity",
-    status: sessionData.status || (isPublished ? "published" : "draft"),
-    session_lead: sessionData.session_lead ? sessionData.session_lead.trim() : null,
-    speaker: sessionData.speaker ? sessionData.speaker.trim() : null,
-    registration_url: sessionData.registration_url ? sessionData.registration_url.trim() : null,
-    max_participants: sessionData.max_participants ? parseInt(sessionData.max_participants, 10) || null : null,
-    additional_information: sessionData.additional_information ? sessionData.additional_information.trim() : null,
-  };
-
-  let { data, error } = await supabase
+  const { data, error } = await supabase
     .from("sessions")
-    .insert(extendedPayload)
+    .insert(payload)
     .select(`
-      *,
+      id,
+      event_id,
+      title,
+      description,
+      session_date,
+      start_time,
+      end_time,
+      location,
+      is_published,
+      display_order,
+      created_at,
+      updated_at,
       events:event_id (
         id,
         title,
@@ -241,26 +214,6 @@ export async function createSession(sessionData) {
       )
     `)
     .single();
-
-  if (error && (error.code === "42703" || error.message?.includes("does not exist"))) {
-    console.warn("Retrying session insert with standard database columns...", error.message);
-    const retryResult = await supabase
-      .from("sessions")
-      .insert(payload)
-      .select(`
-        *,
-        events:event_id (
-          id,
-          title,
-          start_date,
-          end_date
-        )
-      `)
-      .single();
-
-    data = retryResult.data;
-    error = retryResult.error;
-  }
 
   if (error) {
     console.error("Error creating session:", error.message);
@@ -271,42 +224,41 @@ export async function createSession(sessionData) {
 }
 
 /**
- * Update an existing Session in Supabase
+ * Update an existing Session in Supabase using ONLY existing columns
  */
 export async function updateSession(sessionId, sessionData) {
   if (!sessionId) throw new Error("Session ID is required for update.");
-
-  const isPublished = sessionData.status === "published";
 
   const payload = {
     event_id: sessionData.event_id || null,
     title: sessionData.title.trim(),
     description: sessionData.description ? sessionData.description.trim() : null,
-    session_date: sessionData.start_date || sessionData.session_date,
+    session_date: sessionData.session_date,
     start_time: sessionData.start_time || "10:00:00",
     end_time: sessionData.end_time || "11:30:00",
     location: sessionData.location ? sessionData.location.trim() : "NSS Campus",
-    is_published: isPublished,
+    is_published: Boolean(sessionData.is_published),
+    display_order: parseInt(sessionData.display_order, 10) || 0,
     updated_at: new Date().toISOString(),
   };
 
-  const extendedPayload = {
-    ...payload,
-    session_type: sessionData.session_type || "activity",
-    status: sessionData.status || (isPublished ? "published" : "draft"),
-    session_lead: sessionData.session_lead ? sessionData.session_lead.trim() : null,
-    speaker: sessionData.speaker ? sessionData.speaker.trim() : null,
-    registration_url: sessionData.registration_url ? sessionData.registration_url.trim() : null,
-    max_participants: sessionData.max_participants ? parseInt(sessionData.max_participants, 10) || null : null,
-    additional_information: sessionData.additional_information ? sessionData.additional_information.trim() : null,
-  };
-
-  let { data, error } = await supabase
+  const { data, error } = await supabase
     .from("sessions")
-    .update(extendedPayload)
+    .update(payload)
     .eq("id", sessionId)
     .select(`
-      *,
+      id,
+      event_id,
+      title,
+      description,
+      session_date,
+      start_time,
+      end_time,
+      location,
+      is_published,
+      display_order,
+      created_at,
+      updated_at,
       events:event_id (
         id,
         title,
@@ -315,27 +267,6 @@ export async function updateSession(sessionId, sessionData) {
       )
     `)
     .single();
-
-  if (error && (error.code === "42703" || error.message?.includes("does not exist"))) {
-    console.warn("Retrying session update with standard database columns...", error.message);
-    const retryResult = await supabase
-      .from("sessions")
-      .update(payload)
-      .eq("id", sessionId)
-      .select(`
-        *,
-        events:event_id (
-          id,
-          title,
-          start_date,
-          end_date
-        )
-      `)
-      .single();
-
-    data = retryResult.data;
-    error = retryResult.error;
-  }
 
   if (error) {
     console.error("Error updating session:", error.message);
@@ -348,27 +279,31 @@ export async function updateSession(sessionId, sessionData) {
 /**
  * Toggle Session Publish Status
  */
-export async function toggleSessionPublishStatus(sessionId, newStatus) {
+export async function toggleSessionPublishStatus(sessionId, isPublished) {
   if (!sessionId) throw new Error("Session ID required.");
 
-  const isPublished = newStatus === "published";
-
   const payload = {
-    is_published: isPublished,
+    is_published: Boolean(isPublished),
     updated_at: new Date().toISOString(),
   };
 
-  const extendedPayload = {
-    ...payload,
-    status: newStatus,
-  };
-
-  let { data, error } = await supabase
+  const { data, error } = await supabase
     .from("sessions")
-    .update(extendedPayload)
+    .update(payload)
     .eq("id", sessionId)
     .select(`
-      *,
+      id,
+      event_id,
+      title,
+      description,
+      session_date,
+      start_time,
+      end_time,
+      location,
+      is_published,
+      display_order,
+      created_at,
+      updated_at,
       events:event_id (
         id,
         title,
@@ -377,26 +312,6 @@ export async function toggleSessionPublishStatus(sessionId, newStatus) {
       )
     `)
     .single();
-
-  if (error && (error.code === "42703" || error.message?.includes("does not exist"))) {
-    const retryResult = await supabase
-      .from("sessions")
-      .update(payload)
-      .eq("id", sessionId)
-      .select(`
-        *,
-        events:event_id (
-          id,
-          title,
-          start_date,
-          end_date
-        )
-      `)
-      .single();
-
-    data = retryResult.data;
-    error = retryResult.error;
-  }
 
   if (error) {
     console.error("Error toggling session publish status:", error.message);

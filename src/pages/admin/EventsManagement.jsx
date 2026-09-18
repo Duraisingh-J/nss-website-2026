@@ -6,9 +6,7 @@ import {
   deleteEvent,
   toggleEventPublishStatus,
   EVENT_TYPES,
-  STATUS_OPTIONS,
   formatDateDisplay,
-  formatTimeDisplay,
 } from "../../services/eventService.js";
 import { validateImageFile } from "../../utils/imageOptimizer.js";
 import {
@@ -23,11 +21,8 @@ import {
   AlertCircle,
   RefreshCw,
   Calendar,
-  Clock,
-  MapPin,
   Eye,
   MoreVertical,
-  ExternalLink,
   Filter,
   RotateCcw,
   Check,
@@ -48,17 +43,8 @@ const INITIAL_FORM_STATE = {
   description: "",
   event_type: "event",
   start_date: new Date().toISOString().split("T")[0],
-  start_time: "10:00",
   end_date: new Date().toISOString().split("T")[0],
-  end_time: "13:00",
-  location: "NSS Campus",
-  status: "draft",
-  organizer: "NSS MIT Unit",
-  registration_url: "",
-  contact_email: "",
-  contact_phone: "",
-  max_participants: "",
-  additional_information: "",
+  is_published: false,
   cover_media_id: null,
   cover_image_url: null,
 };
@@ -153,8 +139,8 @@ export default function EventsManagement() {
 
     events.forEach((ev) => {
       if (ev.timingStatus === "Upcoming") upcoming++;
-      if (ev.is_published || ev.status === "published") published++;
-      if (ev.status === "draft" || (!ev.is_published && ev.status !== "archived")) drafts++;
+      if (ev.is_published) published++;
+      else drafts++;
     });
 
     return { total, upcoming, published, drafts };
@@ -168,18 +154,15 @@ export default function EventsManagement() {
         const q = searchQuery.toLowerCase();
         const matchesTitle = event.title?.toLowerCase().includes(q);
         const matchesDesc = event.description?.toLowerCase().includes(q);
-        const matchesLoc = event.location?.toLowerCase().includes(q);
-        const matchesOrg = event.organizer?.toLowerCase().includes(q);
-        if (!matchesTitle && !matchesDesc && !matchesLoc && !matchesOrg) {
+        if (!matchesTitle && !matchesDesc) {
           return false;
         }
       }
 
       // Status filter
       if (statusFilter !== "all") {
-        if (statusFilter === "published" && !event.is_published && event.status !== "published") return false;
-        if (statusFilter === "draft" && event.status !== "draft" && event.is_published) return false;
-        if (statusFilter === "archived" && event.status !== "archived") return false;
+        if (statusFilter === "published" && !event.is_published) return false;
+        if (statusFilter === "draft" && event.is_published) return false;
       }
 
       // Event Type filter
@@ -187,7 +170,7 @@ export default function EventsManagement() {
         return false;
       }
 
-      // Date / Timing filter
+      // Timing filter
       if (dateFilter !== "all" && event.timingStatus !== dateFilter) {
         return false;
       }
@@ -235,17 +218,8 @@ export default function EventsManagement() {
       description: event.description || "",
       event_type: event.event_type || "event",
       start_date: event.start_date || new Date().toISOString().split("T")[0],
-      start_time: event.start_time || "10:00",
-      end_date: event.end_date || new Date().toISOString().split("T")[0],
-      end_time: event.end_time || "13:00",
-      location: event.location || "",
-      status: event.status || (event.is_published ? "published" : "draft"),
-      organizer: event.organizer || "",
-      registration_url: event.registration_url || "",
-      contact_email: event.contact_email || "",
-      contact_phone: event.contact_phone || "",
-      max_participants: event.max_participants ? String(event.max_participants) : "",
-      additional_information: event.additional_information || "",
+      end_date: event.end_date || event.start_date || new Date().toISOString().split("T")[0],
+      is_published: Boolean(event.is_published),
       cover_media_id: event.cover_media_id || null,
       cover_image_url: event.cover_image_url || null,
     });
@@ -287,58 +261,23 @@ export default function EventsManagement() {
       errors.title = "Title cannot exceed 150 characters.";
     }
 
-    if (!formData.description.trim()) {
-      errors.description = "Event description is required.";
-    }
-
     if (!formData.start_date) {
       errors.start_date = "Start date is required.";
-    }
-
-    if (!formData.start_time) {
-      errors.start_time = "Start time is required.";
     }
 
     if (!formData.end_date) {
       errors.end_date = "End date is required.";
     }
 
-    if (!formData.end_time) {
-      errors.end_time = "End time is required.";
-    }
-
     // Date range validation
     if (formData.start_date && formData.end_date) {
-      const startDateTimeStr = `${formData.start_date}T${formData.start_time || "00:00"}`;
-      const endDateTimeStr = `${formData.end_date}T${formData.end_time || "23:59"}`;
-      const startDT = new Date(startDateTimeStr);
-      const endDT = new Date(endDateTimeStr);
-
-      if (endDT < startDT) {
-        errors.end_date = "End date & time cannot be before start date & time.";
+      if (formData.end_date < formData.start_date) {
+        errors.end_date = "End date cannot be before start date.";
       }
-    }
-
-    if (!formData.location.trim()) {
-      errors.location = "Location is required.";
     }
 
     if (!formData.event_type) {
       errors.event_type = "Event type is required.";
-    }
-
-    if (!formData.status) {
-      errors.status = "Status is required.";
-    }
-
-    if (formData.registration_url.trim()) {
-      try {
-        const urlStr = formData.registration_url.trim();
-        const url = new URL(urlStr.startsWith("http") ? urlStr : `https://${urlStr}`);
-        if (!url.hostname) errors.registration_url = "Please enter a valid URL.";
-      } catch (e) {
-        errors.registration_url = "Please enter a valid web URL (e.g. https://forms.gle/...)";
-      }
     }
 
     setFieldErrors(errors);
@@ -376,13 +315,13 @@ export default function EventsManagement() {
   // Toggle Publish / Unpublish Status
   const handleTogglePublish = async (event) => {
     setActiveMenuId(null);
-    const nextStatus = event.is_published ? "draft" : "published";
+    const nextPublished = !event.is_published;
 
     try {
-      const updated = await toggleEventPublishStatus(event.id, nextStatus);
+      const updated = await toggleEventPublishStatus(event.id, nextPublished);
       setEvents((prev) => prev.map((item) => (item.id === event.id ? updated : item)));
       setSuccessNotice(
-        nextStatus === "published"
+        nextPublished
           ? `Event "${event.title}" published successfully.`
           : `Event "${event.title}" unpublished.`
       );
@@ -575,9 +514,8 @@ export default function EventsManagement() {
                 className="text-xs bg-slate-50 border border-slate-200 text-slate-700 rounded-md px-2.5 py-1.5 pr-7 focus:outline-hidden focus:border-slate-400 appearance-none cursor-pointer"
               >
                 <option value="all">Status: All</option>
-                <option value="draft">Status: Draft</option>
                 <option value="published">Status: Published</option>
-                <option value="archived">Status: Archived</option>
+                <option value="draft">Status: Draft</option>
               </select>
               <Filter className="w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             </div>
@@ -599,7 +537,7 @@ export default function EventsManagement() {
               <Filter className="w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             </div>
 
-            {/* Date / Timing Filter */}
+            {/* Timing Filter */}
             <div className="relative">
               <select
                 value={dateFilter}
@@ -698,9 +636,8 @@ export default function EventsManagement() {
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                     <th className="py-3 px-4 min-w-[240px]">Event</th>
-                    <th className="py-3 px-4 min-w-[160px]">Date & Time</th>
-                    <th className="py-3 px-4 min-w-[140px]">Location</th>
-                    <th className="py-3 px-4 min-w-[100px]">Type</th>
+                    <th className="py-3 px-4 min-w-[160px]">Dates</th>
+                    <th className="py-3 px-4 min-w-[110px]">Type</th>
                     <th className="py-3 px-4 min-w-[140px]">Status</th>
                     <th className="py-3 px-4 min-w-[100px]">Created</th>
                     <th className="py-3 px-4 text-right min-w-[100px]">Actions</th>
@@ -739,7 +676,7 @@ export default function EventsManagement() {
                         </div>
                       </td>
 
-                      {/* Date & Time */}
+                      {/* Dates */}
                       <td className="py-3 px-4 whitespace-nowrap">
                         <div className="font-medium text-slate-800">
                           {formatDateDisplay(ev.start_date)}
@@ -748,21 +685,6 @@ export default function EventsManagement() {
                               {" "}– {formatDateDisplay(ev.end_date)}
                             </span>
                           )}
-                        </div>
-                        <div className="text-[11px] text-slate-500 mt-0.5 flex items-center space-x-1">
-                          <Clock className="w-3 h-3 text-slate-400 shrink-0" />
-                          <span>
-                            {formatTimeDisplay(ev.start_time)}
-                            {ev.end_time ? ` – ${formatTimeDisplay(ev.end_time)}` : ""}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Location */}
-                      <td className="py-3 px-4">
-                        <div className="flex items-center space-x-1 text-slate-700 truncate max-w-[140px]" title={ev.location}>
-                          <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span className="truncate">{ev.location}</span>
                         </div>
                       </td>
 
@@ -773,15 +695,10 @@ export default function EventsManagement() {
                         </span>
                       </td>
 
-                      {/* Status Badges (CMS Status + Timing) */}
+                      {/* Status Badges */}
                       <td className="py-3 px-4 whitespace-nowrap">
                         <div className="flex flex-col gap-1 items-start">
-                          {/* CMS Status */}
-                          {ev.status === "archived" ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
-                              Archived
-                            </span>
-                          ) : ev.is_published || ev.status === "published" ? (
+                          {ev.is_published ? (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
                               Published
                             </span>
@@ -791,7 +708,6 @@ export default function EventsManagement() {
                             </span>
                           )}
 
-                          {/* Secondary Timing Indicator */}
                           <span
                             className={`inline-flex items-center text-[10px] font-medium ${
                               ev.timingStatus === "Upcoming"
@@ -811,7 +727,7 @@ export default function EventsManagement() {
                         {formatDateDisplay(ev.created_at)}
                       </td>
 
-                      {/* Row Actions Menu */}
+                      {/* Actions */}
                       <td className="py-3 px-4 text-right whitespace-nowrap">
                         <div className="relative inline-block text-left row-action-menu">
                           <button
@@ -942,7 +858,7 @@ export default function EventsManagement() {
       {/* ------------------------------------------------------------- */}
       {isFormModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg border border-slate-200 shadow-xl max-w-2xl w-full my-8 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-lg border border-slate-200 shadow-xl max-w-xl w-full my-8 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
             <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
               <h2 className="text-base font-semibold text-slate-900">
@@ -957,7 +873,7 @@ export default function EventsManagement() {
               </button>
             </div>
 
-            {/* Modal Body / Form */}
+            {/* Form */}
             <form onSubmit={handleSaveEvent} className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
               {/* Event Title */}
               <div>
@@ -968,10 +884,10 @@ export default function EventsManagement() {
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="e.g. Annual Blood Donation Camp 2026"
+                  placeholder="e.g. Annual Blood Donation Camp"
                   className={`w-full px-3 py-2 text-xs bg-slate-50 border ${
                     fieldErrors.title ? "border-red-500 bg-red-50/30" : "border-slate-200"
-                  } rounded-md focus:bg-white focus:border-slate-400 focus:outline-hidden transition-colors`}
+                  } rounded-md focus:bg-white focus:outline-hidden transition-colors`}
                 />
                 {fieldErrors.title && (
                   <p className="text-[11px] text-red-600 mt-1">{fieldErrors.title}</p>
@@ -981,119 +897,62 @@ export default function EventsManagement() {
               {/* Description */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Description <span className="text-red-600">*</span>
+                  Description
                 </label>
                 <textarea
                   rows={3}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Provide a detailed description of the event, objectives, and schedule..."
-                  className={`w-full px-3 py-2 text-xs bg-slate-50 border ${
-                    fieldErrors.description ? "border-red-500 bg-red-50/30" : "border-slate-200"
-                  } rounded-md focus:bg-white focus:border-slate-400 focus:outline-hidden transition-colors`}
+                  placeholder="Event description and objectives..."
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-md focus:bg-white focus:outline-hidden transition-colors"
                 />
-                {fieldErrors.description && (
-                  <p className="text-[11px] text-red-600 mt-1">{fieldErrors.description}</p>
-                )}
               </div>
 
-              {/* Dates & Times Grid */}
+              {/* Dates Row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Start Date & Time */}
-                <div className="space-y-2 bg-slate-50/60 p-3 rounded-md border border-slate-200">
-                  <span className="text-xs font-semibold text-slate-800 block">Start Schedule</span>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[11px] text-slate-600 mb-0.5">
-                        Start Date <span className="text-red-600">*</span>
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.start_date}
-                        onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                        className={`w-full px-2 py-1.5 text-xs bg-white border ${
-                          fieldErrors.start_date ? "border-red-500" : "border-slate-200"
-                        } rounded-md focus:outline-hidden`}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] text-slate-600 mb-0.5">
-                        Start Time <span className="text-red-600">*</span>
-                      </label>
-                      <input
-                        type="time"
-                        value={formData.start_time}
-                        onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-                        className={`w-full px-2 py-1.5 text-xs bg-white border ${
-                          fieldErrors.start_time ? "border-red-500" : "border-slate-200"
-                        } rounded-md focus:outline-hidden`}
-                      />
-                    </div>
-                  </div>
-                  {fieldErrors.start_date && (
-                    <p className="text-[11px] text-red-600">{fieldErrors.start_date}</p>
-                  )}
-                </div>
-
-                {/* End Date & Time */}
-                <div className="space-y-2 bg-slate-50/60 p-3 rounded-md border border-slate-200">
-                  <span className="text-xs font-semibold text-slate-800 block">End Schedule</span>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[11px] text-slate-600 mb-0.5">
-                        End Date <span className="text-red-600">*</span>
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.end_date}
-                        onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                        className={`w-full px-2 py-1.5 text-xs bg-white border ${
-                          fieldErrors.end_date ? "border-red-500" : "border-slate-200"
-                        } rounded-md focus:outline-hidden`}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] text-slate-600 mb-0.5">
-                        End Time <span className="text-red-600">*</span>
-                      </label>
-                      <input
-                        type="time"
-                        value={formData.end_time}
-                        onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                        className={`w-full px-2 py-1.5 text-xs bg-white border ${
-                          fieldErrors.end_time ? "border-red-500" : "border-slate-200"
-                        } rounded-md focus:outline-hidden`}
-                      />
-                    </div>
-                  </div>
-                  {fieldErrors.end_date && (
-                    <p className="text-[11px] text-red-600">{fieldErrors.end_date}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Location & Event Type & Status Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {/* Location */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Location <span className="text-red-600">*</span>
+                    Start Date <span className="text-red-600">*</span>
                   </label>
                   <input
-                    type="text"
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    placeholder="e.g. NSS Auditorium or Online"
+                    type="date"
+                    value={formData.start_date}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        start_date: e.target.value,
+                        end_date: formData.end_date < e.target.value ? e.target.value : formData.end_date,
+                      })
+                    }
                     className={`w-full px-3 py-2 text-xs bg-slate-50 border ${
-                      fieldErrors.location ? "border-red-500" : "border-slate-200"
+                      fieldErrors.start_date ? "border-red-500" : "border-slate-200"
                     } rounded-md focus:bg-white focus:outline-hidden`}
                   />
-                  {fieldErrors.location && (
-                    <p className="text-[11px] text-red-600 mt-1">{fieldErrors.location}</p>
+                  {fieldErrors.start_date && (
+                    <p className="text-[11px] text-red-600 mt-1">{fieldErrors.start_date}</p>
                   )}
                 </div>
 
-                {/* Event Type */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    End Date <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.end_date}
+                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    className={`w-full px-3 py-2 text-xs bg-slate-50 border ${
+                      fieldErrors.end_date ? "border-red-500" : "border-slate-200"
+                    } rounded-md focus:bg-white focus:outline-hidden`}
+                  />
+                  {fieldErrors.end_date && (
+                    <p className="text-[11px] text-red-600 mt-1">{fieldErrors.end_date}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Event Type & Status Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Event Type <span className="text-red-600">*</span>
@@ -1111,26 +970,22 @@ export default function EventsManagement() {
                   </select>
                 </div>
 
-                {/* CMS Status */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    CMS Status <span className="text-red-600">*</span>
+                    Publishing Status <span className="text-red-600">*</span>
                   </label>
                   <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    value={formData.is_published ? "true" : "false"}
+                    onChange={(e) => setFormData({ ...formData, is_published: e.target.value === "true" })}
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-md focus:bg-white focus:outline-hidden"
                   >
-                    {STATUS_OPTIONS.map((s) => (
-                      <option key={s.value} value={s.value}>
-                        {s.label}
-                      </option>
-                    ))}
+                    <option value="false">Draft (Hidden)</option>
+                    <option value="true">Published (Visible)</option>
                   </select>
                 </div>
               </div>
 
-              {/* Cover Image Upload (WebP Client Optimization) */}
+              {/* Cover Image Upload */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Event Cover Image (Optional)
@@ -1177,7 +1032,7 @@ export default function EventsManagement() {
                         Upload event banner or cover image
                       </div>
                       <div className="text-[11px] text-slate-400">
-                        PNG, JPG or WebP (Automatically optimized to visually lossless WebP)
+                        PNG, JPG or WebP (Visually lossless WebP optimization)
                       </div>
                     </label>
                   </div>
@@ -1185,104 +1040,6 @@ export default function EventsManagement() {
                 {fieldErrors.image && (
                   <p className="text-[11px] text-red-600 mt-1">{fieldErrors.image}</p>
                 )}
-              </div>
-
-              {/* Optional Fields Section */}
-              <div className="pt-2 border-t border-slate-100 space-y-3">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
-                  Additional Details (Optional)
-                </span>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Organizer */}
-                  <div>
-                    <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                      Organizer / Department
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.organizer}
-                      onChange={(e) => setFormData({ ...formData, organizer: e.target.value })}
-                      placeholder="e.g. NSS MIT Unit II"
-                      className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-md focus:bg-white focus:outline-hidden"
-                    />
-                  </div>
-
-                  {/* Maximum Participants */}
-                  <div>
-                    <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                      Max Participants Limit
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.max_participants}
-                      onChange={(e) => setFormData({ ...formData, max_participants: e.target.value })}
-                      placeholder="e.g. 150"
-                      className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-md focus:bg-white focus:outline-hidden"
-                    />
-                  </div>
-
-                  {/* Contact Email */}
-                  <div>
-                    <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                      Contact Email
-                    </label>
-                    <input
-                      type="email"
-                      value={formData.contact_email}
-                      onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
-                      placeholder="nss@mitindia.edu"
-                      className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-md focus:bg-white focus:outline-hidden"
-                    />
-                  </div>
-
-                  {/* Contact Phone */}
-                  <div>
-                    <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                      Contact Phone
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.contact_phone}
-                      onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
-                      placeholder="+91 98765 43210"
-                      className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-md focus:bg-white focus:outline-hidden"
-                    />
-                  </div>
-                </div>
-
-                {/* Registration Link */}
-                <div>
-                  <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                    Registration Link / Google Form URL
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.registration_url}
-                    onChange={(e) => setFormData({ ...formData, registration_url: e.target.value })}
-                    placeholder="https://forms.gle/..."
-                    className={`w-full px-2.5 py-1.5 text-xs bg-slate-50 border ${
-                      fieldErrors.registration_url ? "border-red-500" : "border-slate-200"
-                    } rounded-md focus:bg-white focus:outline-hidden`}
-                  />
-                  {fieldErrors.registration_url && (
-                    <p className="text-[11px] text-red-600 mt-1">{fieldErrors.registration_url}</p>
-                  )}
-                </div>
-
-                {/* Additional Information */}
-                <div>
-                  <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                    Additional Instructions / Notes
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={formData.additional_information}
-                    onChange={(e) => setFormData({ ...formData, additional_information: e.target.value })}
-                    placeholder="Certificates will be provided, refreshers included..."
-                    className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-md focus:bg-white focus:outline-hidden"
-                  />
-                </div>
               </div>
 
               {/* Form Buttons Footer */}
@@ -1322,7 +1079,6 @@ export default function EventsManagement() {
       {isViewModalOpen && viewingEvent && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-lg border border-slate-200 shadow-xl max-w-xl w-full my-8 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            {/* Cover Image Header if exists */}
             {viewingEvent.cover_image_url ? (
               <div className="relative h-48 w-full bg-slate-900 overflow-hidden">
                 <img
@@ -1351,7 +1107,6 @@ export default function EventsManagement() {
               </div>
             )}
 
-            {/* Modal Body */}
             <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto text-xs text-slate-700">
               <div>
                 <div className="flex items-center space-x-2 mb-1">
@@ -1376,92 +1131,26 @@ export default function EventsManagement() {
                 </h3>
               </div>
 
-              <div className="p-3 bg-slate-50 rounded-md border border-slate-200 space-y-2">
-                <div className="flex items-center space-x-2 text-slate-800">
-                  <Calendar className="w-4 h-4 text-red-700 shrink-0" />
-                  <span>
-                    {formatDateDisplay(viewingEvent.start_date)}
-                    {viewingEvent.end_date && viewingEvent.end_date !== viewingEvent.start_date
-                      ? ` – ${formatDateDisplay(viewingEvent.end_date)}`
-                      : ""}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2 text-slate-800">
-                  <Clock className="w-4 h-4 text-red-700 shrink-0" />
-                  <span>
-                    {formatTimeDisplay(viewingEvent.start_time)}
-                    {viewingEvent.end_time ? ` – ${formatTimeDisplay(viewingEvent.end_time)}` : ""}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2 text-slate-800">
-                  <MapPin className="w-4 h-4 text-red-700 shrink-0" />
-                  <span>{viewingEvent.location}</span>
-                </div>
+              <div className="p-3 bg-slate-50 rounded-md border border-slate-200 flex items-center space-x-2 text-slate-800">
+                <Calendar className="w-4 h-4 text-red-700 shrink-0" />
+                <span>
+                  {formatDateDisplay(viewingEvent.start_date)}
+                  {viewingEvent.end_date && viewingEvent.end_date !== viewingEvent.start_date
+                    ? ` – ${formatDateDisplay(viewingEvent.end_date)}`
+                    : ""}
+                </span>
               </div>
 
-              <div>
-                <h4 className="font-semibold text-slate-900 mb-1">Description</h4>
-                <p className="text-slate-600 leading-relaxed whitespace-pre-line">
-                  {viewingEvent.description}
-                </p>
-              </div>
-
-              {/* Extra Details Grid */}
-              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100 text-slate-600">
+              {viewingEvent.description && (
                 <div>
-                  <span className="font-semibold text-slate-800 block">Organizer</span>
-                  <span>{viewingEvent.organizer || "NSS Unit"}</span>
-                </div>
-                {viewingEvent.max_participants && (
-                  <div>
-                    <span className="font-semibold text-slate-800 block">Max Participants</span>
-                    <span>{viewingEvent.max_participants} seats</span>
-                  </div>
-                )}
-                {viewingEvent.contact_email && (
-                  <div>
-                    <span className="font-semibold text-slate-800 block">Contact Email</span>
-                    <span>{viewingEvent.contact_email}</span>
-                  </div>
-                )}
-                {viewingEvent.contact_phone && (
-                  <div>
-                    <span className="font-semibold text-slate-800 block">Contact Phone</span>
-                    <span>{viewingEvent.contact_phone}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Registration Link */}
-              {viewingEvent.registration_url && (
-                <div className="pt-2 border-t border-slate-100">
-                  <span className="font-semibold text-slate-800 block mb-1">Registration Link</span>
-                  <a
-                    href={
-                      viewingEvent.registration_url.startsWith("http")
-                        ? viewingEvent.registration_url
-                        : `https://${viewingEvent.registration_url}`
-                    }
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-1.5 text-blue-600 hover:underline font-medium"
-                  >
-                    <span>{viewingEvent.registration_url}</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                </div>
-              )}
-
-              {/* Additional Notes */}
-              {viewingEvent.additional_information && (
-                <div className="pt-2 border-t border-slate-100">
-                  <span className="font-semibold text-slate-800 block mb-1">Additional Information</span>
-                  <p className="text-slate-600 whitespace-pre-line">{viewingEvent.additional_information}</p>
+                  <h4 className="font-semibold text-slate-900 mb-1">Description</h4>
+                  <p className="text-slate-600 leading-relaxed whitespace-pre-line">
+                    {viewingEvent.description}
+                  </p>
                 </div>
               )}
             </div>
 
-            {/* Modal Footer */}
             <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
               <span className="text-[11px] text-slate-400">
                 Created {formatDateDisplay(viewingEvent.created_at)}

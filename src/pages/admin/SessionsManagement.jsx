@@ -7,11 +7,10 @@ import {
   updateSession,
   deleteSession,
   toggleSessionPublishStatus,
-  SESSION_TYPES,
-  STATUS_OPTIONS,
   calculateDuration,
+  formatTimeDisplay,
 } from "../../services/sessionService.js";
-import { formatDateDisplay, formatTimeDisplay } from "../../services/eventService.js";
+import { formatDateDisplay } from "../../services/eventService.js";
 import {
   Plus,
   Search,
@@ -47,18 +46,12 @@ const INITIAL_FORM_STATE = {
   event_id: "",
   title: "",
   description: "",
-  session_type: "activity",
-  start_date: new Date().toISOString().split("T")[0],
+  session_date: new Date().toISOString().split("T")[0],
   start_time: "10:00",
-  end_date: new Date().toISOString().split("T")[0],
   end_time: "11:30",
   location: "NSS Auditorium",
-  status: "draft",
-  session_lead: "",
-  speaker: "",
-  registration_url: "",
-  max_participants: "",
-  additional_information: "",
+  is_published: false,
+  display_order: 0,
 };
 
 export default function SessionsManagement() {
@@ -77,7 +70,6 @@ export default function SessionsManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [eventFilter, setEventFilter] = useState(preselectedEventId || "all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
 
   // Keep event filter synced if URL changes
@@ -181,11 +173,9 @@ export default function SessionsManagement() {
         const matchesTitle = session.title?.toLowerCase().includes(q);
         const matchesDesc = session.description?.toLowerCase().includes(q);
         const matchesLoc = session.location?.toLowerCase().includes(q);
-        const matchesLead = session.session_lead?.toLowerCase().includes(q);
-        const matchesSpeaker = session.speaker?.toLowerCase().includes(q);
         const matchesEvent = session.event_title?.toLowerCase().includes(q);
 
-        if (!matchesTitle && !matchesDesc && !matchesLoc && !matchesLead && !matchesSpeaker && !matchesEvent) {
+        if (!matchesTitle && !matchesDesc && !matchesLoc && !matchesEvent) {
           return false;
         }
       }
@@ -197,29 +187,23 @@ export default function SessionsManagement() {
 
       // Status filter
       if (statusFilter !== "all") {
-        if (statusFilter === "published" && !session.is_published && session.status !== "published") return false;
-        if (statusFilter === "draft" && session.status !== "draft" && session.is_published) return false;
-        if (statusFilter === "archived" && session.status !== "archived") return false;
+        if (statusFilter === "published" && !session.is_published) return false;
+        if (statusFilter === "draft" && session.is_published) return false;
       }
 
-      // Session Type filter
-      if (typeFilter !== "all" && session.session_type !== typeFilter) {
-        return false;
-      }
-
-      // Date / Timing filter
+      // Timing filter
       if (dateFilter !== "all" && session.timingStatus !== dateFilter) {
         return false;
       }
 
       return true;
     });
-  }, [sessions, searchQuery, eventFilter, statusFilter, typeFilter, dateFilter]);
+  }, [sessions, searchQuery, eventFilter, statusFilter, dateFilter]);
 
   // Reset pagination on filter change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, eventFilter, statusFilter, typeFilter, dateFilter]);
+  }, [searchQuery, eventFilter, statusFilter, dateFilter]);
 
   // Pagination calculations
   const totalPages = Math.ceil(filteredSessions.length / pageSize) || 1;
@@ -232,14 +216,12 @@ export default function SessionsManagement() {
     searchQuery.trim() !== "" ||
     eventFilter !== "all" ||
     statusFilter !== "all" ||
-    typeFilter !== "all" ||
     dateFilter !== "all";
 
   const handleClearFilters = () => {
     setSearchQuery("");
     setEventFilter("all");
     setStatusFilter("all");
-    setTypeFilter("all");
     setDateFilter("all");
     if (searchParams.has("event_id")) {
       setSearchParams({});
@@ -266,27 +248,21 @@ export default function SessionsManagement() {
       event_id: session.event_id || "",
       title: session.title || "",
       description: session.description || "",
-      session_type: session.session_type || "activity",
-      start_date: session.start_date || new Date().toISOString().split("T")[0],
+      session_date: session.session_date || new Date().toISOString().split("T")[0],
       start_time: session.start_time || "10:00",
-      end_date: session.end_date || session.start_date || new Date().toISOString().split("T")[0],
       end_time: session.end_time || "11:30",
       location: session.location || "",
-      status: session.status || (session.is_published ? "published" : "draft"),
-      session_lead: session.session_lead || "",
-      speaker: session.speaker || "",
-      registration_url: session.registration_url || "",
-      max_participants: session.max_participants ? String(session.max_participants) : "",
-      additional_information: session.additional_information || "",
+      is_published: Boolean(session.is_published),
+      display_order: session.display_order ?? 0,
     });
     setFieldErrors({});
     setRangeWarning(null);
     setIsFormModalOpen(true);
   };
 
-  // Check event date range warning when event or dates change
+  // Check event date range warning when event or date changes
   useEffect(() => {
-    if (!formData.event_id || !formData.start_date) {
+    if (!formData.event_id || !formData.session_date) {
       setRangeWarning(null);
       return;
     }
@@ -297,19 +273,18 @@ export default function SessionsManagement() {
       return;
     }
 
-    const sSession = formData.start_date;
-    const eSession = formData.end_date || sSession;
+    const sSession = formData.session_date;
     const sEvent = selectedEv.start_date;
     const eEvent = selectedEv.end_date || sEvent;
 
-    if (sSession < sEvent || eSession > eEvent) {
+    if (sSession < sEvent || sSession > eEvent) {
       setRangeWarning(
-        `Note: Session schedule (${sSession}${sSession !== eSession ? " to " + eSession : ""}) falls outside selected event's schedule (${sEvent}${sEvent !== eEvent ? " to " + eEvent : ""}).`
+        `Note: Session date (${sSession}) falls outside selected event's schedule (${sEvent}${sEvent !== eEvent ? " to " + eEvent : ""}).`
       );
     } else {
       setRangeWarning(null);
     }
-  }, [formData.event_id, formData.start_date, formData.end_date, eventsList]);
+  }, [formData.event_id, formData.session_date, eventsList]);
 
   // Form Validation
   const validateForm = () => {
@@ -325,16 +300,12 @@ export default function SessionsManagement() {
       errors.title = "Title cannot exceed 150 characters.";
     }
 
-    if (!formData.start_date) {
-      errors.start_date = "Start date is required.";
+    if (!formData.session_date) {
+      errors.session_date = "Session date is required.";
     }
 
     if (!formData.start_time) {
       errors.start_time = "Start time is required.";
-    }
-
-    if (!formData.end_date) {
-      errors.end_date = "End date is required.";
     }
 
     if (!formData.end_time) {
@@ -342,37 +313,19 @@ export default function SessionsManagement() {
     }
 
     // Start vs End time comparison
-    if (formData.start_date && formData.end_date) {
-      const startDateTimeStr = `${formData.start_date}T${formData.start_time || "00:00"}`;
-      const endDateTimeStr = `${formData.end_date}T${formData.end_time || "23:59"}`;
+    if (formData.session_date && formData.start_time && formData.end_time) {
+      const startDateTimeStr = `${formData.session_date}T${formData.start_time}`;
+      const endDateTimeStr = `${formData.session_date}T${formData.end_time}`;
       const startDT = new Date(startDateTimeStr);
       const endDT = new Date(endDateTimeStr);
 
       if (endDT <= startDT) {
-        errors.end_time = "End date & time must be after start date & time.";
+        errors.end_time = "End time must be after start time.";
       }
     }
 
     if (!formData.location.trim()) {
       errors.location = "Location is required.";
-    }
-
-    if (!formData.session_type) {
-      errors.session_type = "Session type is required.";
-    }
-
-    if (!formData.status) {
-      errors.status = "Status is required.";
-    }
-
-    if (formData.registration_url.trim()) {
-      try {
-        const urlStr = formData.registration_url.trim();
-        const url = new URL(urlStr.startsWith("http") ? urlStr : `https://${urlStr}`);
-        if (!url.hostname) errors.registration_url = "Please enter a valid URL.";
-      } catch (e) {
-        errors.registration_url = "Please enter a valid web URL (e.g. https://forms.gle/...)";
-      }
     }
 
     setFieldErrors(errors);
@@ -410,13 +363,13 @@ export default function SessionsManagement() {
   // Toggle Publish / Unpublish Status
   const handleTogglePublish = async (session) => {
     setActiveMenuId(null);
-    const nextStatus = session.is_published ? "draft" : "published";
+    const nextPublished = !session.is_published;
 
     try {
-      const updated = await toggleSessionPublishStatus(session.id, nextStatus);
+      const updated = await toggleSessionPublishStatus(session.id, nextPublished);
       setSessions((prev) => prev.map((item) => (item.id === session.id ? updated : item)));
       setSuccessNotice(
-        nextStatus === "published"
+        nextPublished
           ? `Session "${session.title}" published successfully.`
           : `Session "${session.title}" unpublished.`
       );
@@ -626,31 +579,13 @@ export default function SessionsManagement() {
                 className="text-xs bg-slate-50 border border-slate-200 text-slate-700 rounded-md px-2.5 py-1.5 pr-7 focus:outline-hidden focus:border-slate-400 appearance-none cursor-pointer"
               >
                 <option value="all">Status: All</option>
-                <option value="draft">Status: Draft</option>
                 <option value="published">Status: Published</option>
-                <option value="archived">Status: Archived</option>
+                <option value="draft">Status: Draft</option>
               </select>
               <Filter className="w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             </div>
 
-            {/* Session Type Filter */}
-            <div className="relative">
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="text-xs bg-slate-50 border border-slate-200 text-slate-700 rounded-md px-2.5 py-1.5 pr-7 focus:outline-hidden focus:border-slate-400 appearance-none cursor-pointer"
-              >
-                <option value="all">Type: All</option>
-                {SESSION_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-              <Filter className="w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-            </div>
-
-            {/* Date / Timing Filter */}
+            {/* Timing Filter */}
             <div className="relative">
               <select
                 value={dateFilter}
@@ -753,7 +688,6 @@ export default function SessionsManagement() {
                     <th className="py-3 px-4 min-w-[160px]">Date & Time</th>
                     <th className="py-3 px-4 min-w-[100px]">Duration</th>
                     <th className="py-3 px-4 min-w-[130px]">Location</th>
-                    <th className="py-3 px-4 min-w-[100px]">Type</th>
                     <th className="py-3 px-4 min-w-[110px]">Status</th>
                     <th className="py-3 px-4 text-right min-w-[90px]">Actions</th>
                   </tr>
@@ -821,21 +755,10 @@ export default function SessionsManagement() {
                         </div>
                       </td>
 
-                      {/* Type Badge */}
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-xs text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                          {s.sessionTypeLabel}
-                        </span>
-                      </td>
-
                       {/* CMS Status + Timing Badge */}
                       <td className="py-3 px-4 whitespace-nowrap">
                         <div className="flex flex-col gap-1 items-start">
-                          {s.status === "archived" ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
-                              Archived
-                            </span>
-                          ) : s.is_published || s.status === "published" ? (
+                          {s.is_published ? (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
                               Published
                             </span>
@@ -990,7 +913,7 @@ export default function SessionsManagement() {
       {/* ------------------------------------------------------------- */}
       {isFormModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg border border-slate-200 shadow-xl max-w-2xl w-full my-8 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-lg border border-slate-200 shadow-xl max-w-lg w-full my-8 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
             <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
               <h2 className="text-base font-semibold text-slate-900">
@@ -1005,7 +928,7 @@ export default function SessionsManagement() {
               </button>
             </div>
 
-            {/* Modal Body / Form */}
+            {/* Form */}
             <form onSubmit={handleSaveSession} className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
               {/* Event Select */}
               <div>
@@ -1048,7 +971,7 @@ export default function SessionsManagement() {
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="e.g. Keynote Address & Volunteer Orientation"
+                  placeholder="e.g. Inauguration & Orientation Address"
                   className={`w-full px-3 py-2 text-xs bg-slate-50 border ${
                     fieldErrors.title ? "border-red-500 bg-red-50/30" : "border-slate-200"
                   } rounded-md focus:bg-white focus:outline-hidden transition-colors`}
@@ -1064,91 +987,65 @@ export default function SessionsManagement() {
                   Description
                 </label>
                 <textarea
-                  rows={2}
+                  rows={3}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Brief summary of session agenda, activities, or topics..."
+                  placeholder="Brief summary of session agenda or activities..."
                   className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-md focus:bg-white focus:outline-hidden transition-colors"
                 />
               </div>
 
-              {/* Date & Time Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Start Schedule */}
-                <div className="space-y-2 bg-slate-50/60 p-3 rounded-md border border-slate-200">
-                  <span className="text-xs font-semibold text-slate-800 block">Start Schedule</span>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[11px] text-slate-600 mb-0.5">
-                        Start Date <span className="text-red-600">*</span>
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.start_date}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            start_date: e.target.value,
-                            end_date: formData.end_date < e.target.value ? e.target.value : formData.end_date,
-                          })
-                        }
-                        className={`w-full px-2 py-1.5 text-xs bg-white border ${
-                          fieldErrors.start_date ? "border-red-500" : "border-slate-200"
-                        } rounded-md focus:outline-hidden`}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] text-slate-600 mb-0.5">
-                        Start Time <span className="text-red-600">*</span>
-                      </label>
-                      <input
-                        type="time"
-                        value={formData.start_time}
-                        onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-                        className={`w-full px-2 py-1.5 text-xs bg-white border ${
-                          fieldErrors.start_time ? "border-red-500" : "border-slate-200"
-                        } rounded-md focus:outline-hidden`}
-                      />
-                    </div>
-                  </div>
-                  {fieldErrors.start_date && (
-                    <p className="text-[11px] text-red-600">{fieldErrors.start_date}</p>
+              {/* Session Date */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Session Date <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={formData.session_date}
+                  onChange={(e) => setFormData({ ...formData, session_date: e.target.value })}
+                  className={`w-full px-3 py-2 text-xs bg-slate-50 border ${
+                    fieldErrors.session_date ? "border-red-500" : "border-slate-200"
+                  } rounded-md focus:bg-white focus:outline-hidden`}
+                />
+                {fieldErrors.session_date && (
+                  <p className="text-[11px] text-red-600 mt-1">{fieldErrors.session_date}</p>
+                )}
+              </div>
+
+              {/* Times Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Start Time <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="time"
+                    value={formData.start_time}
+                    onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                    className={`w-full px-3 py-2 text-xs bg-slate-50 border ${
+                      fieldErrors.start_time ? "border-red-500" : "border-slate-200"
+                    } rounded-md focus:bg-white focus:outline-hidden`}
+                  />
+                  {fieldErrors.start_time && (
+                    <p className="text-[11px] text-red-600 mt-1">{fieldErrors.start_time}</p>
                   )}
                 </div>
 
-                {/* End Schedule */}
-                <div className="space-y-2 bg-slate-50/60 p-3 rounded-md border border-slate-200">
-                  <span className="text-xs font-semibold text-slate-800 block">End Schedule</span>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[11px] text-slate-600 mb-0.5">
-                        End Date <span className="text-red-600">*</span>
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.end_date}
-                        onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                        className={`w-full px-2 py-1.5 text-xs bg-white border ${
-                          fieldErrors.end_date ? "border-red-500" : "border-slate-200"
-                        } rounded-md focus:outline-hidden`}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] text-slate-600 mb-0.5">
-                        End Time <span className="text-red-600">*</span>
-                      </label>
-                      <input
-                        type="time"
-                        value={formData.end_time}
-                        onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                        className={`w-full px-2 py-1.5 text-xs bg-white border ${
-                          fieldErrors.end_time ? "border-red-500" : "border-slate-200"
-                        } rounded-md focus:outline-hidden`}
-                      />
-                    </div>
-                  </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    End Time <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="time"
+                    value={formData.end_time}
+                    onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                    className={`w-full px-3 py-2 text-xs bg-slate-50 border ${
+                      fieldErrors.end_time ? "border-red-500" : "border-slate-200"
+                    } rounded-md focus:bg-white focus:outline-hidden`}
+                  />
                   {fieldErrors.end_time && (
-                    <p className="text-[11px] text-red-600">{fieldErrors.end_time}</p>
+                    <p className="text-[11px] text-red-600 mt-1">{fieldErrors.end_time}</p>
                   )}
                 </div>
               </div>
@@ -1160,18 +1057,16 @@ export default function SessionsManagement() {
                   Estimated Duration:{" "}
                   <strong className="text-slate-800">
                     {calculateDuration(
-                      formData.start_date,
+                      formData.session_date,
                       formData.start_time,
-                      formData.end_date,
                       formData.end_time
                     )}
                   </strong>
                 </span>
               </div>
 
-              {/* Location & Session Type & Status Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {/* Location */}
+              {/* Location & Status Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Location <span className="text-red-600">*</span>
@@ -1180,7 +1075,7 @@ export default function SessionsManagement() {
                     type="text"
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    placeholder="e.g. NSS Auditorium or Hall 2"
+                    placeholder="e.g. NSS Auditorium or Seminar Hall 2"
                     className={`w-full px-3 py-2 text-xs bg-slate-50 border ${
                       fieldErrors.location ? "border-red-500" : "border-slate-200"
                     } rounded-md focus:bg-white focus:outline-hidden`}
@@ -1190,121 +1085,18 @@ export default function SessionsManagement() {
                   )}
                 </div>
 
-                {/* Session Type */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Session Type <span className="text-red-600">*</span>
+                    Publishing Status <span className="text-red-600">*</span>
                   </label>
                   <select
-                    value={formData.session_type}
-                    onChange={(e) => setFormData({ ...formData, session_type: e.target.value })}
+                    value={formData.is_published ? "true" : "false"}
+                    onChange={(e) => setFormData({ ...formData, is_published: e.target.value === "true" })}
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-md focus:bg-white focus:outline-hidden"
                   >
-                    {SESSION_TYPES.map((t) => (
-                      <option key={t.value} value={t.value}>
-                        {t.label}
-                      </option>
-                    ))}
+                    <option value="false">Draft (Hidden)</option>
+                    <option value="true">Published (Visible)</option>
                   </select>
-                </div>
-
-                {/* CMS Status */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    CMS Status <span className="text-red-600">*</span>
-                  </label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-md focus:bg-white focus:outline-hidden"
-                  >
-                    {STATUS_OPTIONS.map((s) => (
-                      <option key={s.value} value={s.value}>
-                        {s.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Optional Fields Section */}
-              <div className="pt-2 border-t border-slate-100 space-y-3">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
-                  Additional Details (Optional)
-                </span>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Session Lead */}
-                  <div>
-                    <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                      Session Lead / Coordinator
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.session_lead}
-                      onChange={(e) => setFormData({ ...formData, session_lead: e.target.value })}
-                      placeholder="e.g. Dr. R. Kumar (PO)"
-                      className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-md focus:bg-white focus:outline-hidden"
-                    />
-                  </div>
-
-                  {/* Speaker / Resource Person */}
-                  <div>
-                    <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                      Speaker / Guest Person
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.speaker}
-                      onChange={(e) => setFormData({ ...formData, speaker: e.target.value })}
-                      placeholder="e.g. Mr. S. Viswanathan (District Officer)"
-                      className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-md focus:bg-white focus:outline-hidden"
-                    />
-                  </div>
-
-                  {/* Maximum Participants */}
-                  <div>
-                    <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                      Max Capacity Limit
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.max_participants}
-                      onChange={(e) => setFormData({ ...formData, max_participants: e.target.value })}
-                      placeholder="e.g. 100"
-                      className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-md focus:bg-white focus:outline-hidden"
-                    />
-                  </div>
-
-                  {/* Registration Link */}
-                  <div>
-                    <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                      Registration Link
-                    </label>
-                    <input
-                      type="url"
-                      value={formData.registration_url}
-                      onChange={(e) => setFormData({ ...formData, registration_url: e.target.value })}
-                      placeholder="https://forms.gle/..."
-                      className={`w-full px-2.5 py-1.5 text-xs bg-slate-50 border ${
-                        fieldErrors.registration_url ? "border-red-500" : "border-slate-200"
-                      } rounded-md focus:bg-white focus:outline-hidden`}
-                    />
-                  </div>
-                </div>
-
-                {/* Additional Information */}
-                <div>
-                  <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                    Additional Instructions / Agenda Notes
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={formData.additional_information}
-                    onChange={(e) => setFormData({ ...formData, additional_information: e.target.value })}
-                    placeholder="Attendance will be recorded, materials provided..."
-                    className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-md focus:bg-white focus:outline-hidden"
-                  />
                 </div>
               </div>
 
@@ -1361,9 +1153,6 @@ export default function SessionsManagement() {
             <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto text-xs text-slate-700">
               <div>
                 <div className="flex items-center space-x-2 mb-1">
-                  <span className="px-2 py-0.5 rounded-xs text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                    {viewingSession.sessionTypeLabel}
-                  </span>
                   <span
                     className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${
                       viewingSession.is_published
@@ -1397,7 +1186,7 @@ export default function SessionsManagement() {
                     }}
                     className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-100 rounded-md transition-colors shrink-0"
                   >
-                    <span>View Event</span>
+                    <span>View Events</span>
                     <ExternalLink className="w-3 h-3" />
                   </button>
                 )}
@@ -1428,56 +1217,6 @@ export default function SessionsManagement() {
                   <p className="text-slate-600 leading-relaxed whitespace-pre-line">
                     {viewingSession.description}
                   </p>
-                </div>
-              )}
-
-              {/* Extra Details Grid */}
-              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100 text-slate-600">
-                {viewingSession.session_lead && (
-                  <div>
-                    <span className="font-semibold text-slate-800 block">Session Lead</span>
-                    <span>{viewingSession.session_lead}</span>
-                  </div>
-                )}
-                {viewingSession.speaker && (
-                  <div>
-                    <span className="font-semibold text-slate-800 block">Speaker / Guest</span>
-                    <span>{viewingSession.speaker}</span>
-                  </div>
-                )}
-                {viewingSession.max_participants && (
-                  <div>
-                    <span className="font-semibold text-slate-800 block">Capacity Limit</span>
-                    <span>{viewingSession.max_participants} participants</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Registration Link */}
-              {viewingSession.registration_url && (
-                <div className="pt-2 border-t border-slate-100">
-                  <span className="font-semibold text-slate-800 block mb-1">Registration Link</span>
-                  <a
-                    href={
-                      viewingSession.registration_url.startsWith("http")
-                        ? viewingSession.registration_url
-                        : `https://${viewingSession.registration_url}`
-                    }
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-1.5 text-blue-600 hover:underline font-medium"
-                  >
-                    <span>{viewingSession.registration_url}</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                </div>
-              )}
-
-              {/* Additional Info */}
-              {viewingSession.additional_information && (
-                <div className="pt-2 border-t border-slate-100">
-                  <span className="font-semibold text-slate-800 block mb-1">Additional Information</span>
-                  <p className="text-slate-600 whitespace-pre-line">{viewingSession.additional_information}</p>
                 </div>
               )}
             </div>
