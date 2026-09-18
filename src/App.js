@@ -15,6 +15,8 @@ import Login from "./pages/admin/Login";
 import Dashboard from "./pages/admin/Dashboard";
 import PeopleManagement from "./pages/admin/PeopleManagement";
 import RoleManagement from "./pages/admin/RoleManagement";
+import EventsManagement from "./pages/admin/EventsManagement";
+import SessionsManagement from "./pages/admin/SessionsManagement";
 
 // Render public navbar only for public customer-facing routes
 function AppNavbar() {
@@ -48,6 +50,8 @@ export default function App() {
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="people" element={<PeopleManagement />} />
               <Route path="roles" element={<RoleManagement />} />
+              <Route path="events" element={<EventsManagement />} />
+              <Route path="sessions" element={<SessionsManagement />} />
               <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
             </Route>
           </Route>
