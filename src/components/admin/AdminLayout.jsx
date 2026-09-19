@@ -28,16 +28,6 @@ export default function AdminLayout() {
     }
   };
 
-  const toggleCollapseOnly = () => {
-    setIsSidebarCollapsed((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem("nss_admin_sidebar_collapsed", String(next));
-      } catch (e) {}
-      return next;
-    });
-  };
-
   return (
     <div className="min-h-screen bg-slate-50 flex font-sans antialiased text-slate-800">
       {/* Sidebar Navigation */}
@@ -45,7 +35,6 @@ export default function AdminLayout() {
         isOpen={isSidebarOpen}
         isCollapsed={isSidebarCollapsed}
         onClose={() => setIsSidebarOpen(false)}
-        onToggleCollapse={toggleCollapseOnly}
       />
 
       {/* Main Content Area (offset left by sidebar width on lg screens) */}

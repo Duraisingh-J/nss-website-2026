@@ -18,7 +18,6 @@ import {
   FolderArchive,
   ExternalLink,
   X,
-  Menu,
 } from "lucide-react";
 
 const navigationGroups = [
@@ -69,7 +68,7 @@ const navigationGroups = [
   },
 ];
 
-export default function AdminSidebar({ isOpen, isCollapsed, onClose, onToggleCollapse }) {
+export default function AdminSidebar({ isOpen, isCollapsed, onClose }) {
   return (
     <>
       {/* Mobile Backdrop */}
@@ -95,7 +94,7 @@ export default function AdminSidebar({ isOpen, isCollapsed, onClose, onToggleCol
         <div className={`h-16 shrink-0 flex items-center border-b border-slate-800 ${isCollapsed ? "justify-center px-2" : "justify-between px-4"}`}>
           <Link
             to="/admin/dashboard"
-            className="flex items-center space-x-3 overflow-hidden"
+            className={`flex items-center ${isCollapsed ? "justify-center" : "space-x-3"} overflow-hidden`}
             onClick={onClose}
             title="NSS MIT CMS Admin Dashboard"
           >
@@ -114,18 +113,7 @@ export default function AdminSidebar({ isOpen, isCollapsed, onClose, onToggleCol
             )}
           </Link>
 
-          {/* Desktop collapse hamburger toggle */}
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            className={`hidden lg:flex p-1.5 text-slate-400 hover:text-white rounded-md transition-colors ${isCollapsed ? "mt-0" : ""}`}
-            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-          >
-            <Menu className="w-4 h-4" />
-          </button>
-
-          {/* Mobile close button */}
+          {/* Mobile close button (visible only in mobile drawer overlay) */}
           <button
             type="button"
             onClick={onClose}
@@ -157,7 +145,7 @@ export default function AdminSidebar({ isOpen, isCollapsed, onClose, onToggleCol
                       onClick={onClose}
                       title={isCollapsed ? item.name : undefined}
                       className={({ isActive }) =>
-                        `flex items-center rounded-md text-xs transition-colors ${
+                        `relative group flex items-center rounded-md text-xs transition-colors ${
                           isCollapsed
                             ? "justify-center p-2.5"
                             : "space-x-2.5 px-2.5 py-1.5"
@@ -170,6 +158,11 @@ export default function AdminSidebar({ isOpen, isCollapsed, onClose, onToggleCol
                     >
                       <Icon className="w-4 h-4 text-slate-400 shrink-0" />
                       {!isCollapsed && <span className="leading-snug whitespace-nowrap">{item.name}</span>}
+                      {isCollapsed && (
+                        <span className="pointer-events-none absolute left-full ml-3 px-2 py-1 bg-slate-950 text-white text-[11px] font-medium rounded shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50">
+                          {item.name}
+                        </span>
+                      )}
                     </NavLink>
                   );
                 })}
@@ -185,12 +178,17 @@ export default function AdminSidebar({ isOpen, isCollapsed, onClose, onToggleCol
             target="_blank"
             rel="noopener noreferrer"
             title="View Public Website"
-            className={`flex items-center rounded-md text-xs text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors ${
+            className={`relative group flex items-center rounded-md text-xs text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors ${
               isCollapsed ? "justify-center p-2" : "justify-between px-2.5 py-1.5"
             }`}
           >
             {!isCollapsed && <span className="whitespace-nowrap">View Website</span>}
             <ExternalLink className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            {isCollapsed && (
+              <span className="pointer-events-none absolute left-full ml-3 px-2 py-1 bg-slate-950 text-white text-[11px] font-medium rounded shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50">
+                View Website
+              </span>
+            )}
           </a>
         </div>
       </aside>
