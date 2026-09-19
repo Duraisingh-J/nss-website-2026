@@ -99,12 +99,18 @@ export function transformSession(row) {
 
   const durationText = calculateDuration(startDate, startTime, endTime);
 
+  // Extract units from joined session_units array if present
+  const units = Array.isArray(row.session_units)
+    ? row.session_units.map((u) => u.unit).sort((a, b) => a - b)
+    : [];
+
   return {
     id: row.id,
     event_id: row.event_id || null,
-    event_title: row.events?.title || "Standalone / Unlinked Session",
+    event_title: row.events?.title || "Standalone Event",
     event_start_date: row.events?.start_date || null,
     event_end_date: row.events?.end_date || null,
+    event_type: row.events?.event_type || null,
     title: row.title || "Untitled Session",
     description: row.description || "",
     session_date: startDate,
@@ -115,15 +121,18 @@ export function transformSession(row) {
     is_published: isPublished,
     timingStatus: timingStatus,
     display_order: row.display_order ?? 0,
+    units: units,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
 }
 
 /**
- * Fetch all sessions from Supabase with relational events join
+ * Fetch all sessions belonging to a specific Event
  */
-export async function getAdminSessions() {
+export async function getSessionsForEvent(eventId) {
+  if (!eventId) return [];
+
   const { data, error } = await supabase
     .from("sessions")
     .select(`
@@ -139,192 +148,111 @@ export async function getAdminSessions() {
       display_order,
       created_at,
       updated_at,
-      events:event_id (
-        id,
-        title,
-        start_date,
-        end_date
+      session_units (
+        unit
       )
     `)
-    .order("session_date", { ascending: false });
+    .eq("event_id", eventId)
+    .order("session_date", { ascending: true })
+    .order("start_time", { ascending: true });
 
   if (error) {
-    console.error("Error fetching admin sessions:", error.message);
-    throw new Error(`Unable to fetch sessions from database: ${error.message}`);
+    console.error("Error fetching sessions for event:", error.message);
+    return [];
   }
 
   return (data || []).map(transformSession);
 }
 
 /**
- * Fetch list of events for parent event selection dropdown
+ * Create or Update an embedded Session inside an Event, including session_units sync
  */
-export async function getEventsList() {
-  const { data, error } = await supabase
-    .from("events")
-    .select("id, title, start_date, end_date, is_published")
-    .order("title", { ascending: true });
+export async function saveEventSession(eventId, sessionData, selectedUnits = []) {
+  if (!eventId) throw new Error("Parent Event ID is required for session creation.");
 
-  if (error) {
-    console.error("Error fetching events list for sessions:", error.message);
-    return [];
-  }
+  const isPublished = Boolean(sessionData.is_published);
+  const sessionId = sessionData.id || null;
 
-  return data || [];
-}
-
-/**
- * Create a new Session in Supabase using ONLY existing columns
- */
-export async function createSession(sessionData) {
   const payload = {
-    event_id: sessionData.event_id || null,
+    event_id: eventId,
     title: sessionData.title.trim(),
     description: sessionData.description ? sessionData.description.trim() : null,
     session_date: sessionData.session_date,
     start_time: sessionData.start_time || "10:00:00",
     end_time: sessionData.end_time || "11:30:00",
     location: sessionData.location ? sessionData.location.trim() : "NSS Campus",
-    is_published: Boolean(sessionData.is_published),
+    is_published: isPublished,
     display_order: parseInt(sessionData.display_order, 10) || 0,
     updated_at: new Date().toISOString(),
   };
 
-  const { data, error } = await supabase
-    .from("sessions")
-    .insert(payload)
-    .select(`
-      id,
-      event_id,
-      title,
-      description,
-      session_date,
-      start_time,
-      end_time,
-      location,
-      is_published,
-      display_order,
-      created_at,
-      updated_at,
-      events:event_id (
-        id,
-        title,
-        start_date,
-        end_date
-      )
-    `)
-    .single();
+  let savedSessionRow = null;
 
-  if (error) {
-    console.error("Error creating session:", error.message);
-    throw new Error(`Failed to create session: ${error.message}`);
+  if (sessionId) {
+    // Update existing session
+    const { data, error } = await supabase
+      .from("sessions")
+      .update(payload)
+      .eq("id", sessionId)
+      .select(`*`)
+      .single();
+
+    if (error) throw new Error(`Failed to update session: ${error.message}`);
+    savedSessionRow = data;
+  } else {
+    // Insert new session
+    const { data, error } = await supabase
+      .from("sessions")
+      .insert(payload)
+      .select(`*`)
+      .single();
+
+    if (error) throw new Error(`Failed to create session: ${error.message}`);
+    savedSessionRow = data;
   }
 
-  return transformSession(data);
+  const activeSessionId = savedSessionRow.id;
+
+  // Synchronize session_units table
+  // 1. Delete existing unit entries for this session
+  await supabase
+    .from("session_units")
+    .delete()
+    .eq("session_id", activeSessionId);
+
+  // 2. Insert new unit entries
+  if (Array.isArray(selectedUnits) && selectedUnits.length > 0) {
+    const unitRows = selectedUnits.map((u) => ({
+      session_id: activeSessionId,
+      unit: parseInt(u, 10),
+    }));
+
+    const { error: unitsError } = await supabase
+      .from("session_units")
+      .insert(unitRows);
+
+    if (unitsError) {
+      console.warn("Error inserting session_units:", unitsError.message);
+    }
+  }
+
+  // Refetch complete session record with session_units
+  const { data: refetched } = await supabase
+    .from("sessions")
+    .select(`
+      *,
+      session_units (unit)
+    `)
+    .eq("id", activeSessionId)
+    .single();
+
+  return transformSession(refetched || savedSessionRow);
 }
 
 /**
- * Update an existing Session in Supabase using ONLY existing columns
+ * Delete a session record from Supabase (cascade deletes session_units automatically)
  */
-export async function updateSession(sessionId, sessionData) {
-  if (!sessionId) throw new Error("Session ID is required for update.");
-
-  const payload = {
-    event_id: sessionData.event_id || null,
-    title: sessionData.title.trim(),
-    description: sessionData.description ? sessionData.description.trim() : null,
-    session_date: sessionData.session_date,
-    start_time: sessionData.start_time || "10:00:00",
-    end_time: sessionData.end_time || "11:30:00",
-    location: sessionData.location ? sessionData.location.trim() : "NSS Campus",
-    is_published: Boolean(sessionData.is_published),
-    display_order: parseInt(sessionData.display_order, 10) || 0,
-    updated_at: new Date().toISOString(),
-  };
-
-  const { data, error } = await supabase
-    .from("sessions")
-    .update(payload)
-    .eq("id", sessionId)
-    .select(`
-      id,
-      event_id,
-      title,
-      description,
-      session_date,
-      start_time,
-      end_time,
-      location,
-      is_published,
-      display_order,
-      created_at,
-      updated_at,
-      events:event_id (
-        id,
-        title,
-        start_date,
-        end_date
-      )
-    `)
-    .single();
-
-  if (error) {
-    console.error("Error updating session:", error.message);
-    throw new Error(`Failed to update session: ${error.message}`);
-  }
-
-  return transformSession(data);
-}
-
-/**
- * Toggle Session Publish Status
- */
-export async function toggleSessionPublishStatus(sessionId, isPublished) {
-  if (!sessionId) throw new Error("Session ID required.");
-
-  const payload = {
-    is_published: Boolean(isPublished),
-    updated_at: new Date().toISOString(),
-  };
-
-  const { data, error } = await supabase
-    .from("sessions")
-    .update(payload)
-    .eq("id", sessionId)
-    .select(`
-      id,
-      event_id,
-      title,
-      description,
-      session_date,
-      start_time,
-      end_time,
-      location,
-      is_published,
-      display_order,
-      created_at,
-      updated_at,
-      events:event_id (
-        id,
-        title,
-        start_date,
-        end_date
-      )
-    `)
-    .single();
-
-  if (error) {
-    console.error("Error toggling session publish status:", error.message);
-    throw new Error(`Failed to update publish status: ${error.message}`);
-  }
-
-  return transformSession(data);
-}
-
-/**
- * Delete a session record from Supabase
- */
-export async function deleteSession(sessionId) {
+export async function deleteEventSession(sessionId) {
   if (!sessionId) throw new Error("Session ID is required.");
 
   const { error } = await supabase
@@ -338,4 +266,125 @@ export async function deleteSession(sessionId) {
   }
 
   return true;
+}
+
+/**
+ * Fetch calendar data for public website:
+ * 1. Published Sessions belonging to published events (with attending unit numbers).
+ * 2. Published Monthly Events (which represent single scheduled activities).
+ */
+export async function getPublicCalendarData() {
+  const [eventsRes, sessionsRes] = await Promise.all([
+    supabase
+      .from("events")
+      .select(`
+        id,
+        title,
+        description,
+        event_type,
+        start_date,
+        end_date,
+        is_published,
+        cover_media_id,
+        media:cover_media_id (storage_path)
+      `)
+      .eq("is_published", true),
+    supabase
+      .from("sessions")
+      .select(`
+        id,
+        event_id,
+        title,
+        description,
+        session_date,
+        start_time,
+        end_time,
+        location,
+        is_published,
+        events:event_id (
+          id,
+          title,
+          event_type,
+          is_published
+        ),
+        session_units (
+          unit
+        )
+      `)
+      .eq("is_published", true),
+  ]);
+
+  const publishedEventsMap = new Map();
+  (eventsRes.data || []).forEach((ev) => {
+    publishedEventsMap.set(ev.id, ev);
+  });
+
+  const calendarMap = {};
+
+  // 1. Process Published Sessions
+  (sessionsRes.data || []).forEach((row) => {
+    // Match parent event from publishedEventsMap
+    const parentEvent = row.event_id ? publishedEventsMap.get(row.event_id) : null;
+    if (!parentEvent) return;
+
+    const dateKey = row.session_date;
+    if (!dateKey) return;
+
+    const transformedSession = transformSession(row);
+
+    if (!calendarMap[dateKey]) {
+      calendarMap[dateKey] = [];
+    }
+
+    calendarMap[dateKey].push({
+      id: `session-${row.id}`,
+      type: "session",
+      title: row.title,
+      parentEventTitle: parentEvent.title,
+      eventType: parentEvent.event_type || "camp",
+      date: row.session_date,
+      startTime: row.start_time || "10:00",
+      endTime: row.end_time || "11:30",
+      location: row.location || "NSS Campus",
+      units: transformedSession.units,
+      description: row.description || "",
+      rawData: transformedSession,
+    });
+  });
+
+  // 2. Process Monthly Events (or events of category 'monthly')
+  (eventsRes.data || []).forEach((ev) => {
+    const isMonthly =
+      ev.event_type === "monthly" ||
+      ev.event_type === "other" ||
+      ev.event_type === "event";
+
+    if (!isMonthly || !ev.start_date) return;
+
+    const dateKey = ev.start_date;
+    if (!calendarMap[dateKey]) {
+      calendarMap[dateKey] = [];
+    }
+
+    // Check if not already added
+    const exists = calendarMap[dateKey].some((item) => item.id === `monthly-${ev.id}`);
+    if (!exists) {
+      calendarMap[dateKey].push({
+        id: `monthly-${ev.id}`,
+        type: "monthly_event",
+        title: ev.title,
+        parentEventTitle: null,
+        eventType: "monthly",
+        date: ev.start_date,
+        startTime: "16:30",
+        endTime: "18:00",
+        location: "OAT",
+        units: [1, 2, 3, 4, 5, 6, 7], // All units attend monthly events
+        description: ev.description || "",
+        rawData: ev,
+      });
+    }
+  });
+
+  return calendarMap;
 }

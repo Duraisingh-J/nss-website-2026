@@ -5,7 +5,6 @@ import {
   Users,
   Shield,
   Calendar,
-  Clock,
   Megaphone,
   Award,
   FileText,
@@ -39,7 +38,6 @@ const navigationGroups = [
     title: "Activities",
     items: [
       { name: "Events", path: "/admin/events", icon: Calendar },
-      { name: "Sessions", path: "/admin/sessions", icon: Clock },
     ],
   },
   {
@@ -70,7 +68,7 @@ const navigationGroups = [
   },
 ];
 
-export default function AdminSidebar({ isOpen, onClose }) {
+export default function AdminSidebar({ isOpen, isCollapsed, onClose }) {
   return (
     <>
       {/* Mobile Backdrop */}
@@ -84,8 +82,12 @@ export default function AdminSidebar({ isOpen, onClose }) {
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 flex flex-col h-screen h-[100dvh] transition-transform duration-200 ease-in-out lg:translate-x-0 ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 flex flex-col h-screen h-[100dvh] transition-transform duration-200 ease-in-out ${
+          isOpen
+            ? "translate-x-0"
+            : isCollapsed
+            ? "-translate-x-full"
+            : "-translate-x-full lg:translate-x-0"
         }`}
       >
         {/* Institutional Branding Header */}

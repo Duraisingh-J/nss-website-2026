@@ -6,19 +6,36 @@ import "../../styles/admin.css";
 
 export default function AdminLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  const toggleSidebar = () => {
+    if (window.innerWidth < 1024) {
+      setIsSidebarOpen((prev) => !prev);
+    } else {
+      setIsSidebarCollapsed((prev) => !prev);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 flex font-sans antialiased text-slate-800">
       {/* Sidebar Navigation */}
       <AdminSidebar
         isOpen={isSidebarOpen}
+        isCollapsed={isSidebarCollapsed}
         onClose={() => setIsSidebarOpen(false)}
       />
 
       {/* Main Content Area (offset left by sidebar width on lg screens) */}
-      <div className="flex-1 flex flex-col min-w-0 lg:pl-64 transition-[padding] duration-200">
+      <div
+        className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${
+          isSidebarCollapsed ? "lg:pl-0" : "lg:pl-64"
+        }`}
+      >
         {/* Top Navbar */}
-        <AdminTopbar onOpenSidebar={() => setIsSidebarOpen(true)} />
+        <AdminTopbar
+          onOpenSidebar={toggleSidebar}
+          isSidebarCollapsed={isSidebarCollapsed}
+        />
 
         {/* Dynamic Page Content */}
         <main className="flex-1 p-6 sm:p-8 lg:p-10 max-w-6xl w-full mx-auto admin-custom-scrollbar">

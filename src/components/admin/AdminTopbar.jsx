@@ -28,13 +28,14 @@ export default function AdminTopbar({ onOpenSidebar }) {
 
   return (
     <header className="sticky top-0 z-30 h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 lg:px-8">
-      {/* Left: Mobile hamburger & institutional site context */}
+      {/* Left: Hamburger menu toggle & institutional site context */}
       <div className="flex items-center space-x-3 sm:space-x-4">
         <button
           type="button"
           onClick={onOpenSidebar}
-          className="lg:hidden p-2 rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
-          aria-label="Open sidebar"
+          className="p-2 rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+          aria-label="Toggle sidebar"
+          title="Toggle Navigation Menu"
         >
           <Menu className="w-5 h-5" />
         </button>

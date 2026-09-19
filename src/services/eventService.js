@@ -4,20 +4,30 @@ import { uploadMedia, getMediaPublicUrl, deleteMedia } from "./mediaService.js";
 export { getMediaPublicUrl };
 
 /**
- * Event Types matching database constraints
+ * Core Event Categories for NSS Admin CMS & Website
  */
-export const EVENT_TYPES = [
-  { value: "event", label: "Event" },
-  { value: "workshop", label: "Workshop" },
-  { value: "awareness", label: "Awareness" },
+export const EVENT_CATEGORIES = [
   { value: "camp", label: "Camp" },
-  { value: "visit", label: "Visit" },
-  { value: "drive", label: "Drive" },
-  { value: "other", label: "Other" },
+  { value: "outreach", label: "Outreach" },
+  { value: "orphanage", label: "Orphanage Visit" },
+  { value: "monthly", label: "Monthly Event" },
 ];
 
 /**
- * Calculates timing status (Upcoming, Ongoing, Completed) strictly from start_date & end_date
+ * Normalizes event type to UI Category label
+ */
+export function formatEventCategoryLabel(type) {
+  if (!type) return "Monthly Event";
+  const lower = type.toLowerCase();
+  if (lower === "camp") return "Camp";
+  if (lower === "outreach" || lower === "visit" || lower === "drive") return "Outreach";
+  if (lower === "orphanage" || lower === "orphanage visit") return "Orphanage Visit";
+  if (lower === "monthly" || lower === "monthly event" || lower === "event" || lower === "other") return "Monthly Event";
+  return type.charAt(0).toUpperCase() + type.slice(1);
+}
+
+/**
+ * Calculates timing status (Upcoming, Ongoing, Completed) from start_date & end_date
  */
 export function getEventTimingStatus(event) {
   if (!event || !event.start_date) return "Upcoming";
@@ -55,16 +65,6 @@ export function formatDateDisplay(dateStr) {
 }
 
 /**
- * Capitalizes event type label
- */
-export function formatEventTypeLabel(type) {
-  if (!type) return "Event";
-  const found = EVENT_TYPES.find((t) => t.value.toLowerCase() === type.toLowerCase());
-  if (found) return found.label;
-  return type.charAt(0).toUpperCase() + type.slice(1);
-}
-
-/**
  * Transforms raw Supabase row into clean UI data object strictly using real schema
  */
 export function transformEvent(row) {
@@ -73,13 +73,14 @@ export function transformEvent(row) {
   const isPublished = Boolean(row.is_published);
   const coverImageUrl = getMediaPublicUrl(row.media?.storage_path);
   const timingStatus = getEventTimingStatus(row);
+  const categoryLabel = formatEventCategoryLabel(row.event_type);
 
   return {
     id: row.id,
     title: row.title || "Untitled Event",
     description: row.description || "",
-    event_type: row.event_type || "event",
-    eventTypeLabel: formatEventTypeLabel(row.event_type),
+    event_type: row.event_type || "camp",
+    categoryLabel: categoryLabel,
     start_date: row.start_date || "",
     end_date: row.end_date || row.start_date || "",
     is_published: isPublished,
@@ -92,7 +93,7 @@ export function transformEvent(row) {
 }
 
 /**
- * Fetch all events from Supabase
+ * Fetch all events from Supabase for Admin CMS
  */
 export async function getAdminEvents() {
   const { data, error } = await supabase
@@ -114,11 +115,45 @@ export async function getAdminEvents() {
         file_name
       )
     `)
-    .order("created_at", { ascending: false });
+    .order("start_date", { ascending: false });
 
   if (error) {
     console.error("Error fetching admin events:", error.message);
     throw new Error(`Unable to fetch events from database: ${error.message}`);
+  }
+
+  return (data || []).map(transformEvent);
+}
+
+/**
+ * Fetch published events for public website
+ */
+export async function getPublicEvents() {
+  const { data, error } = await supabase
+    .from("events")
+    .select(`
+      id,
+      title,
+      description,
+      event_type,
+      start_date,
+      end_date,
+      is_published,
+      cover_media_id,
+      created_at,
+      updated_at,
+      media:cover_media_id (
+        id,
+        storage_path,
+        file_name
+      )
+    `)
+    .eq("is_published", true)
+    .order("start_date", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching public events:", error.message);
+    return [];
   }
 
   return (data || []).map(transformEvent);
@@ -138,7 +173,7 @@ export async function uploadEventImage(file, eventTitle) {
 }
 
 /**
- * Create a new Event record in Supabase using ONLY existing columns
+ * Create a new Event record in Supabase
  */
 export async function createEvent(eventData, coverImageFile = null) {
   let mediaId = eventData.cover_media_id || null;
@@ -151,7 +186,7 @@ export async function createEvent(eventData, coverImageFile = null) {
   const payload = {
     title: eventData.title.trim(),
     description: eventData.description ? eventData.description.trim() : null,
-    event_type: eventData.event_type || "event",
+    event_type: eventData.event_type || "camp",
     start_date: eventData.start_date,
     end_date: eventData.end_date || eventData.start_date,
     is_published: Boolean(eventData.is_published),
@@ -190,7 +225,7 @@ export async function createEvent(eventData, coverImageFile = null) {
 }
 
 /**
- * Update an existing Event record in Supabase using ONLY existing columns
+ * Update an existing Event record in Supabase
  */
 export async function updateEvent(eventId, eventData, coverImageFile = null) {
   if (!eventId) throw new Error("Event ID is required for update.");
@@ -205,7 +240,7 @@ export async function updateEvent(eventId, eventData, coverImageFile = null) {
   const payload = {
     title: eventData.title.trim(),
     description: eventData.description ? eventData.description.trim() : null,
-    event_type: eventData.event_type || "event",
+    event_type: eventData.event_type || "camp",
     start_date: eventData.start_date,
     end_date: eventData.end_date || eventData.start_date,
     is_published: Boolean(eventData.is_published),
