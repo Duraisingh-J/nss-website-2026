@@ -1,29 +1,18 @@
 import React from "react";
-import "./PeopleHero.css";
+import PageHero from "../ui/PageHero";
 
 /**
- * PeopleHero
- * Editorial hero section with subtle entrance animation and oversized 'TEAM' watermark.
+ * PeopleHero — Uses the shared PageHero component.
+ * Keeps the TEAM watermark and OUR PEOPLE eyebrow/title hierarchy
+ * with a reduced, more compact visual footprint.
  */
 export default function PeopleHero() {
   return (
-    <section className="people-hero">
-      {/* Background Watermark */}
-      <div className="people-hero__watermark" aria-hidden="true">
-        TEAM
-      </div>
-
-      <div className="people-hero__inner">
-        <div className="people-hero__eyebrow">
-          <span className="people-hero__eyebrow-dot" />
-          The Team
-        </div>
-        <h1 className="people-hero__title">OUR PEOPLE</h1>
-        <p className="people-hero__subtitle">
-          Meet the dedicated faculty leaders and student coordinators driving
-          NSS at Madras Institute of Technology, Anna University.
-        </p>
-      </div>
-    </section>
+    <PageHero
+      watermark="TEAM"
+      eyebrow="The Team"
+      title="OUR PEOPLE"
+      description="Meet the dedicated faculty leaders and student coordinators driving NSS at Madras Institute of Technology, Anna University."
+    />
   );
 }

@@ -11,10 +11,8 @@ import {
 } from "../../services/eventService.js";
 import {
   getSessionsForEvent,
-  saveEventSession,
-  deleteEventSession,
+  syncEventSessions,
   formatTimeDisplay,
-  calculateDuration,
 } from "../../services/sessionService.js";
 import { validateImageFile } from "../../utils/imageOptimizer.js";
 import {
@@ -38,6 +36,7 @@ import {
   ChevronRight,
   Clock,
   MapPin,
+  AlertTriangle,
 } from "lucide-react";
 import "../../styles/admin.css";
 
@@ -59,18 +58,7 @@ const INITIAL_EVENT_FORM_STATE = {
   is_published: false,
   cover_media_id: null,
   cover_image_url: null,
-};
-
-const INITIAL_SESSION_FORM_STATE = {
-  id: null,
-  title: "",
-  description: "",
-  session_date: new Date().toISOString().split("T")[0],
-  start_time: "10:00",
-  end_time: "11:30",
-  location: "NSS Auditorium",
-  is_published: true,
-  units: [1, 2, 3, 4, 5, 6, 7],
+  sessions: [],
 };
 
 export default function EventsManagement() {
@@ -95,7 +83,12 @@ export default function EventsManagement() {
   const [editingEvent, setEditingEvent] = useState(null);
   const [eventFormData, setEventFormData] = useState(INITIAL_EVENT_FORM_STATE);
   const [eventFieldErrors, setEventFieldErrors] = useState({});
+  const [inlineSessionErrors, setInlineSessionErrors] = useState({});
   const [isSavingEvent, setIsSavingEvent] = useState(false);
+
+  // Category switch confirmation state
+  const [pendingCategory, setPendingCategory] = useState(null);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
   // Image Upload states
   const [coverFile, setCoverFile] = useState(null);
@@ -107,20 +100,10 @@ export default function EventsManagement() {
   const [embeddedSessions, setEmbeddedSessions] = useState([]);
   const [loadingSessions, setLoadingSessions] = useState(false);
 
-  // Embedded Session Modal state inside Event
-  const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
-  const [editingSession, setEditingSession] = useState(null);
-  const [sessionFormData, setSessionFormData] = useState(INITIAL_SESSION_FORM_STATE);
-  const [sessionFieldErrors, setSessionFieldErrors] = useState({});
-  const [isSavingSession, setIsSavingSession] = useState(false);
-
   // Delete Confirmation Modal states
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [eventToDelete, setEventToDelete] = useState(null);
   const [isDeletingEvent, setIsDeletingEvent] = useState(false);
-
-  const [sessionToDelete, setSessionToDelete] = useState(null);
-  const [isDeletingSession, setIsDeletingSession] = useState(false);
 
   // Action Menu state
   const [activeMenuId, setActiveMenuId] = useState(null);
@@ -271,6 +254,36 @@ export default function EventsManagement() {
     setDateFilter("all");
   };
 
+  // Category switch handler with confirmation if sessions exist
+  const handleEventTypeChange = (newType) => {
+    if (
+      newType === "monthly" &&
+      Array.isArray(eventFormData.sessions) &&
+      eventFormData.sessions.length > 0
+    ) {
+      setPendingCategory(newType);
+      setIsCategoryModalOpen(true);
+    } else {
+      setEventFormData((prev) => ({ ...prev, event_type: newType }));
+    }
+  };
+
+  const handleConfirmCategorySwitch = () => {
+    setEventFormData((prev) => ({
+      ...prev,
+      event_type: pendingCategory || "monthly",
+      sessions: [],
+    }));
+    setInlineSessionErrors({});
+    setPendingCategory(null);
+    setIsCategoryModalOpen(false);
+  };
+
+  const handleCancelCategorySwitch = () => {
+    setPendingCategory(null);
+    setIsCategoryModalOpen(false);
+  };
+
   // Open Create Event Modal
   const handleOpenCreateModal = () => {
     setEditingEvent(null);
@@ -278,12 +291,28 @@ export default function EventsManagement() {
     setCoverFile(null);
     setImagePreview(null);
     setEventFieldErrors({});
+    setInlineSessionErrors({});
     setIsFormModalOpen(true);
   };
 
   // Open Edit Event Modal
-  const handleOpenEditModal = (event) => {
+  const handleOpenEditModal = async (event) => {
     setEditingEvent(event);
+    setCoverFile(null);
+    setImagePreview(event.cover_image_url || null);
+    setEventFieldErrors({});
+    setInlineSessionErrors({});
+
+    // Fetch existing sessions for this event to load into form state
+    let existingSessions = [];
+    if (event.event_type !== "monthly") {
+      try {
+        existingSessions = await getSessionsForEvent(event.id);
+      } catch (err) {
+        console.error("Error loading sessions for edit:", err);
+      }
+    }
+
     setEventFormData({
       title: event.title || "",
       description: event.description || "",
@@ -293,11 +322,83 @@ export default function EventsManagement() {
       is_published: Boolean(event.is_published),
       cover_media_id: event.cover_media_id || null,
       cover_image_url: event.cover_image_url || null,
+      sessions: existingSessions,
     });
-    setCoverFile(null);
-    setImagePreview(event.cover_image_url || null);
-    setEventFieldErrors({});
     setIsFormModalOpen(true);
+  };
+
+  // Inline Sessions Local Handlers (React local state only)
+  const handleAddInlineSession = () => {
+    const newSession = {
+      localId: Date.now() + Math.random(),
+      id: null,
+      title: "",
+      description: "",
+      session_date: eventFormData.start_date || new Date().toISOString().split("T")[0],
+      start_time: "10:00",
+      end_time: "11:30",
+      location: "NSS Auditorium",
+      is_published: true,
+      units: [1, 2, 3, 4, 5, 6, 7],
+    };
+    setEventFormData((prev) => ({
+      ...prev,
+      sessions: [...(prev.sessions || []), newSession],
+    }));
+  };
+
+  const handleRemoveInlineSession = (index) => {
+    setEventFormData((prev) => ({
+      ...prev,
+      sessions: (prev.sessions || []).filter((_, idx) => idx !== index),
+    }));
+    setInlineSessionErrors((prev) => {
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
+  };
+
+  const handleUpdateInlineSession = (index, field, value) => {
+    setEventFormData((prev) => {
+      const updated = [...(prev.sessions || [])];
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...prev, sessions: updated };
+    });
+    if (inlineSessionErrors[index]?.[field]) {
+      setInlineSessionErrors((prev) => ({
+        ...prev,
+        [index]: { ...prev[index], [field]: null },
+      }));
+    }
+  };
+
+  const handleToggleUnitForSession = (index, unitNum) => {
+    setEventFormData((prev) => {
+      const updated = [...(prev.sessions || [])];
+      const currUnits = updated[index]?.units || [];
+      const nextUnits = currUnits.includes(unitNum)
+        ? currUnits.filter((u) => u !== unitNum)
+        : [...currUnits, unitNum].sort((a, b) => a - b);
+      updated[index] = { ...updated[index], units: nextUnits };
+      return { ...prev, sessions: updated };
+    });
+  };
+
+  const handleSelectAllUnitsForSession = (index) => {
+    setEventFormData((prev) => {
+      const updated = [...(prev.sessions || [])];
+      updated[index] = { ...updated[index], units: [1, 2, 3, 4, 5, 6, 7] };
+      return { ...prev, sessions: updated };
+    });
+  };
+
+  const handleClearAllUnitsForSession = (index) => {
+    setEventFormData((prev) => {
+      const updated = [...(prev.sessions || [])];
+      updated[index] = { ...updated[index], units: [] };
+      return { ...prev, sessions: updated };
+    });
   };
 
   // Image File Select Handler
@@ -354,25 +455,80 @@ export default function EventsManagement() {
     return Object.keys(errors).length === 0;
   };
 
-  // Save Event (Create or Update)
+  // Validate Inline Sessions
+  const validateInlineSessions = () => {
+    if (eventFormData.event_type === "monthly") return true;
+
+    const errors = {};
+    let hasErrors = false;
+
+    (eventFormData.sessions || []).forEach((sess, idx) => {
+      const sErr = {};
+      if (!sess.title || !sess.title.trim()) {
+        sErr.title = "Session title is required.";
+      }
+      if (!sess.session_date) {
+        sErr.session_date = "Session date is required.";
+      }
+      if (!sess.start_time) {
+        sErr.start_time = "Start time is required.";
+      }
+      if (!sess.end_time) {
+        sErr.end_time = "End time is required.";
+      }
+      if (sess.session_date && sess.start_time && sess.end_time) {
+        const startIso = `${sess.session_date}T${sess.start_time}`;
+        const endIso = `${sess.session_date}T${sess.end_time}`;
+        if (new Date(endIso) <= new Date(startIso)) {
+          sErr.end_time = "End time must be after start time.";
+        }
+      }
+      if (!sess.location || !sess.location.trim()) {
+        sErr.location = "Location is required.";
+      }
+
+      if (Object.keys(sErr).length > 0) {
+        errors[idx] = sErr;
+        hasErrors = true;
+      }
+    });
+
+    setInlineSessionErrors(errors);
+    return !hasErrors;
+  };
+
+  // Save Event (Create or Update + Sync Sessions & Units)
   const handleSaveEvent = async (e) => {
     e.preventDefault();
-    if (!validateEventForm()) return;
+    const isEventValid = validateEventForm();
+    const isSessionsValid = validateInlineSessions();
+    if (!isEventValid || !isSessionsValid) return;
 
     setIsSavingEvent(true);
     setErrorNotice(null);
 
     try {
+      let savedEvent = null;
       if (editingEvent) {
-        const updated = await updateEvent(editingEvent.id, eventFormData, coverFile);
-        setEvents((prev) => prev.map((item) => (item.id === editingEvent.id ? updated : item)));
-        setSuccessNotice(`Event "${updated.title}" updated successfully.`);
+        savedEvent = await updateEvent(editingEvent.id, eventFormData, coverFile);
       } else {
-        const created = await createEvent(eventFormData, coverFile);
-        setEvents((prev) => [created, ...prev]);
-        setSuccessNotice(`Event "${created.title}" created successfully.`);
+        savedEvent = await createEvent(eventFormData, coverFile);
       }
 
+      // Unified creation/update: sync sessions and session_units
+      await syncEventSessions(
+        savedEvent.id,
+        savedEvent.event_type,
+        eventFormData.sessions
+      );
+
+      await loadData();
+
+      setSuccessNotice(
+        editingEvent
+          ? `Event "${savedEvent.title}" updated successfully.`
+          : `Event "${savedEvent.title}" created successfully.`
+      );
       setIsFormModalOpen(false);
     } catch (err) {
       console.error("Save event error:", err);
@@ -401,7 +557,7 @@ export default function EventsManagement() {
     }
   };
 
-  // Open View Event Details & Load Embedded Sessions
+  // Open View Event Details (READ ONLY)
   const handleOpenViewModal = async (event) => {
     setActiveMenuId(null);
     setViewingEvent(event);
@@ -415,144 +571,6 @@ export default function EventsManagement() {
       console.error("Error loading embedded sessions:", err);
     } finally {
       setLoadingSessions(false);
-    }
-  };
-
-  // Open Add Session Modal inside Event
-  const handleOpenAddSessionModal = () => {
-    if (!viewingEvent) return;
-    setEditingSession(null);
-    setSessionFormData({
-      ...INITIAL_SESSION_FORM_STATE,
-      session_date: viewingEvent.start_date || new Date().toISOString().split("T")[0],
-    });
-    setSessionFieldErrors({});
-    setIsSessionModalOpen(true);
-  };
-
-  // Open Edit Session Modal inside Event
-  const handleOpenEditSessionModal = (session) => {
-    setEditingSession(session);
-    setSessionFormData({
-      id: session.id,
-      title: session.title || "",
-      description: session.description || "",
-      session_date: session.session_date || viewingEvent?.start_date || "",
-      start_time: session.start_time || "10:00",
-      end_time: session.end_time || "11:30",
-      location: session.location || "NSS Auditorium",
-      is_published: Boolean(session.is_published),
-      units: Array.isArray(session.units) ? session.units : [1, 2, 3, 4, 5, 6, 7],
-    });
-    setSessionFieldErrors({});
-    setIsSessionModalOpen(true);
-  };
-
-  // Toggle Unit selection for Session
-  const handleToggleUnit = (unitNum) => {
-    setSessionFormData((prev) => {
-      const current = prev.units || [];
-      if (current.includes(unitNum)) {
-        return { ...prev, units: current.filter((u) => u !== unitNum) };
-      } else {
-        return { ...prev, units: [...current, unitNum].sort((a, b) => a - b) };
-      }
-    });
-  };
-
-  const handleSelectAllUnits = () => {
-    setSessionFormData((prev) => ({ ...prev, units: [1, 2, 3, 4, 5, 6, 7] }));
-  };
-
-  const handleClearAllUnits = () => {
-    setSessionFormData((prev) => ({ ...prev, units: [] }));
-  };
-
-  // Validate Session Form
-  const validateSessionForm = () => {
-    const errors = {};
-
-    if (!sessionFormData.title.trim()) {
-      errors.title = "Session title is required.";
-    }
-
-    if (!sessionFormData.session_date) {
-      errors.session_date = "Session date is required.";
-    }
-
-    if (!sessionFormData.start_time) {
-      errors.start_time = "Start time is required.";
-    }
-
-    if (!sessionFormData.end_time) {
-      errors.end_time = "End time is required.";
-    }
-
-    if (sessionFormData.session_date && sessionFormData.start_time && sessionFormData.end_time) {
-      const startIso = `${sessionFormData.session_date}T${sessionFormData.start_time}`;
-      const endIso = `${sessionFormData.session_date}T${sessionFormData.end_time}`;
-      if (new Date(endIso) <= new Date(startIso)) {
-        errors.end_time = "End time must be after start time.";
-      }
-    }
-
-    if (!sessionFormData.location.trim()) {
-      errors.location = "Location is required.";
-    }
-
-    setSessionFieldErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  // Save Embedded Session inside Event
-  const handleSaveEmbeddedSession = async (e) => {
-    e.preventDefault();
-    if (!validateSessionForm() || !viewingEvent) return;
-
-    setIsSavingSession(true);
-
-    try {
-      const savedSession = await saveEventSession(
-        viewingEvent.id,
-        sessionFormData,
-        sessionFormData.units
-      );
-
-      // Update embedded sessions list
-      setEmbeddedSessions((prev) => {
-        const exists = prev.some((s) => s.id === savedSession.id);
-        if (exists) {
-          return prev.map((s) => (s.id === savedSession.id ? savedSession : s));
-        } else {
-          return [...prev, savedSession];
-        }
-      });
-
-      setSuccessNotice(`Session "${savedSession.title}" saved successfully.`);
-      setIsSessionModalOpen(false);
-    } catch (err) {
-      console.error("Save session error:", err);
-      setErrorNotice(err.message || "Failed to save session.");
-    } finally {
-      setIsSavingSession(false);
-    }
-  };
-
-  // Delete Embedded Session
-  const handleConfirmDeleteSession = async () => {
-    if (!sessionToDelete) return;
-    setIsDeletingSession(true);
-
-    try {
-      await deleteEventSession(sessionToDelete.id);
-      setEmbeddedSessions((prev) => prev.filter((s) => s.id !== sessionToDelete.id));
-      setSuccessNotice(`Session "${sessionToDelete.title}" deleted.`);
-      setSessionToDelete(null);
-    } catch (err) {
-      console.error("Delete session error:", err);
-      setErrorNotice(err.message || "Failed to delete session.");
-    } finally {
-      setIsDeletingSession(false);
     }
   };
 
@@ -1094,7 +1112,7 @@ export default function EventsManagement() {
                 </label>
                 <select
                   value={eventFormData.event_type}
-                  onChange={(e) => setEventFormData({ ...eventFormData, event_type: e.target.value })}
+                  onChange={(e) => handleEventTypeChange(e.target.value)}
                   className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-md focus:bg-white focus:outline-hidden"
                 >
                   {EVENT_CATEGORIES.map((cat) => (
@@ -1253,6 +1271,237 @@ export default function EventsManagement() {
                 )}
               </div>
 
+              {/* -------------------------------------------------- */}
+              {/* SESSIONS SECTION (Inline creation/management)     */}
+              {/* -------------------------------------------------- */}
+              {eventFormData.event_type !== "monthly" && (
+                <div className="pt-4 border-t border-slate-200 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                        <Clock className="w-4 h-4 text-red-700" />
+                        Sessions
+                      </h3>
+                      <p className="text-[11px] text-slate-500">
+                        Optional — add sessions to schedule specific activities for this event.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleAddInlineSession}
+                      className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-red-700 hover:bg-red-800 shadow-2xs transition-colors shrink-0"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add Session</span>
+                    </button>
+                  </div>
+
+                  {/* Inline Session Blocks */}
+                  {(!eventFormData.sessions || eventFormData.sessions.length === 0) ? (
+                    <div className="p-4 rounded-md border border-dashed border-slate-200 text-center bg-slate-50/50 space-y-2">
+                      <p className="text-xs text-slate-500">No sessions added to this event yet.</p>
+                      <button
+                        type="button"
+                        onClick={handleAddInlineSession}
+                        className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-md text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 transition-colors"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add First Session</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {eventFormData.sessions.map((sess, idx) => (
+                        <div
+                          key={sess.localId || sess.id || idx}
+                          className="p-4 rounded-lg border border-slate-200 bg-slate-50/70 space-y-3 relative"
+                        >
+                          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                            <h4 className="text-xs font-bold text-slate-900">
+                              Session {idx + 1}
+                            </h4>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveInlineSession(idx)}
+                              className="inline-flex items-center space-x-1 px-2 py-1 text-[11px] font-medium text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Remove Session</span>
+                            </button>
+                          </div>
+
+                          {/* Session Title */}
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">
+                              Session Title <span className="text-red-600">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={sess.title}
+                              onChange={(e) => handleUpdateInlineSession(idx, "title", e.target.value)}
+                              placeholder="e.g. Volunteer Orientation & Briefing"
+                              className={`w-full px-3 py-1.5 text-xs bg-white border ${
+                                inlineSessionErrors[idx]?.title ? "border-red-500 bg-red-50/20" : "border-slate-200"
+                              } rounded-md focus:outline-hidden`}
+                            />
+                            {inlineSessionErrors[idx]?.title && (
+                              <p className="text-[11px] text-red-600 mt-0.5">{inlineSessionErrors[idx].title}</p>
+                            )}
+                          </div>
+
+                          {/* Description */}
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">
+                              Description
+                            </label>
+                            <textarea
+                              rows={2}
+                              value={sess.description || ""}
+                              onChange={(e) => handleUpdateInlineSession(idx, "description", e.target.value)}
+                              placeholder="Session agenda or notes..."
+                              className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-md focus:outline-hidden"
+                            />
+                          </div>
+
+                          {/* Session Date & Times */}
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                                Session Date <span className="text-red-600">*</span>
+                              </label>
+                              <input
+                                type="date"
+                                value={sess.session_date}
+                                onChange={(e) => handleUpdateInlineSession(idx, "session_date", e.target.value)}
+                                className={`w-full px-2.5 py-1.5 text-xs bg-white border ${
+                                  inlineSessionErrors[idx]?.session_date ? "border-red-500" : "border-slate-200"
+                                } rounded-md focus:outline-hidden`}
+                              />
+                              {inlineSessionErrors[idx]?.session_date && (
+                                <p className="text-[11px] text-red-600 mt-0.5">{inlineSessionErrors[idx].session_date}</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                                Start Time <span className="text-red-600">*</span>
+                              </label>
+                              <input
+                                type="time"
+                                value={sess.start_time}
+                                onChange={(e) => handleUpdateInlineSession(idx, "start_time", e.target.value)}
+                                className={`w-full px-2.5 py-1.5 text-xs bg-white border ${
+                                  inlineSessionErrors[idx]?.start_time ? "border-red-500" : "border-slate-200"
+                                } rounded-md focus:outline-hidden`}
+                              />
+                              {inlineSessionErrors[idx]?.start_time && (
+                                <p className="text-[11px] text-red-600 mt-0.5">{inlineSessionErrors[idx].start_time}</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                                End Time <span className="text-red-600">*</span>
+                              </label>
+                              <input
+                                type="time"
+                                value={sess.end_time}
+                                onChange={(e) => handleUpdateInlineSession(idx, "end_time", e.target.value)}
+                                className={`w-full px-2.5 py-1.5 text-xs bg-white border ${
+                                  inlineSessionErrors[idx]?.end_time ? "border-red-500" : "border-slate-200"
+                                } rounded-md focus:outline-hidden`}
+                              />
+                              {inlineSessionErrors[idx]?.end_time && (
+                                <p className="text-[11px] text-red-600 mt-0.5">{inlineSessionErrors[idx].end_time}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Location */}
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">
+                              Location <span className="text-red-600">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={sess.location}
+                              onChange={(e) => handleUpdateInlineSession(idx, "location", e.target.value)}
+                              placeholder="e.g. NSS Auditorium"
+                              className={`w-full px-3 py-1.5 text-xs bg-white border ${
+                                inlineSessionErrors[idx]?.location ? "border-red-500" : "border-slate-200"
+                              } rounded-md focus:outline-hidden`}
+                            />
+                            {inlineSessionErrors[idx]?.location && (
+                              <p className="text-[11px] text-red-600 mt-0.5">{inlineSessionErrors[idx].location}</p>
+                            )}
+                          </div>
+
+                          {/* Units Attending Checkboxes */}
+                          <div className="pt-2 border-t border-slate-200/80 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <label className="block text-xs font-semibold text-slate-700">Units Attending</label>
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleSelectAllUnitsForSession(idx)}
+                                  className="text-[10px] text-red-700 font-medium hover:underline"
+                                >
+                                  Select All
+                                </button>
+                                <span className="text-slate-300">•</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleClearAllUnitsForSession(idx)}
+                                  className="text-[10px] text-slate-500 font-medium hover:underline"
+                                >
+                                  Clear All
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5 bg-white p-2 rounded-md border border-slate-200">
+                              {ALL_UNITS.map((u) => {
+                                const isChecked = (sess.units || []).includes(u);
+                                return (
+                                  <label
+                                    key={u}
+                                    className={`flex items-center justify-center space-x-1 p-1 rounded-md border text-[11px] cursor-pointer transition-colors ${
+                                      isChecked
+                                        ? "bg-red-50 border-red-200 text-red-700 font-medium"
+                                        : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={() => handleToggleUnitForSession(idx, u)}
+                                      className="rounded-xs text-red-700 focus:ring-0 cursor-pointer"
+                                    />
+                                    <span>Unit {u}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      <div className="pt-1 flex justify-center">
+                        <button
+                          type="button"
+                          onClick={handleAddInlineSession}
+                          className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-md text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Add Another Session</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Form Buttons Footer */}
               <div className="pt-4 border-t border-slate-200 flex items-center justify-end space-x-2">
                 <button
@@ -1285,7 +1534,45 @@ export default function EventsManagement() {
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* VIEW EVENT DETAILS & EMBEDDED SESSIONS MODAL                  */}
+      {/* CATEGORY SWITCH CONFIRMATION MODAL                            */}
+      {/* ------------------------------------------------------------- */}
+      {isCategoryModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg border border-slate-200 shadow-xl max-w-md w-full p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-start space-x-3">
+              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0 text-amber-600">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Switch to Monthly Event?</h3>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  Monthly Events do not use separate sessions. Switching to Monthly Event will remove the sessions currently added to this form. Continue?
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={handleCancelCategorySwitch}
+                className="px-4 py-2 rounded-md text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmCategorySwitch}
+                className="px-4 py-2 rounded-md text-xs font-medium text-white bg-red-700 hover:bg-red-800 transition-colors"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* VIEW EVENT DETAILS MODAL (READ-ONLY EXPERIENCE)               */}
       {/* ------------------------------------------------------------- */}
       {isViewModalOpen && viewingEvent && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
@@ -1363,24 +1650,13 @@ export default function EventsManagement() {
                 </div>
               )}
 
-              {/* EMBEDDED SESSIONS SECTION */}
+              {/* READ-ONLY SESSIONS DISPLAY */}
               <div className="pt-4 border-t border-slate-200 space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
                     <Clock className="w-4 h-4 text-red-700" />
                     Sessions
                   </h4>
-
-                  {viewingEvent.categoryLabel !== "Monthly Event" && (
-                    <button
-                      type="button"
-                      onClick={handleOpenAddSessionModal}
-                      className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md text-xs font-medium text-white bg-red-700 hover:bg-red-800 shadow-2xs transition-colors"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Add Session</span>
-                    </button>
-                  )}
                 </div>
 
                 {viewingEvent.categoryLabel === "Monthly Event" ? (
@@ -1391,23 +1667,15 @@ export default function EventsManagement() {
                 ) : loadingSessions ? (
                   <div className="p-4 text-center text-xs text-slate-400">Loading sessions...</div>
                 ) : embeddedSessions.length === 0 ? (
-                  <div className="p-4 rounded-md border border-dashed border-slate-200 text-center space-y-2 bg-slate-50/50">
-                    <p className="text-xs text-slate-500">No sessions added to this event yet.</p>
-                    <button
-                      type="button"
-                      onClick={handleOpenAddSessionModal}
-                      className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-md text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 transition-colors"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Add First Session</span>
-                    </button>
+                  <div className="p-4 rounded-md border border-dashed border-slate-200 text-center bg-slate-50/50">
+                    <p className="text-xs text-slate-500">No sessions added to this event.</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
                     {embeddedSessions.map((s, idx) => (
                       <div
                         key={s.id}
-                        className="p-3 rounded-md bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                        className="p-3 rounded-md bg-slate-50 border border-slate-200 flex flex-col justify-between gap-2"
                       >
                         <div className="space-y-1 min-w-0">
                           <div className="font-semibold text-slate-900 text-xs flex items-center space-x-2">
@@ -1416,7 +1684,12 @@ export default function EventsManagement() {
                             </span>
                             <span>{s.title}</span>
                           </div>
-                          <div className="text-[11px] text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-1">
+
+                          {s.description && (
+                            <p className="text-[11px] text-slate-600 pl-7">{s.description}</p>
+                          )}
+
+                          <div className="text-[11px] text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-1 pl-7 pt-1">
                             <span className="flex items-center space-x-1">
                               <Calendar className="w-3 h-3 text-slate-400" />
                               <span>{formatDateDisplay(s.session_date)}</span>
@@ -1435,8 +1708,8 @@ export default function EventsManagement() {
 
                           {/* Attending Units Badges */}
                           {Array.isArray(s.units) && s.units.length > 0 && (
-                            <div className="flex items-center space-x-1 mt-1 pt-1 border-t border-slate-200/60">
-                              <span className="text-[10px] font-semibold text-slate-500">Units:</span>
+                            <div className="flex items-center space-x-1 mt-1 pt-1.5 border-t border-slate-200/60 pl-7">
+                              <span className="text-[10px] font-semibold text-slate-500">Units Attending:</span>
                               <div className="flex flex-wrap gap-1">
                                 {s.units.map((u) => (
                                   <span
@@ -1449,26 +1722,6 @@ export default function EventsManagement() {
                               </div>
                             </div>
                           )}
-                        </div>
-
-                        {/* Session Row Actions */}
-                        <div className="flex items-center space-x-1 shrink-0 self-end sm:self-center">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditSessionModal(s)}
-                            className="px-2 py-1 rounded-md text-[11px] font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-100 flex items-center space-x-1"
-                          >
-                            <Edit2 className="w-3 h-3 text-slate-500" />
-                            <span>Edit</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setSessionToDelete(s)}
-                            className="px-2 py-1 rounded-md text-[11px] font-medium text-red-600 bg-white border border-slate-200 hover:bg-red-50 flex items-center space-x-1"
-                          >
-                            <Trash2 className="w-3 h-3 text-red-500" />
-                            <span>Delete</span>
-                          </button>
                         </div>
                       </div>
                     ))}
@@ -1490,233 +1743,6 @@ export default function EventsManagement() {
                 Close
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* ------------------------------------------------------------- */}
-      {/* EMBEDDED ADD / EDIT SESSION MODAL INSIDE EVENT                */}
-      {/* ------------------------------------------------------------- */}
-      {isSessionModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg border border-slate-200 shadow-xl max-w-md w-full my-8 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            {/* Modal Header */}
-            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-              <h2 className="text-base font-semibold text-slate-900">
-                {editingSession ? "Edit Session" : "Add Session to Event"}
-              </h2>
-              <button
-                type="button"
-                onClick={() => !isSavingSession && setIsSessionModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-md transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Session Form */}
-            <form onSubmit={handleSaveEmbeddedSession} className="p-5 space-y-4 max-h-[75vh] overflow-y-auto text-xs">
-              {/* Parent Event Display */}
-              <div className="p-2.5 rounded-md bg-slate-50 border border-slate-200">
-                <span className="text-[11px] text-slate-500 font-medium block">Parent Event</span>
-                <span className="font-semibold text-slate-900">{viewingEvent?.title}</span>
-              </div>
-
-              {/* Session Title */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Session Title <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={sessionFormData.title}
-                  onChange={(e) => setSessionFormData({ ...sessionFormData, title: e.target.value })}
-                  placeholder="e.g. Volunteer Orientation & Briefing"
-                  className={`w-full px-3 py-2 text-xs bg-slate-50 border ${
-                    sessionFieldErrors.title ? "border-red-500 bg-red-50/30" : "border-slate-200"
-                  } rounded-md focus:bg-white focus:outline-hidden`}
-                />
-                {sessionFieldErrors.title && (
-                  <p className="text-[11px] text-red-600 mt-1">{sessionFieldErrors.title}</p>
-                )}
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Description</label>
-                <textarea
-                  rows={2}
-                  value={sessionFormData.description}
-                  onChange={(e) => setSessionFormData({ ...sessionFormData, description: e.target.value })}
-                  placeholder="Session activities and agenda..."
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-md focus:bg-white focus:outline-hidden"
-                />
-              </div>
-
-              {/* Session Date */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Session Date <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={sessionFormData.session_date}
-                  onChange={(e) => setSessionFormData({ ...sessionFormData, session_date: e.target.value })}
-                  className={`w-full px-3 py-2 text-xs bg-slate-50 border ${
-                    sessionFieldErrors.session_date ? "border-red-500" : "border-slate-200"
-                  } rounded-md focus:bg-white focus:outline-hidden`}
-                />
-                {sessionFieldErrors.session_date && (
-                  <p className="text-[11px] text-red-600 mt-1">{sessionFieldErrors.session_date}</p>
-                )}
-              </div>
-
-              {/* Times Grid */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Start Time <span className="text-red-600">*</span>
-                  </label>
-                  <input
-                    type="time"
-                    value={sessionFormData.start_time}
-                    onChange={(e) => setSessionFormData({ ...sessionFormData, start_time: e.target.value })}
-                    className={`w-full px-3 py-2 text-xs bg-slate-50 border ${
-                      sessionFieldErrors.start_time ? "border-red-500" : "border-slate-200"
-                    } rounded-md focus:bg-white focus:outline-hidden`}
-                  />
-                  {sessionFieldErrors.start_time && (
-                    <p className="text-[11px] text-red-600 mt-1">{sessionFieldErrors.start_time}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    End Time <span className="text-red-600">*</span>
-                  </label>
-                  <input
-                    type="time"
-                    value={sessionFormData.end_time}
-                    onChange={(e) => setSessionFormData({ ...sessionFormData, end_time: e.target.value })}
-                    className={`w-full px-3 py-2 text-xs bg-slate-50 border ${
-                      sessionFieldErrors.end_time ? "border-red-500" : "border-slate-200"
-                    } rounded-md focus:bg-white focus:outline-hidden`}
-                  />
-                  {sessionFieldErrors.end_time && (
-                    <p className="text-[11px] text-red-600 mt-1">{sessionFieldErrors.end_time}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Duration Indicator */}
-              <div className="text-[11px] text-slate-500 flex items-center space-x-1">
-                <Clock className="w-3.5 h-3.5 text-slate-400" />
-                <span>
-                  Duration:{" "}
-                  <strong className="text-slate-800">
-                    {calculateDuration(
-                      sessionFormData.session_date,
-                      sessionFormData.start_time,
-                      sessionFormData.end_time
-                    )}
-                  </strong>
-                </span>
-              </div>
-
-              {/* Location */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Location <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={sessionFormData.location}
-                  onChange={(e) => setSessionFormData({ ...sessionFormData, location: e.target.value })}
-                  placeholder="e.g. NSS Auditorium"
-                  className={`w-full px-3 py-2 text-xs bg-slate-50 border ${
-                    sessionFieldErrors.location ? "border-red-500" : "border-slate-200"
-                  } rounded-md focus:bg-white focus:outline-hidden`}
-                />
-                {sessionFieldErrors.location && (
-                  <p className="text-[11px] text-red-600 mt-1">{sessionFieldErrors.location}</p>
-                )}
-              </div>
-
-              {/* UNITS ATTENDING (session_units) MULTI-SELECT */}
-              <div className="pt-2 border-t border-slate-100 space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block font-semibold text-slate-700">Units Attending</label>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      type="button"
-                      onClick={handleSelectAllUnits}
-                      className="text-[10px] text-red-700 font-medium hover:underline"
-                    >
-                      Select All
-                    </button>
-                    <span className="text-slate-300">•</span>
-                    <button
-                      type="button"
-                      onClick={handleClearAllUnits}
-                      className="text-[10px] text-slate-500 font-medium hover:underline"
-                    >
-                      Clear All
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-4 gap-2 bg-slate-50 p-2.5 rounded-md border border-slate-200">
-                  {ALL_UNITS.map((u) => {
-                    const isChecked = sessionFormData.units.includes(u);
-                    return (
-                      <label
-                        key={u}
-                        className={`flex items-center space-x-1.5 p-1.5 rounded-md border text-xs cursor-pointer transition-colors ${
-                          isChecked
-                            ? "bg-red-50 border-red-200 text-red-700 font-medium"
-                            : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100"
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => handleToggleUnit(u)}
-                          className="rounded-xs text-red-700 focus:ring-0 cursor-pointer"
-                        />
-                        <span>Unit {u}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Modal Buttons Footer */}
-              <div className="pt-4 border-t border-slate-200 flex items-center justify-end space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setIsSessionModalOpen(false)}
-                  disabled={isSavingSession}
-                  className="px-4 py-2 rounded-md text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition-colors"
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="submit"
-                  disabled={isSavingSession}
-                  className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-md text-xs font-medium text-white bg-red-700 hover:bg-red-800 disabled:opacity-60 transition-colors"
-                >
-                  {isSavingSession ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <span>{editingSession ? "Update Session" : "Add Session"}</span>
-                  )}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
@@ -1762,54 +1788,6 @@ export default function EventsManagement() {
                   </>
                 ) : (
                   <span>Delete Event</span>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ------------------------------------------------------------- */}
-      {/* DELETE EMBEDDED SESSION CONFIRMATION MODAL                    */}
-      {/* ------------------------------------------------------------- */}
-      {sessionToDelete && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg border border-slate-200 shadow-xl max-w-md w-full p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-start space-x-3">
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0 text-red-600">
-                <Trash2 className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900">Delete Session?</h3>
-                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                  Are you sure you want to delete the session{" "}
-                  <strong className="text-slate-800">"{sessionToDelete.title}"</strong>?
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => !isDeletingSession && setSessionToDelete(null)}
-                disabled={isDeletingSession}
-                className="px-4 py-2 rounded-md text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDeleteSession}
-                disabled={isDeletingSession}
-                className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-md text-xs font-medium text-white bg-red-700 hover:bg-red-800 disabled:opacity-60 transition-colors"
-              >
-                {isDeletingSession ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Deleting...</span>
-                  </>
-                ) : (
-                  <span>Delete Session</span>
                 )}
               </button>
             </div>

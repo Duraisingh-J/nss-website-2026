@@ -1,6 +1,6 @@
 import React, { useRef, useLayoutEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarDays, Flag, ArrowRight } from "lucide-react";
+import { Clock, Flag, ArrowRight } from "lucide-react";
 import { gsap, isReducedMotion } from "../../lib/animations";
 
 export default function HomeCTA() {
@@ -69,8 +69,8 @@ export default function HomeCTA() {
               onClick={() => navigate("/sessions")}
               className="inline-flex items-center justify-center gap-2.5 bg-slate-800 hover:bg-slate-700/80 text-slate-200 border border-slate-700 font-sans font-medium text-sm sm:text-base px-6 py-4 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
             >
-              <CalendarDays className="w-4 h-4 text-slate-400" />
-              <span>View Session Calendar</span>
+              <Clock className="w-4 h-4 text-slate-400" />
+              <span>Explore NSS Schedule</span>
             </button>
           </div>
 

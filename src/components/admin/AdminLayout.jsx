@@ -6,14 +6,36 @@ import "../../styles/admin.css";
 
 export default function AdminLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("nss_admin_sidebar_collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
 
   const toggleSidebar = () => {
     if (window.innerWidth < 1024) {
       setIsSidebarOpen((prev) => !prev);
     } else {
-      setIsSidebarCollapsed((prev) => !prev);
+      setIsSidebarCollapsed((prev) => {
+        const next = !prev;
+        try {
+          localStorage.setItem("nss_admin_sidebar_collapsed", String(next));
+        } catch (e) {}
+        return next;
+      });
     }
+  };
+
+  const toggleCollapseOnly = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("nss_admin_sidebar_collapsed", String(next));
+      } catch (e) {}
+      return next;
+    });
   };
 
   return (
@@ -23,12 +45,13 @@ export default function AdminLayout() {
         isOpen={isSidebarOpen}
         isCollapsed={isSidebarCollapsed}
         onClose={() => setIsSidebarOpen(false)}
+        onToggleCollapse={toggleCollapseOnly}
       />
 
       {/* Main Content Area (offset left by sidebar width on lg screens) */}
       <div
-        className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${
-          isSidebarCollapsed ? "lg:pl-0" : "lg:pl-64"
+        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${
+          isSidebarCollapsed ? "lg:pl-16" : "lg:pl-64"
         }`}
       >
         {/* Top Navbar */}

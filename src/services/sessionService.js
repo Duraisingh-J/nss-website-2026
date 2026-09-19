@@ -250,6 +250,64 @@ export async function saveEventSession(eventId, sessionData, selectedUnits = [])
 }
 
 /**
+ * Synchronizes sessions and session_units for a given event from local form state.
+ * Deletes removed sessions, updates existing ones, and inserts new ones.
+ */
+export async function syncEventSessions(eventId, eventType, formSessions = []) {
+  if (!eventId) throw new Error("Event ID is required to sync sessions.");
+
+  const isMonthly =
+    eventType === "monthly" ||
+    eventType === "Monthly Event";
+
+  // If Monthly Event, delete all existing DB sessions for this event
+  if (isMonthly) {
+    const { error: delError } = await supabase
+      .from("sessions")
+      .delete()
+      .eq("event_id", eventId);
+    if (delError) {
+      console.error("Error deleting sessions for monthly event:", delError.message);
+    }
+    return [];
+  }
+
+  // Fetch current DB sessions for this event
+  const existingDbSessions = await getSessionsForEvent(eventId);
+  const formSessionIds = new Set(
+    (formSessions || []).filter((s) => s.id).map((s) => s.id)
+  );
+
+  // 1. Delete DB sessions that are no longer in formSessions
+  const toDelete = existingDbSessions.filter((s) => !formSessionIds.has(s.id));
+  for (const sessionToDelete of toDelete) {
+    await deleteEventSession(sessionToDelete.id);
+  }
+
+  // 2. Insert or Update each form session and sync its units
+  const savedSessions = [];
+  for (let i = 0; i < (formSessions || []).length; i++) {
+    const s = formSessions[i];
+    const sessionData = {
+      id: s.id || null,
+      title: s.title,
+      description: s.description || "",
+      session_date: s.session_date,
+      start_time: s.start_time || "10:00:00",
+      end_time: s.end_time || "11:30:00",
+      location: s.location || "NSS Campus",
+      is_published: s.is_published !== undefined ? s.is_published : true,
+      display_order: i + 1,
+    };
+    const units = Array.isArray(s.units) ? s.units : [1, 2, 3, 4, 5, 6, 7];
+    const saved = await saveEventSession(eventId, sessionData, units);
+    savedSessions.push(saved);
+  }
+
+  return savedSessions;
+}
+
+/**
  * Delete a session record from Supabase (cascade deletes session_units automatically)
  */
 export async function deleteEventSession(sessionId) {

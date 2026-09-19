@@ -1,0 +1,153 @@
+/* ============================================================
+   PAGE HERO — Shared hero component for People, Events, Sessions
+   Extracted from PeopleHero design pattern
+   ============================================================ */
+
+.page-hero {
+  background: var(--navy);
+  padding: 44px 5vw 36px;
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ── Background Watermark ── */
+.page-hero__watermark {
+  position: absolute;
+  right: 3vw;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(72px, 13vw, 160px);
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.035);
+  user-select: none;
+  line-height: 1;
+  pointer-events: none;
+  letter-spacing: -0.02em;
+  animation: pageHeroWatermarkIn 0.8s ease-out forwards;
+}
+
+/* ── Inner content container ── */
+.page-hero__inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+}
+
+/* ── Eyebrow pill ── */
+.page-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(217, 75, 75, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(217, 75, 75, 0.3);
+  border-radius: 9999px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 12px;
+  margin-bottom: 10px;
+  animation: pageHeroFadeUp 0.6s ease-out forwards;
+}
+
+.page-hero__eyebrow-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--red);
+  flex-shrink: 0;
+}
+
+/* ── Main Title ── */
+.page-hero__title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: clamp(28px, 4.2vw, 44px);
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  margin: 0 0 8px 0;
+  animation: pageHeroFadeUp 0.65s ease-out 0.08s forwards;
+  opacity: 0;
+}
+
+/* ── Subtitle / Description ── */
+.page-hero__subtitle {
+  font-family: 'DM Sans', sans-serif;
+  font-size: clamp(13px, 1.6vw, 15px);
+  color: rgba(255, 255, 255, 0.65);
+  max-width: 620px;
+  line-height: 1.55;
+  margin: 0 0 0 0;
+  animation: pageHeroFadeUp 0.7s ease-out 0.16s forwards;
+  opacity: 0;
+}
+
+/* ── Slot for extra controls (e.g. academic year pills) ── */
+.page-hero__controls {
+  margin-top: 16px;
+  animation: pageHeroFadeUp 0.75s ease-out 0.22s forwards;
+  opacity: 0;
+}
+
+/* ── Keyframes ── */
+@keyframes pageHeroFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pageHeroWatermarkIn {
+  from {
+    opacity: 0;
+    transform: translateY(-46%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .page-hero {
+    padding: 36px 5vw 28px;
+  }
+  .page-hero__watermark {
+    right: -2vw;
+    font-size: 100px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-hero {
+    padding: 28px 5vw 22px;
+  }
+  .page-hero__watermark {
+    font-size: 72px;
+    opacity: 0.025;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .page-hero__watermark,
+  .page-hero__eyebrow,
+  .page-hero__title,
+  .page-hero__subtitle,
+  .page-hero__controls {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
