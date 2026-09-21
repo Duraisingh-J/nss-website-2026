@@ -20,12 +20,8 @@ export default function People() {
     all: [],
     nssCoordinator: null,
     programOfficers: [],
-    treasurers: [],
-    sessionCoordinators: [],
-    reportHeads: [],
-    designHeads: [],
+    officeBearers: [],
     unitIncharges: [],
-    volunteers: [],
   });
 
   const fetchPeople = useCallback(async () => {
@@ -136,67 +132,22 @@ export default function People() {
               </PeopleSection>
             )}
 
-            {/* ── 4. Treasurers ── */}
-            {peopleData.treasurers.length > 0 && (
+            {/* ── 4. Office Bearers ── */}
+            {peopleData.officeBearers.length > 0 && (
               <PeopleSection
                 eyebrow="Student Leadership"
-                title="Treasurers"
-                subtitle="Managing financial integrity, resource budgeting, and event accounts."
-                id="treasurers"
+                title="Office Bearers"
+                subtitle="Student teams driving events, administration, outreach, and community initiatives."
+                id="office-bearers"
               >
                 <PeopleDepthCarousel
-                  people={peopleData.treasurers}
-                  fallbackRole="Treasurer"
+                  people={peopleData.officeBearers}
+                  fallbackRole="Office Bearer"
                 />
               </PeopleSection>
             )}
 
-            {/* ── 5. Session Coordinators ── */}
-            {peopleData.sessionCoordinators.length > 0 && (
-              <PeopleSection
-                eyebrow="Operational Management"
-                title="Session Coordinators"
-                subtitle="Orchestrating weekly sessions, training modules, and social service drives."
-                id="session-coordinators"
-              >
-                <PeopleDepthCarousel
-                  people={peopleData.sessionCoordinators}
-                  fallbackRole="Session Coordinator"
-                />
-              </PeopleSection>
-            )}
-
-            {/* ── 6. Report Heads ── */}
-            {peopleData.reportHeads.length > 0 && (
-              <PeopleSection
-                eyebrow="Documentation & Editorial"
-                title="Report Heads"
-                subtitle="Documenting community initiatives, annual reports, and impact audits."
-                id="report-heads"
-              >
-                <PeopleDepthCarousel
-                  people={peopleData.reportHeads}
-                  fallbackRole="Report Head"
-                />
-              </PeopleSection>
-            )}
-
-            {/* ── 7. Design Heads ── */}
-            {peopleData.designHeads.length > 0 && (
-              <PeopleSection
-                eyebrow="Creative & Media"
-                title="Design Heads"
-                subtitle="Crafting visual identities, campaign materials, and public outreach designs."
-                id="design-heads"
-              >
-                <PeopleDepthCarousel
-                  people={peopleData.designHeads}
-                  fallbackRole="Design Head"
-                />
-              </PeopleSection>
-            )}
-
-            {/* ── 8. Unit Incharges ── */}
+            {/* ── 5. Unit Incharges ── */}
             {peopleData.unitIncharges.length > 0 && (
               <PeopleSection
                 eyebrow="Student Units"
@@ -234,21 +185,6 @@ export default function People() {
                     </button>
                   </div>
                 )}
-              </PeopleSection>
-            )}
-
-            {/* ── 9. Volunteers / Additional Team Members ── */}
-            {peopleData.volunteers.length > 0 && (
-              <PeopleSection
-                eyebrow="Student Volunteers"
-                title="NSS Volunteers"
-                subtitle="Dedicated student volunteers serving across community welfare and outreach initiatives."
-                id="volunteers"
-              >
-                <PeopleDepthCarousel
-                  people={peopleData.volunteers}
-                  fallbackRole="Volunteer"
-                />
               </PeopleSection>
             )}
           </>
