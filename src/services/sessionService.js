@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabase.js";
+import { uploadMedia, getMediaPublicUrl } from "./mediaService.js";
 
 /**
  * Formats time string (e.g. "10:00:00" or "10:00" -> "10:00 AM")
@@ -104,6 +105,21 @@ export function transformSession(row) {
     ? row.session_units.map((u) => u.unit).sort((a, b) => a - b)
     : [];
 
+  // Extract photos from joined session_media array if present
+  const photos = Array.isArray(row.session_media)
+    ? row.session_media
+        .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+        .map((sm) => ({
+          id: sm.id,
+          mediaId: sm.media_id,
+          url: getMediaPublicUrl(sm.media?.storage_path),
+          caption: sm.media?.caption || sm.media?.alt_text || row.title,
+          altText: sm.media?.alt_text || row.title,
+        }))
+    : [];
+
+  const coverImageUrl = photos.length > 0 ? photos[0].url : getMediaPublicUrl(row.events?.media?.storage_path) || null;
+
   return {
     id: row.id,
     event_id: row.event_id || null,
@@ -122,6 +138,10 @@ export function transformSession(row) {
     timingStatus: timingStatus,
     display_order: row.display_order ?? 0,
     units: units,
+    photos: photos,
+    gallery: photos,
+    coverImageUrl: coverImageUrl,
+    coverImage: coverImageUrl,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -148,8 +168,34 @@ export async function getSessionsForEvent(eventId) {
       display_order,
       created_at,
       updated_at,
+      events:event_id (
+        id,
+        title,
+        start_date,
+        end_date,
+        event_type,
+        cover_media_id,
+        media:cover_media_id (storage_path)
+      ),
       session_units (
         unit
+      ),
+      session_media (
+        id,
+        media_id,
+        display_order,
+        media:media_id (
+          id,
+          file_name,
+          storage_path,
+          mime_type,
+          file_size,
+          width,
+          height,
+          alt_text,
+          caption,
+          created_at
+        )
       )
     `)
     .eq("event_id", eventId)
@@ -363,10 +409,24 @@ export async function getPublicCalendarData() {
           id,
           title,
           event_type,
-          is_published
+          is_published,
+          cover_media_id,
+          media:cover_media_id (storage_path)
         ),
         session_units (
           unit
+        ),
+        session_media (
+          id,
+          media_id,
+          display_order,
+          media:media_id (
+            id,
+            file_name,
+            storage_path,
+            alt_text,
+            caption
+          )
         )
       `)
       .eq("is_published", true),
@@ -394,8 +454,14 @@ export async function getPublicCalendarData() {
       calendarMap[dateKey] = [];
     }
 
+    const sessionPhotos = transformedSession.photos || [];
+    const parentCoverUrl = getMediaPublicUrl(parentEvent.media?.storage_path);
+    const coverImageUrl = sessionPhotos.length > 0 ? sessionPhotos[0].url : parentCoverUrl;
+
     calendarMap[dateKey].push({
       id: `session-${row.id}`,
+      sessionId: row.id,
+      eventId: parentEvent.id,
       type: "session",
       title: row.title,
       parentEventTitle: parentEvent.title,
@@ -406,6 +472,10 @@ export async function getPublicCalendarData() {
       location: row.location || "NSS Campus",
       units: transformedSession.units,
       description: row.description || "",
+      coverImageUrl: coverImageUrl,
+      coverImage: coverImageUrl,
+      gallery: sessionPhotos,
+      photos: sessionPhotos,
       rawData: transformedSession,
     });
   });
@@ -424,11 +494,14 @@ export async function getPublicCalendarData() {
       calendarMap[dateKey] = [];
     }
 
+    const coverUrl = getMediaPublicUrl(ev.media?.storage_path);
+
     // Check if not already added
     const exists = calendarMap[dateKey].some((item) => item.id === `monthly-${ev.id}`);
     if (!exists) {
       calendarMap[dateKey].push({
         id: `monthly-${ev.id}`,
+        eventId: ev.id,
         type: "monthly_event",
         title: ev.title,
         parentEventTitle: null,
@@ -439,10 +512,165 @@ export async function getPublicCalendarData() {
         location: "OAT",
         units: [1, 2, 3, 4, 5, 6, 7], // All units attend monthly events
         description: ev.description || "",
+        coverImageUrl: coverUrl,
+        coverImage: coverUrl,
+        gallery: coverUrl ? [{ id: `cover-${ev.id}`, url: coverUrl, caption: ev.title }] : [],
+        photos: coverUrl ? [{ id: `cover-${ev.id}`, url: coverUrl, caption: ev.title }] : [],
         rawData: ev,
       });
     }
   });
 
   return calendarMap;
+}
+
+/**
+ * Fetch all photographs associated with a session via session_media
+ */
+export async function getSessionMedia(sessionId) {
+  if (!sessionId) return [];
+
+  const { data, error } = await supabase
+    .from("session_media")
+    .select(`
+      id,
+      session_id,
+      media_id,
+      display_order,
+      media:media_id (
+        id,
+        file_name,
+        storage_path,
+        mime_type,
+        file_size,
+        width,
+        height,
+        alt_text,
+        caption,
+        created_at
+      )
+    `)
+    .eq("session_id", sessionId)
+    .order("display_order", { ascending: true })
+    .order("id", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching session media:", error.message);
+    return [];
+  }
+
+  return (data || []).map((row) => ({
+    id: row.id, // session_media link ID
+    session_id: row.session_id,
+    media_id: row.media_id,
+    display_order: row.display_order,
+    media: row.media,
+    publicUrl: getMediaPublicUrl(row.media?.storage_path),
+    fileName: row.media?.file_name || "image.webp",
+    altText: row.media?.alt_text || "",
+    caption: row.media?.caption || "",
+    width: row.media?.width,
+    height: row.media?.height,
+    fileSize: row.media?.file_size,
+    mimeType: row.media?.mime_type,
+    createdAt: row.media?.created_at,
+  }));
+}
+
+/**
+ * Upload and associate a photograph with a session (stored in public-media/sessions/)
+ */
+export async function addSessionMedia(sessionId, file, options = {}) {
+  if (!sessionId || !file) {
+    throw new Error("Session ID and File are required for uploading session media.");
+  }
+
+  // 1. Upload media using common image optimization pipeline (to public-media/sessions/)
+  const uploadedMedia = await uploadMedia(file, {
+    folder: "sessions",
+    entityId: sessionId,
+    altText: options.altText || file.name || "Session photograph",
+    caption: options.caption || null,
+    quality: 0.85,
+    maxDimension: 2400,
+  });
+
+  // 2. Fetch current max display_order for this session
+  const { data: currentMedia } = await supabase
+    .from("session_media")
+    .select("display_order")
+    .eq("session_id", sessionId)
+    .order("display_order", { ascending: false })
+    .limit(1);
+
+  const nextOrder = currentMedia && currentMedia.length > 0 ? (currentMedia[0].display_order || 0) + 1 : 1;
+
+  // 3. Create session_media association
+  const { data: linkRow, error: linkError } = await supabase
+    .from("session_media")
+    .insert({
+      session_id: sessionId,
+      media_id: uploadedMedia.id,
+      display_order: nextOrder,
+    })
+    .select(`
+      id,
+      session_id,
+      media_id,
+      display_order,
+      media:media_id (
+        id,
+        file_name,
+        storage_path,
+        mime_type,
+        file_size,
+        width,
+        height,
+        alt_text,
+        caption,
+        created_at
+      )
+    `)
+    .single();
+
+  if (linkError) {
+    console.error("Error linking session_media:", linkError.message);
+    throw new Error(`Failed to associate media with session: ${linkError.message}`);
+  }
+
+  return {
+    id: linkRow.id,
+    session_id: linkRow.session_id,
+    media_id: linkRow.media_id,
+    display_order: linkRow.display_order,
+    media: linkRow.media,
+    publicUrl: getMediaPublicUrl(linkRow.media?.storage_path),
+    fileName: linkRow.media?.file_name,
+    altText: linkRow.media?.alt_text,
+    caption: linkRow.media?.caption,
+    width: linkRow.media?.width,
+    height: linkRow.media?.height,
+    fileSize: linkRow.media?.file_size,
+    mimeType: linkRow.media?.mime_type,
+    createdAt: linkRow.media?.created_at,
+  };
+}
+
+/**
+ * Remove a session photograph association (deletes session_media row only, preserving underlying media)
+ */
+export async function removeSessionMedia(sessionMediaId) {
+  if (!sessionMediaId) throw new Error("Session Media ID is required.");
+
+  const { error } = await supabase
+    .from("session_media")
+    .delete()
+    .eq("id", sessionMediaId);
+
+  if (error) {
+    console.error("Error deleting session media association:", error.message);
+    throw new Error(`Failed to remove session photo: ${error.message}`);
+  }
+
+  return true;
 }

@@ -82,13 +82,12 @@ export default function AdminSidebar({ isOpen, isCollapsed, onClose }) {
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 bg-slate-900 border-r border-slate-800 flex flex-col h-screen h-[100dvh] transition-all duration-300 ease-in-out ${
-          isOpen
+        className={`fixed inset-y-0 left-0 z-50 bg-slate-900 border-r border-slate-800 flex flex-col h-screen h-[100dvh] transition-all duration-300 ease-in-out ${isOpen
             ? "translate-x-0 w-64"
             : isCollapsed
-            ? "-translate-x-full lg:translate-x-0 lg:w-16"
-            : "-translate-x-full lg:translate-x-0 lg:w-64"
-        }`}
+              ? "-translate-x-full lg:translate-x-0 lg:w-16"
+              : "-translate-x-full lg:translate-x-0 lg:w-64"
+          }`}
       >
         {/* Institutional Branding Header */}
         <div className={`h-16 shrink-0 flex items-center border-b border-slate-800 ${isCollapsed ? "justify-center px-2" : "justify-between px-4"}`}>
@@ -145,14 +144,12 @@ export default function AdminSidebar({ isOpen, isCollapsed, onClose }) {
                       onClick={onClose}
                       title={isCollapsed ? item.name : undefined}
                       className={({ isActive }) =>
-                        `relative group flex items-center rounded-md text-xs transition-colors ${
-                          isCollapsed
-                            ? "justify-center p-2.5"
-                            : "space-x-2.5 px-2.5 py-1.5"
-                        } ${
-                          isActive
-                            ? "bg-slate-800 text-white font-medium border-l-2 border-red-600"
-                            : "text-slate-300 hover:text-white hover:bg-slate-800/60"
+                        `relative group flex items-center rounded-md text-xs transition-colors ${isCollapsed
+                          ? "justify-center p-2.5"
+                          : "space-x-2.5 px-2.5 py-1.5"
+                        } ${isActive
+                          ? "bg-slate-800 text-white font-medium border-l-2 border-red-600"
+                          : "text-slate-300 hover:text-white hover:bg-slate-800/60"
                         }`
                       }
                     >
@@ -178,9 +175,8 @@ export default function AdminSidebar({ isOpen, isCollapsed, onClose }) {
             target="_blank"
             rel="noopener noreferrer"
             title="View Public Website"
-            className={`relative group flex items-center rounded-md text-xs text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors ${
-              isCollapsed ? "justify-center p-2" : "justify-between px-2.5 py-1.5"
-            }`}
+            className={`relative group flex items-center rounded-md text-xs text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors ${isCollapsed ? "justify-center p-2" : "justify-between px-2.5 py-1.5"
+              }`}
           >
             {!isCollapsed && <span className="whitespace-nowrap">View Website</span>}
             <ExternalLink className="w-3.5 h-3.5 text-slate-400 shrink-0" />

@@ -1,10 +1,9 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
-import Home     from "./pages/Home";
-import Sessions from "./pages/Sessions";
-import Events   from "./pages/Events";
-import People   from "./pages/People";
+import Home from "./pages/Home";
+import Events from "./pages/Events";
+import People from "./pages/People";
 import "./styles/global.css";
 
 // Admin CMS Imports
@@ -33,11 +32,14 @@ export default function App() {
         <AppNavbar />
         <Routes>
           {/* Public Website Routes */}
-          <Route path="/"         element={<Home />}     />
-          <Route path="/about"    element={<Navigate to="/" replace />} />
-          <Route path="/sessions" element={<Sessions />} />
-          <Route path="/events"   element={<Events />}   />
-          <Route path="/people"   element={<People />}   />
+          <Route path="/" element={<Home />} />
+          <Route path="/about" element={<Navigate to="/" replace />} />
+          <Route path="/sessions" element={<Navigate to="/events" replace />} />
+          <Route path="/sessions/:sessionId" element={<Navigate to="/events" replace />} />
+          <Route path="/events" element={<Events />} />
+          <Route path="/events/:eventId" element={<Navigate to="/events" replace />} />
+          <Route path="/events/:eventId/sessions/:sessionId" element={<Navigate to="/events" replace />} />
+          <Route path="/people" element={<People />} />
 
           {/* Admin CMS Authentication */}
           <Route path="/admin/login" element={<Login />} />

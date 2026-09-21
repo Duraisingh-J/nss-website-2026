@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   getAdminEvents,
   createEvent,
   updateEvent,
   deleteEvent,
   toggleEventPublishStatus,
+  getEventMedia,
+  addEventMedia,
+  removeEventMedia,
   EVENT_CATEGORIES,
   formatDateDisplay,
   formatEventCategoryLabel,
@@ -12,6 +15,9 @@ import {
 import {
   getSessionsForEvent,
   syncEventSessions,
+  getSessionMedia,
+  addSessionMedia,
+  removeSessionMedia,
   formatTimeDisplay,
 } from "../../services/sessionService.js";
 import { validateImageFile } from "../../utils/imageOptimizer.js";
@@ -37,6 +43,10 @@ import {
   Clock,
   MapPin,
   AlertTriangle,
+  Image as ImageIcon,
+  FileImage,
+  FileText,
+  Save,
 } from "lucide-react";
 import "../../styles/admin.css";
 
@@ -86,6 +96,13 @@ export default function EventsManagement() {
   const [inlineSessionErrors, setInlineSessionErrors] = useState({});
   const [isSavingEvent, setIsSavingEvent] = useState(false);
 
+  // Cancel Confirmation Modal state (Save as Draft vs Discard)
+  const [isCancelConfirmModalOpen, setIsCancelConfirmModalOpen] = useState(false);
+
+  // Event Photographs in Event Creation/Edit Form
+  const [eventPhotosFiles, setEventPhotosFiles] = useState([]); // [{ id, file, previewUrl, name, size }]
+  const [eventExistingMedia, setEventExistingMedia] = useState([]); // from getEventMedia(eventId)
+
   // Category switch confirmation state
   const [pendingCategory, setPendingCategory] = useState(null);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -99,6 +116,32 @@ export default function EventsManagement() {
   const [viewingEvent, setViewingEvent] = useState(null);
   const [embeddedSessions, setEmbeddedSessions] = useState([]);
   const [loadingSessions, setLoadingSessions] = useState(false);
+
+  // Event Media Modal states
+  const [isEventMediaModalOpen, setIsEventMediaModalOpen] = useState(false);
+  const [selectedEventForMedia, setSelectedEventForMedia] = useState(null);
+  const [eventMediaList, setEventMediaList] = useState([]);
+  const [loadingEventMedia, setLoadingEventMedia] = useState(false);
+  const [uploadingEventMedia, setUploadingEventMedia] = useState(false);
+
+  // Session Media Modal states
+  const [isSessionMediaModalOpen, setIsSessionMediaModalOpen] = useState(false);
+  const [selectedSessionForMedia, setSelectedSessionForMedia] = useState(null);
+  const [sessionMediaList, setSessionMediaList] = useState([]);
+  const [loadingSessionMedia, setLoadingSessionMedia] = useState(false);
+  const [uploadingSessionMedia, setUploadingSessionMedia] = useState(false);
+
+  // Viewing Event Photos (inside View Details modal)
+  const [viewingEventMedia, setViewingEventMedia] = useState([]);
+  const [loadingViewingEventMedia, setLoadingViewingEventMedia] = useState(false);
+
+  // Lightbox Preview state
+  const [lightboxImage, setLightboxImage] = useState(null);
+
+  // File input refs
+  const eventMediaInputRef = useRef(null);
+  const sessionMediaInputRef = useRef(null);
+  const viewingEventMediaInputRef = useRef(null);
 
   // Delete Confirmation Modal states
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -290,6 +333,8 @@ export default function EventsManagement() {
     setEventFormData(INITIAL_EVENT_FORM_STATE);
     setCoverFile(null);
     setImagePreview(null);
+    setEventPhotosFiles([]);
+    setEventExistingMedia([]);
     setEventFieldErrors({});
     setInlineSessionErrors({});
     setIsFormModalOpen(true);
@@ -300,14 +345,35 @@ export default function EventsManagement() {
     setEditingEvent(event);
     setCoverFile(null);
     setImagePreview(event.cover_image_url || null);
+    setEventPhotosFiles([]);
+    setEventExistingMedia([]);
     setEventFieldErrors({});
     setInlineSessionErrors({});
+
+    // Fetch existing media for this event
+    try {
+      const media = await getEventMedia(event.id);
+      setEventExistingMedia(media);
+    } catch (err) {
+      console.error("Error loading event media for edit:", err);
+    }
 
     // Fetch existing sessions for this event to load into form state
     let existingSessions = [];
     if (event.event_type !== "monthly") {
       try {
-        existingSessions = await getSessionsForEvent(event.id);
+        const fetchedSessions = await getSessionsForEvent(event.id);
+        // Also fetch photographs for each session
+        existingSessions = await Promise.all(
+          fetchedSessions.map(async (sess) => {
+            try {
+              const sMedia = await getSessionMedia(sess.id);
+              return { ...sess, existingMedia: sMedia, photosFiles: [] };
+            } catch (err) {
+              return { ...sess, existingMedia: [], photosFiles: [] };
+            }
+          })
+        );
       } catch (err) {
         console.error("Error loading sessions for edit:", err);
       }
@@ -340,6 +406,8 @@ export default function EventsManagement() {
       location: "NSS Auditorium",
       is_published: true,
       units: [1, 2, 3, 4, 5, 6, 7],
+      photosFiles: [],
+      existingMedia: [],
     };
     setEventFormData((prev) => ({
       ...prev,
@@ -348,10 +416,16 @@ export default function EventsManagement() {
   };
 
   const handleRemoveInlineSession = (index) => {
-    setEventFormData((prev) => ({
-      ...prev,
-      sessions: (prev.sessions || []).filter((_, idx) => idx !== index),
-    }));
+    setEventFormData((prev) => {
+      const removed = prev.sessions?.[index];
+      if (removed?.photosFiles) {
+        removed.photosFiles.forEach((p) => p.previewUrl && URL.revokeObjectURL(p.previewUrl));
+      }
+      return {
+        ...prev,
+        sessions: (prev.sessions || []).filter((_, idx) => idx !== index),
+      };
+    });
     setInlineSessionErrors((prev) => {
       const next = { ...prev };
       delete next[index];
@@ -401,7 +475,7 @@ export default function EventsManagement() {
     });
   };
 
-  // Image File Select Handler
+  // Event Cover Image File Select Handler
   const handleImageFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -421,6 +495,170 @@ export default function EventsManagement() {
     setCoverFile(null);
     setImagePreview(null);
     setEventFormData((prev) => ({ ...prev, cover_media_id: null, cover_image_url: null }));
+  };
+
+  // Event Photographs Handlers (Creation / Edit Form)
+  const handleEventPhotosChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const validNew = [];
+    for (const file of files) {
+      try {
+        validateImageFile(file);
+        validNew.push({
+          id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          file,
+          previewUrl: URL.createObjectURL(file),
+          name: file.name,
+          size: file.size,
+        });
+      } catch (err) {
+        setErrorNotice(`Skipped "${file.name}": ${err.message}`);
+      }
+    }
+
+    setEventPhotosFiles((prev) => [...prev, ...validNew]);
+    e.target.value = "";
+  };
+
+  const handleRemoveNewEventPhoto = (index) => {
+    setEventPhotosFiles((prev) => {
+      const item = prev[index];
+      if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      return prev.filter((_, idx) => idx !== index);
+    });
+  };
+
+  const handleRemoveExistingEventPhoto = async (eventMediaId) => {
+    try {
+      await removeEventMedia(eventMediaId);
+      setEventExistingMedia((prev) => prev.filter((m) => m.id !== eventMediaId));
+      setSuccessNotice("Photograph removed from event.");
+    } catch (err) {
+      console.error("Remove event photo error:", err);
+      setErrorNotice(err.message || "Failed to remove photograph.");
+    }
+  };
+
+  // Session Photographs Handlers (Creation / Edit Form)
+  const handleSessionPhotosChange = (sessionIdx, e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const validNew = [];
+    for (const file of files) {
+      try {
+        validateImageFile(file);
+        validNew.push({
+          id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          file,
+          previewUrl: URL.createObjectURL(file),
+          name: file.name,
+          size: file.size,
+        });
+      } catch (err) {
+        setErrorNotice(`Skipped "${file.name}": ${err.message}`);
+      }
+    }
+
+    setEventFormData((prev) => {
+      const updated = [...(prev.sessions || [])];
+      const currentPhotos = updated[sessionIdx]?.photosFiles || [];
+      updated[sessionIdx] = {
+        ...updated[sessionIdx],
+        photosFiles: [...currentPhotos, ...validNew],
+      };
+      return { ...prev, sessions: updated };
+    });
+    e.target.value = "";
+  };
+
+  const handleRemoveNewSessionPhoto = (sessionIdx, photoIdx) => {
+    setEventFormData((prev) => {
+      const updated = [...(prev.sessions || [])];
+      const currentPhotos = updated[sessionIdx]?.photosFiles || [];
+      const item = currentPhotos[photoIdx];
+      if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      updated[sessionIdx] = {
+        ...updated[sessionIdx],
+        photosFiles: currentPhotos.filter((_, idx) => idx !== photoIdx),
+      };
+      return { ...prev, sessions: updated };
+    });
+  };
+
+  const handleRemoveExistingSessionPhoto = async (sessionIdx, sessionMediaId) => {
+    try {
+      await removeSessionMedia(sessionMediaId);
+      setEventFormData((prev) => {
+        const updated = [...(prev.sessions || [])];
+        const existingMedia = updated[sessionIdx]?.existingMedia || [];
+        updated[sessionIdx] = {
+          ...updated[sessionIdx],
+          existingMedia: existingMedia.filter((m) => m.id !== sessionMediaId),
+        };
+        return { ...prev, sessions: updated };
+      });
+      setSuccessNotice("Photograph removed from session.");
+    } catch (err) {
+      console.error("Remove session photo error:", err);
+      setErrorNotice(err.message || "Failed to remove photograph.");
+    }
+  };
+
+  // Helper to determine if the form is dirty
+  const isFormDirty = () => {
+    if (editingEvent) {
+      if ((eventFormData.title || "").trim() !== (editingEvent.title || "").trim()) return true;
+      if ((eventFormData.description || "").trim() !== (editingEvent.description || "").trim()) return true;
+      if (eventFormData.event_type !== (editingEvent.event_type || "camp")) return true;
+      if (eventFormData.start_date !== (editingEvent.start_date || "")) return true;
+      if (eventFormData.end_date !== (editingEvent.end_date || "")) return true;
+      if (coverFile !== null) return true;
+      if (eventPhotosFiles.length > 0) return true;
+      if ((eventFormData.sessions || []).some((s) => (s.photosFiles || []).length > 0)) return true;
+      return true; // For editing, let user choose draft / discard if modified
+    } else {
+      if (eventFormData.title.trim()) return true;
+      if (eventFormData.description.trim()) return true;
+      if (coverFile !== null) return true;
+      if (eventPhotosFiles.length > 0) return true;
+      if ((eventFormData.sessions || []).length > 0) return true;
+      return false;
+    }
+  };
+
+  // Close / Cancel Handlers
+  const handleCloseFormDirectly = () => {
+    // Revoke any created object URLs
+    eventPhotosFiles.forEach((p) => p.previewUrl && URL.revokeObjectURL(p.previewUrl));
+    (eventFormData.sessions || []).forEach((s) => {
+      (s.photosFiles || []).forEach((p) => p.previewUrl && URL.revokeObjectURL(p.previewUrl));
+    });
+    setEventPhotosFiles([]);
+    setEventExistingMedia([]);
+    setCoverFile(null);
+    setImagePreview(null);
+    setIsFormModalOpen(false);
+    setIsCancelConfirmModalOpen(false);
+  };
+
+  const handleRequestCloseForm = () => {
+    if (isSavingEvent) return;
+    if (isFormDirty()) {
+      setIsCancelConfirmModalOpen(true);
+    } else {
+      handleCloseFormDirectly();
+    }
+  };
+
+  const handleConfirmDiscard = () => {
+    handleCloseFormDirectly();
+  };
+
+  const handleConfirmSaveDraft = async () => {
+    await handleSaveEvent(null, true);
   };
 
   // Validate Event Form
@@ -497,39 +735,94 @@ export default function EventsManagement() {
     return !hasErrors;
   };
 
-  // Save Event (Create or Update + Sync Sessions & Units)
-  const handleSaveEvent = async (e) => {
-    e.preventDefault();
-    const isEventValid = validateEventForm();
-    const isSessionsValid = validateInlineSessions();
-    if (!isEventValid || !isSessionsValid) return;
+  // Save Event (Create or Update + Sync Sessions, Units & Photographs)
+  const handleSaveEvent = async (e, asDraft = false) => {
+    if (e && e.preventDefault) e.preventDefault();
+
+    if (!asDraft) {
+      const isEventValid = validateEventForm();
+      const isSessionsValid = validateInlineSessions();
+      if (!isEventValid || !isSessionsValid) return;
+    }
 
     setIsSavingEvent(true);
     setErrorNotice(null);
 
     try {
+      const payload = {
+        ...eventFormData,
+        title:
+          eventFormData.title?.trim() ||
+          `Draft ${formatEventCategoryLabel(eventFormData.event_type || "camp")} (${formatDateDisplay(
+            eventFormData.start_date || new Date().toISOString().split("T")[0]
+          )})`,
+        is_published: asDraft ? false : Boolean(eventFormData.is_published),
+      };
+
       let savedEvent = null;
       if (editingEvent) {
-        savedEvent = await updateEvent(editingEvent.id, eventFormData, coverFile);
+        savedEvent = await updateEvent(editingEvent.id, payload, coverFile);
       } else {
-        savedEvent = await createEvent(eventFormData, coverFile);
+        savedEvent = await createEvent(payload, coverFile);
       }
 
-      // Unified creation/update: sync sessions and session_units
-      await syncEventSessions(
+      // 1. Upload Event-level photographs
+      if (eventPhotosFiles.length > 0) {
+        for (const item of eventPhotosFiles) {
+          try {
+            await addEventMedia(savedEvent.id, item.file);
+          } catch (pErr) {
+            console.error(`Failed to upload event photo "${item.name}":`, pErr);
+          }
+        }
+      }
+
+      // 2. Sync sessions and session_units
+      const savedSessions = await syncEventSessions(
         savedEvent.id,
         savedEvent.event_type,
         eventFormData.sessions
       );
 
+      // 3. Upload Session-level photographs
+      if (Array.isArray(savedSessions) && Array.isArray(eventFormData.sessions)) {
+        for (let i = 0; i < eventFormData.sessions.length; i++) {
+          const formSess = eventFormData.sessions[i];
+          const dbSess = savedSessions[i];
+          if (dbSess && Array.isArray(formSess.photosFiles) && formSess.photosFiles.length > 0) {
+            for (const item of formSess.photosFiles) {
+              try {
+                await addSessionMedia(dbSess.id, item.file);
+              } catch (sPErr) {
+                console.error(`Failed to upload session photo "${item.name}":`, sPErr);
+              }
+            }
+          }
+        }
+      }
+
+      // Clean up object URLs
+      eventPhotosFiles.forEach((p) => p.previewUrl && URL.revokeObjectURL(p.previewUrl));
+      (eventFormData.sessions || []).forEach((s) => {
+        (s.photosFiles || []).forEach((p) => p.previewUrl && URL.revokeObjectURL(p.previewUrl));
+      });
+
       await loadData();
 
       setSuccessNotice(
-        editingEvent
-          ? `Event "${savedEvent.title}" updated successfully.`
-          : `Event "${savedEvent.title}" created successfully.`
+        asDraft
+          ? `Event "${savedEvent.title}" saved as draft.`
+          : editingEvent
+            ? `Event "${savedEvent.title}" updated successfully.`
+            : `Event "${savedEvent.title}" created successfully.`
       );
+
       setIsFormModalOpen(false);
+      setIsCancelConfirmModalOpen(false);
+      setEventPhotosFiles([]);
+      setEventExistingMedia([]);
+      setCoverFile(null);
+      setImagePreview(null);
     } catch (err) {
       console.error("Save event error:", err);
       setErrorNotice(err.message || "Failed to save event.");
@@ -563,14 +856,139 @@ export default function EventsManagement() {
     setViewingEvent(event);
     setIsViewModalOpen(true);
     setLoadingSessions(true);
+    setLoadingViewingEventMedia(true);
 
     try {
-      const sessions = await getSessionsForEvent(event.id);
+      const [sessions, media] = await Promise.all([
+        getSessionsForEvent(event.id),
+        getEventMedia(event.id),
+      ]);
       setEmbeddedSessions(sessions);
+      setViewingEventMedia(media);
     } catch (err) {
-      console.error("Error loading embedded sessions:", err);
+      console.error("Error loading embedded sessions & media:", err);
     } finally {
       setLoadingSessions(false);
+      setLoadingViewingEventMedia(false);
+    }
+  };
+
+  // -------------------------------------------------------------
+  // EVENT MEDIA HANDLERS
+  // -------------------------------------------------------------
+  const handleOpenEventMedia = async (event) => {
+    setActiveMenuId(null);
+    setSelectedEventForMedia(event);
+    setIsEventMediaModalOpen(true);
+    setLoadingEventMedia(true);
+    try {
+      const media = await getEventMedia(event.id);
+      setEventMediaList(media);
+    } catch (err) {
+      console.error("Error loading event media:", err);
+      setErrorNotice("Failed to load event photographs.");
+    } finally {
+      setLoadingEventMedia(false);
+    }
+  };
+
+  const handleUploadEventMediaFiles = async (files, targetEventId) => {
+    if (!files || files.length === 0 || !targetEventId) return;
+    setUploadingEventMedia(true);
+    let successCount = 0;
+    try {
+      for (const file of files) {
+        try {
+          validateImageFile(file);
+          const uploaded = await addEventMedia(targetEventId, file);
+          setEventMediaList((prev) => [...prev, uploaded]);
+          if (viewingEvent && viewingEvent.id === targetEventId) {
+            setViewingEventMedia((prev) => [...prev, uploaded]);
+          }
+          successCount++;
+        } catch (err) {
+          console.error(`Skipped ${file.name}:`, err);
+          setErrorNotice(`Skipped "${file.name}": ${err.message}`);
+        }
+      }
+      if (successCount > 0) {
+        setSuccessNotice(`Added ${successCount} photograph(s).`);
+      }
+    } catch (err) {
+      console.error("Upload error:", err);
+      setErrorNotice(err.message || "Failed to upload photos.");
+    } finally {
+      setUploadingEventMedia(false);
+    }
+  };
+
+  const handleDeleteEventMedia = async (eventMediaId, targetEventId) => {
+    try {
+      await removeEventMedia(eventMediaId);
+      setEventMediaList((prev) => prev.filter((m) => m.id !== eventMediaId));
+      if (viewingEvent && viewingEvent.id === targetEventId) {
+        setViewingEventMedia((prev) => prev.filter((m) => m.id !== eventMediaId));
+      }
+      setSuccessNotice("Photograph removed from event.");
+    } catch (err) {
+      console.error("Delete photo error:", err);
+      setErrorNotice(err.message || "Failed to remove photograph.");
+    }
+  };
+
+  // -------------------------------------------------------------
+  // SESSION MEDIA HANDLERS
+  // -------------------------------------------------------------
+  const handleOpenSessionMedia = async (session) => {
+    setSelectedSessionForMedia(session);
+    setIsSessionMediaModalOpen(true);
+    setLoadingSessionMedia(true);
+    try {
+      const media = await getSessionMedia(session.id);
+      setSessionMediaList(media);
+    } catch (err) {
+      console.error("Error loading session media:", err);
+      setErrorNotice("Failed to load session photographs.");
+    } finally {
+      setLoadingSessionMedia(false);
+    }
+  };
+
+  const handleUploadSessionMediaFiles = async (files, targetSessionId) => {
+    if (!files || files.length === 0 || !targetSessionId) return;
+    setUploadingSessionMedia(true);
+    let successCount = 0;
+    try {
+      for (const file of files) {
+        try {
+          validateImageFile(file);
+          const uploaded = await addSessionMedia(targetSessionId, file);
+          setSessionMediaList((prev) => [...prev, uploaded]);
+          successCount++;
+        } catch (err) {
+          console.error(`Skipped ${file.name}:`, err);
+          setErrorNotice(`Skipped "${file.name}": ${err.message}`);
+        }
+      }
+      if (successCount > 0) {
+        setSuccessNotice(`Added ${successCount} session photograph(s).`);
+      }
+    } catch (err) {
+      console.error("Upload session error:", err);
+      setErrorNotice(err.message || "Failed to upload session photos.");
+    } finally {
+      setUploadingSessionMedia(false);
+    }
+  };
+
+  const handleDeleteSessionMedia = async (sessionMediaId) => {
+    try {
+      await removeSessionMedia(sessionMediaId);
+      setSessionMediaList((prev) => prev.filter((m) => m.id !== sessionMediaId));
+      setSuccessNotice("Photograph removed from session.");
+    } catch (err) {
+      console.error("Delete session photo error:", err);
+      setErrorNotice(err.message || "Failed to remove session photo.");
     }
   };
 
@@ -677,7 +1095,16 @@ export default function EventsManagement() {
       {/* SUMMARY CARDS                                                 */}
       {/* ------------------------------------------------------------- */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-2xs">
+        <div
+          onClick={() => {
+            setStatusFilter("all");
+            setDateFilter("all");
+          }}
+          className={`bg-white border rounded-lg p-4 shadow-2xs cursor-pointer hover:border-slate-300 transition-all ${
+            statusFilter === "all" && dateFilter === "all" ? "border-slate-400 ring-1 ring-slate-400" : "border-slate-200"
+          }`}
+          title="Filter: All events"
+        >
           <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
             Total Events
           </div>
@@ -686,29 +1113,50 @@ export default function EventsManagement() {
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-2xs">
+        <div
+          onClick={() => setDateFilter(dateFilter === "Upcoming" ? "all" : "Upcoming")}
+          className={`bg-white border rounded-lg p-4 shadow-2xs cursor-pointer hover:border-blue-300 transition-all ${
+            dateFilter === "Upcoming" ? "border-blue-500 ring-1 ring-blue-500 bg-blue-50/20" : "border-slate-200"
+          }`}
+          title="Click to filter upcoming events"
+        >
           <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
             Upcoming
           </div>
-          <div className="text-2xl font-bold text-slate-900 mt-1 font-sans tabular-nums">
+          <div className="text-2xl font-bold text-blue-700 mt-1 font-sans tabular-nums">
             {loading ? "—" : summaryStats.upcoming}
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-2xs">
+        <div
+          onClick={() => setStatusFilter(statusFilter === "published" ? "all" : "published")}
+          className={`bg-white border rounded-lg p-4 shadow-2xs cursor-pointer hover:border-emerald-300 transition-all ${
+            statusFilter === "published" ? "border-emerald-500 ring-1 ring-emerald-500 bg-emerald-50/20" : "border-slate-200"
+          }`}
+          title="Click to filter published events"
+        >
           <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
             Published
           </div>
-          <div className="text-2xl font-bold text-slate-900 mt-1 font-sans tabular-nums">
+          <div className="text-2xl font-bold text-emerald-700 mt-1 font-sans tabular-nums">
             {loading ? "—" : summaryStats.published}
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-2xs">
-          <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-            Drafts
+        <div
+          onClick={() => setStatusFilter(statusFilter === "draft" ? "all" : "draft")}
+          className={`bg-white border rounded-lg p-4 shadow-2xs cursor-pointer hover:border-amber-300 transition-all ${
+            statusFilter === "draft" ? "border-amber-500 ring-1 ring-amber-500 bg-amber-50/30" : "border-slate-200"
+          }`}
+          title="Click to filter draft events"
+        >
+          <div className="text-xs font-medium text-amber-700 uppercase tracking-wider flex items-center justify-between">
+            <span>Drafts</span>
+            {summaryStats.drafts > 0 && (
+              <span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            )}
           </div>
-          <div className="text-2xl font-bold text-slate-900 mt-1 font-sans tabular-nums">
+          <div className="text-2xl font-bold text-amber-700 mt-1 font-sans tabular-nums">
             {loading ? "—" : summaryStats.drafts}
           </div>
         </div>
@@ -723,55 +1171,50 @@ export default function EventsManagement() {
           <button
             type="button"
             onClick={() => setCategoryTab("all")}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 ${
-              categoryTab === "all"
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 ${categoryTab === "all"
                 ? "bg-slate-900 text-white"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-            }`}
+              }`}
           >
             All Categories
           </button>
           <button
             type="button"
             onClick={() => setCategoryTab("camp")}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 ${
-              categoryTab === "camp"
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 ${categoryTab === "camp"
                 ? "bg-red-700 text-white"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-            }`}
+              }`}
           >
             Camp
           </button>
           <button
             type="button"
             onClick={() => setCategoryTab("outreach")}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 ${
-              categoryTab === "outreach"
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 ${categoryTab === "outreach"
                 ? "bg-red-700 text-white"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-            }`}
+              }`}
           >
             Outreach
           </button>
           <button
             type="button"
             onClick={() => setCategoryTab("orphanage")}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 ${
-              categoryTab === "orphanage"
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 ${categoryTab === "orphanage"
                 ? "bg-red-700 text-white"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-            }`}
+              }`}
           >
             Orphanage Visit
           </button>
           <button
             type="button"
             onClick={() => setCategoryTab("monthly")}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 ${
-              categoryTab === "monthly"
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 ${categoryTab === "monthly"
                 ? "bg-red-700 text-white"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-            }`}
+              }`}
           >
             Monthly Event
           </button>
@@ -925,100 +1368,100 @@ export default function EventsManagement() {
                 <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
                   {paginatedEvents.map((ev) => (
                     <tr key={ev.id} className="hover:bg-slate-50/70 transition-colors">
-                        {/* Event Title + Description + Thumbnail */}
-                        <td className="py-3 px-4">
-                          <div className="flex items-start space-x-3">
-                            <div className="w-10 h-10 rounded-md bg-slate-100 border border-slate-200 shrink-0 overflow-hidden flex items-center justify-center">
-                              {ev.cover_image_url ? (
-                                <img
-                                  src={ev.cover_image_url}
-                                  alt={ev.title}
-                                  className="w-full h-full object-cover"
-                                  loading="lazy"
-                                />
-                              ) : (
-                                <Calendar className="w-5 h-5 text-slate-400" />
-                              )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div
-                                onClick={() => handleOpenViewModal(ev)}
-                                className="font-medium text-slate-900 hover:text-red-700 cursor-pointer truncate max-w-xs transition-colors"
-                                title={ev.title}
-                              >
-                                {ev.title}
-                              </div>
-                              <div className="text-[11px] text-slate-500 line-clamp-1 mt-0.5 max-w-xs">
-                                {ev.description || "No description provided."}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Dates */}
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          <div className="font-medium text-slate-800">
-                            {formatDateDisplay(ev.start_date)}
-                            {ev.end_date && ev.end_date !== ev.start_date && (
-                              <span className="text-slate-500 font-normal">
-                                {" "}– {formatDateDisplay(ev.end_date)}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-
-                        {/* Category Badge */}
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-xs text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                            {ev.categoryLabel}
-                          </span>
-                        </td>
-
-                        {/* Status Badges */}
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          <div className="flex flex-col gap-1 items-start">
-                            {ev.is_published ? (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                Published
-                              </span>
+                      {/* Event Title + Description + Thumbnail */}
+                      <td className="py-3 px-4">
+                        <div className="flex items-start space-x-3">
+                          <div className="w-10 h-10 rounded-md bg-slate-100 border border-slate-200 shrink-0 overflow-hidden flex items-center justify-center">
+                            {ev.cover_image_url ? (
+                              <img
+                                src={ev.cover_image_url}
+                                alt={ev.title}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                              />
                             ) : (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                                Draft
-                              </span>
+                              <Calendar className="w-5 h-5 text-slate-400" />
                             )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div
+                              onClick={() => handleOpenViewModal(ev)}
+                              className="font-medium text-slate-900 hover:text-red-700 cursor-pointer truncate max-w-xs transition-colors"
+                              title={ev.title}
+                            >
+                              {ev.title}
+                            </div>
+                            <div className="text-[11px] text-slate-500 line-clamp-1 mt-0.5 max-w-xs">
+                              {ev.description || "No description provided."}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
 
-                            <span
-                              className={`inline-flex items-center text-[10px] font-medium ${
-                                ev.timingStatus === "Upcoming"
-                                  ? "text-blue-600"
-                                  : ev.timingStatus === "Ongoing"
+                      {/* Dates */}
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <div className="font-medium text-slate-800">
+                          {formatDateDisplay(ev.start_date)}
+                          {ev.end_date && ev.end_date !== ev.start_date && (
+                            <span className="text-slate-500 font-normal">
+                              {" "}– {formatDateDisplay(ev.end_date)}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Category Badge */}
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-xs text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                          {ev.categoryLabel}
+                        </span>
+                      </td>
+
+                      {/* Status Badges */}
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <div className="flex flex-col gap-1 items-start">
+                          {ev.is_published ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              Published
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs">
+                              <FileText className="w-3 h-3 text-amber-600" />
+                              Draft
+                            </span>
+                          )}
+
+                          <span
+                            className={`inline-flex items-center text-[10px] font-medium ${ev.timingStatus === "Upcoming"
+                                ? "text-blue-600"
+                                : ev.timingStatus === "Ongoing"
                                   ? "text-emerald-600"
                                   : "text-slate-500"
                               }`}
-                            >
-                              • {ev.timingStatus}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* Created Date */}
-                        <td className="py-3 px-4 whitespace-nowrap text-slate-500 text-[11px]">
-                          {formatDateDisplay(ev.created_at)}
-                        </td>
-
-                        {/* Actions */}
-                        <td className="py-3 px-4 text-right whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={(e) => handleActionMenuToggle(e, ev)}
-                            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors row-action-menu"
-                            aria-label="Actions"
                           >
-                            <MoreVertical className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                            • {ev.timingStatus}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Created Date */}
+                      <td className="py-3 px-4 whitespace-nowrap text-slate-500 text-[11px]">
+                        {formatDateDisplay(ev.created_at)}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={(e) => handleActionMenuToggle(e, ev)}
+                          className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors row-action-menu"
+                          aria-label="Actions"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -1056,11 +1499,10 @@ export default function EventsManagement() {
                         key={pageNum}
                         type="button"
                         onClick={() => setCurrentPage(pageNum)}
-                        className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                          currentPage === pageNum
+                        className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${currentPage === pageNum
                             ? "bg-red-700 text-white"
                             : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"
-                        }`}
+                          }`}
                       >
                         {pageNum}
                       </button>
@@ -1096,8 +1538,10 @@ export default function EventsManagement() {
               </h2>
               <button
                 type="button"
-                onClick={() => !isSavingEvent && setIsFormModalOpen(false)}
+                onClick={handleRequestCloseForm}
+                disabled={isSavingEvent}
                 className="text-slate-400 hover:text-slate-600 p-1 rounded-md transition-colors"
+                title="Close"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1133,9 +1577,8 @@ export default function EventsManagement() {
                   value={eventFormData.title}
                   onChange={(e) => setEventFormData({ ...eventFormData, title: e.target.value })}
                   placeholder="e.g. NSS Annual Special Camp 2026"
-                  className={`w-full px-3 py-2 text-xs bg-slate-50 border ${
-                    eventFieldErrors.title ? "border-red-500 bg-red-50/30" : "border-slate-200"
-                  } rounded-md focus:bg-white focus:outline-hidden transition-colors`}
+                  className={`w-full px-3 py-2 text-xs bg-slate-50 border ${eventFieldErrors.title ? "border-red-500 bg-red-50/30" : "border-slate-200"
+                    } rounded-md focus:bg-white focus:outline-hidden transition-colors`}
                 />
                 {eventFieldErrors.title && (
                   <p className="text-[11px] text-red-600 mt-1">{eventFieldErrors.title}</p>
@@ -1172,9 +1615,8 @@ export default function EventsManagement() {
                         end_date: eventFormData.end_date < e.target.value ? e.target.value : eventFormData.end_date,
                       })
                     }
-                    className={`w-full px-3 py-2 text-xs bg-slate-50 border ${
-                      eventFieldErrors.start_date ? "border-red-500" : "border-slate-200"
-                    } rounded-md focus:bg-white focus:outline-hidden`}
+                    className={`w-full px-3 py-2 text-xs bg-slate-50 border ${eventFieldErrors.start_date ? "border-red-500" : "border-slate-200"
+                      } rounded-md focus:bg-white focus:outline-hidden`}
                   />
                   {eventFieldErrors.start_date && (
                     <p className="text-[11px] text-red-600 mt-1">{eventFieldErrors.start_date}</p>
@@ -1189,9 +1631,8 @@ export default function EventsManagement() {
                     type="date"
                     value={eventFormData.end_date}
                     onChange={(e) => setEventFormData({ ...eventFormData, end_date: e.target.value })}
-                    className={`w-full px-3 py-2 text-xs bg-slate-50 border ${
-                      eventFieldErrors.end_date ? "border-red-500" : "border-slate-200"
-                    } rounded-md focus:bg-white focus:outline-hidden`}
+                    className={`w-full px-3 py-2 text-xs bg-slate-50 border ${eventFieldErrors.end_date ? "border-red-500" : "border-slate-200"
+                      } rounded-md focus:bg-white focus:outline-hidden`}
                   />
                   {eventFieldErrors.end_date && (
                     <p className="text-[11px] text-red-600 mt-1">{eventFieldErrors.end_date}</p>
@@ -1271,6 +1712,102 @@ export default function EventsManagement() {
                 )}
               </div>
 
+              {/* Event Photographs (Multi-photo upload & preview) */}
+              <div className="pt-2 border-t border-slate-200/60">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Event Photographs (Optional)
+                  </label>
+                  <span className="text-[11px] text-slate-500">
+                    {eventPhotosFiles.length + eventExistingMedia.length} photo(s) selected
+                  </span>
+                </div>
+
+                {/* Existing event photos if editing */}
+                {eventExistingMedia.length > 0 && (
+                  <div className="mb-2">
+                    <p className="text-[10px] uppercase font-semibold text-slate-500 tracking-wider mb-1.5">
+                      Existing Photos
+                    </p>
+                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                      {eventExistingMedia.map((photo) => (
+                        <div
+                          key={photo.id}
+                          className="relative aspect-square rounded-md overflow-hidden border border-slate-200 group bg-slate-100"
+                        >
+                          <img
+                            src={photo.publicUrl}
+                            alt={photo.fileName}
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveExistingEventPhoto(photo.id)}
+                            className="absolute top-1 right-1 p-0.5 rounded-full bg-black/70 text-white hover:bg-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Remove photo"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Pending new photo uploads */}
+                {eventPhotosFiles.length > 0 && (
+                  <div className="mb-2">
+                    <p className="text-[10px] uppercase font-semibold text-slate-500 tracking-wider mb-1.5">
+                      New Photos to Upload
+                    </p>
+                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                      {eventPhotosFiles.map((item, pIdx) => (
+                        <div
+                          key={item.id}
+                          className="relative aspect-square rounded-md overflow-hidden border border-slate-200 group bg-slate-100"
+                        >
+                          <img
+                            src={item.previewUrl}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveNewEventPhoto(pIdx)}
+                            className="absolute top-1 right-1 p-0.5 rounded-full bg-black/70 text-white hover:bg-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Remove"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                          <div className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[9px] px-1 py-0.5 truncate text-center">
+                            {(item.size / (1024 * 1024)).toFixed(1)}MB
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Multi-upload button */}
+                <div className="flex items-center">
+                  <input
+                    type="file"
+                    id="event-photos-multi-upload"
+                    multiple
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleEventPhotosChange}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="event-photos-multi-upload"
+                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 cursor-pointer transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Select Event Photographs</span>
+                  </label>
+                </div>
+              </div>
+
               {/* -------------------------------------------------- */}
               {/* SESSIONS SECTION (Inline creation/management)     */}
               {/* -------------------------------------------------- */}
@@ -1341,9 +1878,8 @@ export default function EventsManagement() {
                               value={sess.title}
                               onChange={(e) => handleUpdateInlineSession(idx, "title", e.target.value)}
                               placeholder="e.g. Volunteer Orientation & Briefing"
-                              className={`w-full px-3 py-1.5 text-xs bg-white border ${
-                                inlineSessionErrors[idx]?.title ? "border-red-500 bg-red-50/20" : "border-slate-200"
-                              } rounded-md focus:outline-hidden`}
+                              className={`w-full px-3 py-1.5 text-xs bg-white border ${inlineSessionErrors[idx]?.title ? "border-red-500 bg-red-50/20" : "border-slate-200"
+                                } rounded-md focus:outline-hidden`}
                             />
                             {inlineSessionErrors[idx]?.title && (
                               <p className="text-[11px] text-red-600 mt-0.5">{inlineSessionErrors[idx].title}</p>
@@ -1374,9 +1910,8 @@ export default function EventsManagement() {
                                 type="date"
                                 value={sess.session_date}
                                 onChange={(e) => handleUpdateInlineSession(idx, "session_date", e.target.value)}
-                                className={`w-full px-2.5 py-1.5 text-xs bg-white border ${
-                                  inlineSessionErrors[idx]?.session_date ? "border-red-500" : "border-slate-200"
-                                } rounded-md focus:outline-hidden`}
+                                className={`w-full px-2.5 py-1.5 text-xs bg-white border ${inlineSessionErrors[idx]?.session_date ? "border-red-500" : "border-slate-200"
+                                  } rounded-md focus:outline-hidden`}
                               />
                               {inlineSessionErrors[idx]?.session_date && (
                                 <p className="text-[11px] text-red-600 mt-0.5">{inlineSessionErrors[idx].session_date}</p>
@@ -1391,9 +1926,8 @@ export default function EventsManagement() {
                                 type="time"
                                 value={sess.start_time}
                                 onChange={(e) => handleUpdateInlineSession(idx, "start_time", e.target.value)}
-                                className={`w-full px-2.5 py-1.5 text-xs bg-white border ${
-                                  inlineSessionErrors[idx]?.start_time ? "border-red-500" : "border-slate-200"
-                                } rounded-md focus:outline-hidden`}
+                                className={`w-full px-2.5 py-1.5 text-xs bg-white border ${inlineSessionErrors[idx]?.start_time ? "border-red-500" : "border-slate-200"
+                                  } rounded-md focus:outline-hidden`}
                               />
                               {inlineSessionErrors[idx]?.start_time && (
                                 <p className="text-[11px] text-red-600 mt-0.5">{inlineSessionErrors[idx].start_time}</p>
@@ -1408,9 +1942,8 @@ export default function EventsManagement() {
                                 type="time"
                                 value={sess.end_time}
                                 onChange={(e) => handleUpdateInlineSession(idx, "end_time", e.target.value)}
-                                className={`w-full px-2.5 py-1.5 text-xs bg-white border ${
-                                  inlineSessionErrors[idx]?.end_time ? "border-red-500" : "border-slate-200"
-                                } rounded-md focus:outline-hidden`}
+                                className={`w-full px-2.5 py-1.5 text-xs bg-white border ${inlineSessionErrors[idx]?.end_time ? "border-red-500" : "border-slate-200"
+                                  } rounded-md focus:outline-hidden`}
                               />
                               {inlineSessionErrors[idx]?.end_time && (
                                 <p className="text-[11px] text-red-600 mt-0.5">{inlineSessionErrors[idx].end_time}</p>
@@ -1428,13 +1961,97 @@ export default function EventsManagement() {
                               value={sess.location}
                               onChange={(e) => handleUpdateInlineSession(idx, "location", e.target.value)}
                               placeholder="e.g. NSS Auditorium"
-                              className={`w-full px-3 py-1.5 text-xs bg-white border ${
-                                inlineSessionErrors[idx]?.location ? "border-red-500" : "border-slate-200"
-                              } rounded-md focus:outline-hidden`}
+                              className={`w-full px-3 py-1.5 text-xs bg-white border ${inlineSessionErrors[idx]?.location ? "border-red-500" : "border-slate-200"
+                                } rounded-md focus:outline-hidden`}
                             />
                             {inlineSessionErrors[idx]?.location && (
                               <p className="text-[11px] text-red-600 mt-0.5">{inlineSessionErrors[idx].location}</p>
                             )}
+                          </div>
+
+                          {/* Session Photographs Upload */}
+                          <div className="pt-2 border-t border-slate-200/80 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <label className="block text-xs font-semibold text-slate-700">
+                                Session Photographs (Optional)
+                              </label>
+                              <span className="text-[10px] text-slate-500">
+                                {((sess.photosFiles || []).length + (sess.existingMedia || []).length)} photo(s)
+                              </span>
+                            </div>
+
+                            {/* Existing Session Photos if editing */}
+                            {sess.existingMedia && sess.existingMedia.length > 0 && (
+                              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                                {sess.existingMedia.map((sPhoto) => (
+                                  <div
+                                    key={sPhoto.id}
+                                    className="relative aspect-square rounded-md overflow-hidden border border-slate-200 group bg-slate-100"
+                                  >
+                                    <img
+                                      src={sPhoto.publicUrl}
+                                      alt={sPhoto.fileName}
+                                      className="w-full h-full object-cover"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveExistingSessionPhoto(idx, sPhoto.id)}
+                                      className="absolute top-1 right-1 p-0.5 rounded-full bg-black/70 text-white hover:bg-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      title="Remove photo"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* New Pending Session Photos */}
+                            {sess.photosFiles && sess.photosFiles.length > 0 && (
+                              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                                {sess.photosFiles.map((sItem, spIdx) => (
+                                  <div
+                                    key={sItem.id}
+                                    className="relative aspect-square rounded-md overflow-hidden border border-slate-200 group bg-slate-100"
+                                  >
+                                    <img
+                                      src={sItem.previewUrl}
+                                      alt={sItem.name}
+                                      className="w-full h-full object-cover"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveNewSessionPhoto(idx, spIdx)}
+                                      className="absolute top-1 right-1 p-0.5 rounded-full bg-black/70 text-white hover:bg-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      title="Remove"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                    <div className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[9px] px-1 py-0.5 truncate text-center">
+                                      {(sItem.size / (1024 * 1024)).toFixed(1)}MB
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            <div>
+                              <input
+                                type="file"
+                                id={`session-photos-upload-${sess.localId || sess.id || idx}`}
+                                multiple
+                                accept="image/jpeg,image/png,image/webp"
+                                onChange={(e) => handleSessionPhotosChange(idx, e)}
+                                className="hidden"
+                              />
+                              <label
+                                htmlFor={`session-photos-upload-${sess.localId || sess.id || idx}`}
+                                className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 cursor-pointer transition-colors"
+                              >
+                                <Plus className="w-3 h-3 text-slate-400" />
+                                <span>Add Session Photos</span>
+                              </label>
+                            </div>
                           </div>
 
                           {/* Units Attending Checkboxes */}
@@ -1466,11 +2083,10 @@ export default function EventsManagement() {
                                 return (
                                   <label
                                     key={u}
-                                    className={`flex items-center justify-center space-x-1 p-1 rounded-md border text-[11px] cursor-pointer transition-colors ${
-                                      isChecked
+                                    className={`flex items-center justify-center space-x-1 p-1 rounded-md border text-[11px] cursor-pointer transition-colors ${isChecked
                                         ? "bg-red-50 border-red-200 text-red-700 font-medium"
                                         : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                                    }`}
+                                      }`}
                                   >
                                     <input
                                       type="checkbox"
@@ -1506,7 +2122,7 @@ export default function EventsManagement() {
               <div className="pt-4 border-t border-slate-200 flex items-center justify-end space-x-2">
                 <button
                   type="button"
-                  onClick={() => setIsFormModalOpen(false)}
+                  onClick={handleRequestCloseForm}
                   disabled={isSavingEvent}
                   className="px-4 py-2 rounded-md text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition-colors"
                 >
@@ -1529,6 +2145,66 @@ export default function EventsManagement() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* CANCEL CONFIRMATION (SAVE AS DRAFT / DISCARD / KEEP EDITING)  */}
+      {/* ------------------------------------------------------------- */}
+      {isCancelConfirmModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[65] flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg border border-slate-200 shadow-xl max-w-md w-full p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-start space-x-3">
+              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0 text-amber-600">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Unsaved Changes</h3>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  You have unsaved changes in this event. Would you like to save this as a <strong>Draft</strong> so you can finish it later, or discard your changes?
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsCancelConfirmModalOpen(false)}
+                disabled={isSavingEvent}
+                className="px-3.5 py-2 rounded-md text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition-colors order-3 sm:order-1"
+              >
+                Keep Editing
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmDiscard}
+                disabled={isSavingEvent}
+                className="px-3.5 py-2 rounded-md text-xs font-medium text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors order-2"
+              >
+                Discard Changes
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmSaveDraft}
+                disabled={isSavingEvent}
+                className="inline-flex items-center justify-center space-x-1.5 px-4 py-2 rounded-md text-xs font-medium text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-60 transition-colors shadow-2xs order-1 sm:order-3"
+              >
+                {isSavingEvent ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Saving Draft...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Save as Draft</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1614,11 +2290,10 @@ export default function EventsManagement() {
                     {viewingEvent.categoryLabel}
                   </span>
                   <span
-                    className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${
-                      viewingEvent.is_published
+                    className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${viewingEvent.is_published
                         ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                         : "bg-amber-50 text-amber-700 border border-amber-200"
-                    }`}
+                      }`}
                   >
                     {viewingEvent.is_published ? "Published" : "Draft"}
                   </span>
@@ -1650,6 +2325,74 @@ export default function EventsManagement() {
                 </div>
               )}
 
+              {/* EVENT PHOTOGRAPHS SECTION */}
+              <div className="pt-4 border-t border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                    <ImageIcon className="w-4 h-4 text-red-700" />
+                    Event Photographs ({viewingEventMedia.length})
+                  </h4>
+                  <div>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/jpeg,image/png,image/webp"
+                      ref={viewingEventMediaInputRef}
+                      onChange={(e) => {
+                        handleUploadEventMediaFiles(Array.from(e.target.files || []), viewingEvent.id);
+                        e.target.value = "";
+                      }}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => viewingEventMediaInputRef.current?.click()}
+                      disabled={uploadingEventMedia}
+                      className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md text-xs font-medium text-white bg-red-700 hover:bg-red-800 disabled:opacity-50 transition-colors"
+                    >
+                      {uploadingEventMedia ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Plus className="w-3.5 h-3.5" />
+                      )}
+                      <span>Add Photos</span>
+                    </button>
+                  </div>
+                </div>
+
+                {loadingViewingEventMedia ? (
+                  <div className="p-4 text-center text-xs text-slate-400">Loading photographs...</div>
+                ) : viewingEventMedia.length === 0 ? (
+                  <div className="p-4 rounded-md border border-dashed border-slate-200 text-center bg-slate-50/50">
+                    <p className="text-xs text-slate-500">No photographs uploaded for this event yet.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
+                    {viewingEventMedia.map((photo) => (
+                      <div
+                        key={photo.id}
+                        className="group relative aspect-4/3 rounded-md bg-slate-100 border border-slate-200 overflow-hidden"
+                      >
+                        <img
+                          src={photo.publicUrl}
+                          alt={photo.altText || photo.fileName}
+                          className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-200"
+                          onClick={() => setLightboxImage(photo.publicUrl)}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteEventMedia(photo.id, viewingEvent.id)}
+                          className="absolute top-1.5 right-1.5 p-1 rounded-md bg-black/60 text-white hover:bg-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Remove photo from event"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* READ-ONLY SESSIONS DISPLAY */}
               <div className="pt-4 border-t border-slate-200 space-y-3">
                 <div className="flex items-center justify-between">
@@ -1678,11 +2421,22 @@ export default function EventsManagement() {
                         className="p-3 rounded-md bg-slate-50 border border-slate-200 flex flex-col justify-between gap-2"
                       >
                         <div className="space-y-1 min-w-0">
-                          <div className="font-semibold text-slate-900 text-xs flex items-center space-x-2">
-                            <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-700 font-bold text-[10px] inline-flex items-center justify-center">
-                              {idx + 1}
-                            </span>
-                            <span>{s.title}</span>
+                          <div className="flex items-center justify-between">
+                            <div className="font-semibold text-slate-900 text-xs flex items-center space-x-2">
+                              <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-700 font-bold text-[10px] inline-flex items-center justify-center">
+                                {idx + 1}
+                              </span>
+                              <span>{s.title}</span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleOpenSessionMedia(s)}
+                              className="inline-flex items-center space-x-1 px-2 py-1 rounded-md text-[11px] font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-100 transition-colors shrink-0"
+                            >
+                              <ImageIcon className="w-3 h-3 text-red-700" />
+                              <span>Photos</span>
+                            </button>
                           </div>
 
                           {s.description && (
@@ -1743,6 +2497,282 @@ export default function EventsManagement() {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* EVENT MEDIA MANAGEMENT MODAL                                  */}
+      {/* ------------------------------------------------------------- */}
+      {isEventMediaModalOpen && selectedEventForMedia && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg border border-slate-200 shadow-xl max-w-xl w-full my-8 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+              <div>
+                <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-red-700" />
+                  Event Photographs
+                </h2>
+                <p className="text-xs text-slate-500 truncate max-w-md mt-0.5">
+                  {selectedEventForMedia.title}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEventMediaModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-md"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto text-xs text-slate-700">
+              <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-md p-3">
+                <div>
+                  <p className="font-medium text-slate-800">Add photos to this event</p>
+                  <p className="text-[11px] text-slate-500">
+                    Uploaded photos will be optimized and saved to public-media/events/.
+                  </p>
+                </div>
+                <div>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/jpeg,image/png,image/webp"
+                    ref={eventMediaInputRef}
+                    onChange={(e) => {
+                      handleUploadEventMediaFiles(Array.from(e.target.files || []), selectedEventForMedia.id);
+                      e.target.value = "";
+                    }}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => eventMediaInputRef.current?.click()}
+                    disabled={uploadingEventMedia}
+                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-red-700 hover:bg-red-800 disabled:opacity-50 transition-colors shadow-2xs shrink-0"
+                  >
+                    {uploadingEventMedia ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Uploading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add Photos</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {loadingEventMedia ? (
+                <div className="py-8 text-center text-slate-400 space-y-2">
+                  <Loader2 className="w-5 h-5 animate-spin mx-auto text-slate-400" />
+                  <p>Loading photographs...</p>
+                </div>
+              ) : eventMediaList.length === 0 ? (
+                <div className="py-10 rounded-md border border-dashed border-slate-200 text-center bg-slate-50/50 space-y-2">
+                  <FileImage className="w-8 h-8 text-slate-300 mx-auto" />
+                  <p className="text-xs text-slate-500 font-medium">No photographs uploaded yet.</p>
+                  <p className="text-[11px] text-slate-400">
+                    Click "Add Photos" above to upload photos for this event.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                  {eventMediaList.map((photo) => (
+                    <div
+                      key={photo.id}
+                      className="group relative aspect-square rounded-md bg-slate-100 border border-slate-200 overflow-hidden shadow-2xs"
+                    >
+                      <img
+                        src={photo.publicUrl}
+                        alt={photo.altText || photo.fileName}
+                        className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-200"
+                        onClick={() => setLightboxImage(photo.publicUrl)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteEventMedia(photo.id, selectedEventForMedia.id)}
+                        className="absolute top-1.5 right-1.5 p-1 rounded-md bg-black/60 text-white hover:bg-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Remove photo"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+              <span className="text-[11px] text-slate-400">
+                {eventMediaList.length} photograph{eventMediaList.length === 1 ? "" : "s"}
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsEventMediaModalOpen(false)}
+                className="px-4 py-1.5 rounded-md text-xs font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-100 transition-colors"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* SESSION MEDIA MANAGEMENT MODAL                                */}
+      {/* ------------------------------------------------------------- */}
+      {isSessionMediaModalOpen && selectedSessionForMedia && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg border border-slate-200 shadow-xl max-w-xl w-full my-8 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+              <div>
+                <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-red-700" />
+                  Session Photographs
+                </h2>
+                <p className="text-xs text-slate-500 truncate max-w-md mt-0.5">
+                  {selectedSessionForMedia.title}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSessionMediaModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-md"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto text-xs text-slate-700">
+              <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-md p-3">
+                <div>
+                  <p className="font-medium text-slate-800">Add photos to this session</p>
+                  <p className="text-[11px] text-slate-500">
+                    Uploaded photos will be optimized and saved to public-media/sessions/.
+                  </p>
+                </div>
+                <div>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/jpeg,image/png,image/webp"
+                    ref={sessionMediaInputRef}
+                    onChange={(e) => {
+                      handleUploadSessionMediaFiles(Array.from(e.target.files || []), selectedSessionForMedia.id);
+                      e.target.value = "";
+                    }}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => sessionMediaInputRef.current?.click()}
+                    disabled={uploadingSessionMedia}
+                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-red-700 hover:bg-red-800 disabled:opacity-50 transition-colors shadow-2xs shrink-0"
+                  >
+                    {uploadingSessionMedia ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Uploading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add Photos</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {loadingSessionMedia ? (
+                <div className="py-8 text-center text-slate-400 space-y-2">
+                  <Loader2 className="w-5 h-5 animate-spin mx-auto text-slate-400" />
+                  <p>Loading session photos...</p>
+                </div>
+              ) : sessionMediaList.length === 0 ? (
+                <div className="py-10 rounded-md border border-dashed border-slate-200 text-center bg-slate-50/50 space-y-2">
+                  <FileImage className="w-8 h-8 text-slate-300 mx-auto" />
+                  <p className="text-xs text-slate-500 font-medium">No photographs uploaded yet.</p>
+                  <p className="text-[11px] text-slate-400">
+                    Click "Add Photos" above to upload photos for this session.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                  {sessionMediaList.map((photo) => (
+                    <div
+                      key={photo.id}
+                      className="group relative aspect-square rounded-md bg-slate-100 border border-slate-200 overflow-hidden shadow-2xs"
+                    >
+                      <img
+                        src={photo.publicUrl}
+                        alt={photo.altText || photo.fileName}
+                        className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-200"
+                        onClick={() => setLightboxImage(photo.publicUrl)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteSessionMedia(photo.id)}
+                        className="absolute top-1.5 right-1.5 p-1 rounded-md bg-black/60 text-white hover:bg-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Remove photo"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+              <span className="text-[11px] text-slate-400">
+                {sessionMediaList.length} photograph{sessionMediaList.length === 1 ? "" : "s"}
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsSessionMediaModalOpen(false)}
+                className="px-4 py-1.5 rounded-md text-xs font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-100 transition-colors"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* LIGHTBOX PREVIEW MODAL                                        */}
+      {/* ------------------------------------------------------------- */}
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 bg-black/85 backdrop-blur-xs z-[70] flex items-center justify-center p-4 animate-in fade-in duration-150 cursor-zoom-out"
+          onClick={() => setLightboxImage(null)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh] flex items-center justify-center">
+            <img
+              src={lightboxImage}
+              alt="Enlarged Preview"
+              className="max-w-full max-h-[85vh] object-contain rounded-md shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              type="button"
+              onClick={() => setLightboxImage(null)}
+              className="absolute -top-10 right-0 text-white/80 hover:text-white p-1 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
         </div>
       )}
@@ -1826,6 +2856,19 @@ export default function EventsManagement() {
                 const ev = activeMenuEvent;
                 setActiveMenuId(null);
                 setActiveMenuEvent(null);
+                handleOpenEventMedia(ev);
+              }}
+              className="w-full text-left px-3.5 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center space-x-2 font-medium"
+            >
+              <ImageIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span>Event Photos</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const ev = activeMenuEvent;
+                setActiveMenuId(null);
+                setActiveMenuEvent(null);
                 handleOpenEditModal(ev);
               }}
               className="w-full text-left px-3.5 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center space-x-2 font-medium"
@@ -1867,3 +2910,4 @@ export default function EventsManagement() {
     </div>
   );
 }
+

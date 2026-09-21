@@ -227,3 +227,69 @@ export async function deleteMedia(mediaId) {
 
   return true;
 }
+
+/**
+ * Curated local NSS media assets for fallback & default hero slideshow
+ */
+export const DEFAULT_HERO_MEDIA = [
+  {
+    id: "hero-volunteers-assembly",
+    url: `${process.env.PUBLIC_URL}/images/sessions-hero-volunteers.jpg`,
+    altText: "NSS MIT student volunteers community assembly",
+    caption: "NSS student volunteers gathering for village service",
+    displayOrder: 1,
+  },
+  {
+    id: "hero-tree-plantation",
+    url: `${process.env.PUBLIC_URL}/images/nss-tree-plantation.jpg`,
+    altText: "NSS MIT campus greening and sapling plantation drive",
+    caption: "Native sapling plantation across community grounds",
+    displayOrder: 2,
+  },
+  {
+    id: "hero-medical-camp",
+    url: `${process.env.PUBLIC_URL}/images/nss-medical-camp.jpg`,
+    altText: "NSS MIT free community medical & health screening camp",
+    caption: "Free healthcare screening and medical assistance",
+    displayOrder: 3,
+  },
+  {
+    id: "hero-campus-banner",
+    url: `${process.env.PUBLIC_URL}/images/hero.png`,
+    altText: "Madras Institute of Technology Campus with NSS student volunteers",
+    caption: "MIT Campus Community Service & Nation Building",
+    displayOrder: 4,
+  },
+];
+
+/**
+ * Fetches hero-designated media images from Supabase media library.
+ * Falls back gracefully to curated NSS hero media if database is empty or offline.
+ *
+ * @returns {Promise<Array<{ id: string, url: string, altText: string, caption?: string, displayOrder?: number }>>}
+ */
+export async function getHeroMedia() {
+  try {
+    const { data, error } = await supabase
+      .from("media")
+      .select("id, file_name, storage_path, alt_text, caption, created_at")
+      .or("storage_path.ilike.%hero%,file_name.ilike.%hero%")
+      .order("created_at", { ascending: true });
+
+    if (!error && data && data.length > 0) {
+      const formatted = data.map((m, idx) => ({
+        id: m.id,
+        url: getMediaPublicUrl(m.storage_path),
+        altText: m.alt_text || `NSS Hero Slide ${idx + 1}`,
+        caption: m.caption || null,
+        displayOrder: idx + 1,
+      }));
+      return formatted;
+    }
+  } catch (err) {
+    console.warn("Supabase hero media fetch failed, using default NSS media:", err);
+  }
+
+  return DEFAULT_HERO_MEDIA;
+}
+

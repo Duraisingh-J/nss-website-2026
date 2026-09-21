@@ -6,7 +6,6 @@ import ObjectivesSection from "../components/home/ObjectivesSection";
 import MottoSection from "../components/home/MottoSection";
 import ImpactSection from "../components/home/ImpactSection";
 import ActivitiesGallery from "../components/home/ActivitiesGallery";
-import HomeCTA from "../components/home/HomeCTA";
 import Footer from "../components/Footer";
 import "./Home.css";
 
@@ -41,7 +40,7 @@ export default function Home() {
       <ActivitiesGallery />
 
       {/* 8. Call to Engagement */}
-      <HomeCTA />
+      {/* <HomeCTA /> */}
 
       {/* Footer */}
       <Footer />

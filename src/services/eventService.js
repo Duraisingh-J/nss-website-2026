@@ -20,8 +20,8 @@ export function formatEventCategoryLabel(type) {
   if (!type) return "Monthly Event";
   const lower = type.toLowerCase();
   if (lower === "camp") return "Camp";
-  if (lower === "outreach" || lower === "visit" || lower === "drive") return "Outreach";
-  if (lower === "orphanage" || lower === "orphanage visit") return "Orphanage Visit";
+  if (lower === "outreach" || lower === "drive") return "Outreach";
+  if (lower === "orphanage" || lower === "orphanage visit" || lower === "visit") return "Orphanage Visit";
   if (lower === "monthly" || lower === "monthly event" || lower === "event" || lower === "other") return "Monthly Event";
   return type.charAt(0).toUpperCase() + type.slice(1);
 }
@@ -157,6 +157,143 @@ export async function getPublicEvents() {
   }
 
   return (data || []).map(transformEvent);
+}
+
+/**
+ * Fetch a single published event with all its media and sessions for public website
+ */
+export async function getPublicEventDetail(eventId) {
+  if (!eventId) return null;
+
+  try {
+    const { data: eventRow, error } = await supabase
+      .from("events")
+      .select(`
+        id,
+        title,
+        description,
+        event_type,
+        start_date,
+        end_date,
+        is_published,
+        cover_media_id,
+        created_at,
+        updated_at,
+        media:cover_media_id (
+          id,
+          storage_path,
+          file_name
+        )
+      `)
+      .eq("id", eventId)
+      .single();
+
+    if (error || !eventRow) return null;
+
+    const [eventMediaList, sessionsList] = await Promise.all([
+      getEventMedia(eventId),
+      supabase
+        .from("sessions")
+        .select(`
+          id,
+          event_id,
+          title,
+          description,
+          session_date,
+          start_time,
+          end_time,
+          location,
+          is_published,
+          display_order,
+          created_at,
+          updated_at,
+          session_units (
+            unit
+          ),
+          session_media (
+            id,
+            media_id,
+            display_order,
+            media:media_id (
+              id,
+              file_name,
+              storage_path,
+              alt_text,
+              caption
+            )
+          )
+        `)
+        .eq("event_id", eventId)
+        .order("session_date", { ascending: true })
+        .order("start_time", { ascending: true }),
+    ]);
+
+    const transformedEvent = transformEvent(eventRow);
+    const gallery = (eventMediaList || []).map((m) => ({
+      id: m.id,
+      mediaId: m.media_id,
+      url: m.publicUrl,
+      caption: m.caption || m.altText || transformedEvent.title,
+      alt: m.altText || transformedEvent.title,
+    }));
+
+    const sessions = (sessionsList.data || []).map((sRow) => {
+      const sPhotos = Array.isArray(sRow.session_media)
+        ? sRow.session_media
+            .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+            .map((sm) => ({
+              id: sm.id,
+              mediaId: sm.media_id,
+              url: getMediaPublicUrl(sm.media?.storage_path),
+              caption: sm.media?.caption || sm.media?.alt_text || sRow.title,
+              altText: sm.media?.alt_text || sRow.title,
+            }))
+        : [];
+      const sUnits = Array.isArray(sRow.session_units)
+        ? sRow.session_units.map((u) => u.unit).sort((a, b) => a - b)
+        : [];
+
+      return {
+        id: sRow.id,
+        title: sRow.title,
+        description: sRow.description || "",
+        shortDesc: sRow.description || "",
+        session_date: sRow.session_date,
+        date: sRow.session_date,
+        dateDisplay: formatDateDisplay(sRow.session_date),
+        start_time: sRow.start_time,
+        end_time: sRow.end_time,
+        timeDisplay: `${sRow.start_time || "10:00"} — ${sRow.end_time || "11:30"}`,
+        location: sRow.location || "NSS Campus",
+        units: sUnits,
+        unitsDisplay: sUnits.length > 0 ? `Units ${sUnits.join(" · ")}` : "All Units",
+        coverImage: sPhotos.length > 0 ? sPhotos[0].url : transformedEvent.cover_image_url,
+        coverImageUrl: sPhotos.length > 0 ? sPhotos[0].url : transformedEvent.cover_image_url,
+        gallery: sPhotos,
+        photos: sPhotos,
+      };
+    });
+
+    return {
+      ...transformedEvent,
+      coverImage: transformedEvent.cover_image_url,
+      dateDisplay:
+        formatDateDisplay(transformedEvent.start_date) +
+        (transformedEvent.end_date && transformedEvent.end_date !== transformedEvent.start_date
+          ? ` — ${formatDateDisplay(transformedEvent.end_date)}`
+          : ""),
+      volunteersCount: "All Units",
+      location: sessions.length > 0 ? sessions[0].location : "NSS MIT Campus",
+      shortDesc: transformedEvent.description,
+      about: transformedEvent.description ? [transformedEvent.description] : [],
+      gallery: gallery,
+      photos: gallery,
+      sessions: sessions,
+    };
+  } catch (err) {
+    console.error("Error in getPublicEventDetail:", err);
+    return null;
+  }
 }
 
 /**
@@ -347,3 +484,155 @@ export async function deleteEvent(eventId, coverMediaId = null) {
 
   return true;
 }
+
+/**
+ * Fetch all photographs associated with an event via event_media
+ */
+export async function getEventMedia(eventId) {
+  if (!eventId) return [];
+
+  const { data, error } = await supabase
+    .from("event_media")
+    .select(`
+      id,
+      event_id,
+      media_id,
+      display_order,
+      media:media_id (
+        id,
+        file_name,
+        storage_path,
+        mime_type,
+        file_size,
+        width,
+        height,
+        alt_text,
+        caption,
+        created_at
+      )
+    `)
+    .eq("event_id", eventId)
+    .order("display_order", { ascending: true })
+    .order("id", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching event media:", error.message);
+    return [];
+  }
+
+  return (data || []).map((row) => ({
+    id: row.id, // event_media link ID
+    event_id: row.event_id,
+    media_id: row.media_id,
+    display_order: row.display_order,
+    media: row.media,
+    publicUrl: getMediaPublicUrl(row.media?.storage_path),
+    fileName: row.media?.file_name || "image.webp",
+    altText: row.media?.alt_text || "",
+    caption: row.media?.caption || "",
+    width: row.media?.width,
+    height: row.media?.height,
+    fileSize: row.media?.file_size,
+    mimeType: row.media?.mime_type,
+    createdAt: row.media?.created_at,
+  }));
+}
+
+/**
+ * Upload and associate a photograph with an event (stores in public-media/events/)
+ */
+export async function addEventMedia(eventId, file, options = {}) {
+  if (!eventId || !file) {
+    throw new Error("Event ID and File are required for uploading event media.");
+  }
+
+  // 1. Upload media using common image optimization pipeline
+  const uploadedMedia = await uploadMedia(file, {
+    folder: "events",
+    entityId: eventId,
+    altText: options.altText || file.name || "Event photograph",
+    caption: options.caption || null,
+    quality: 0.85,
+    maxDimension: 2400,
+  });
+
+  // 2. Fetch current max display_order for this event
+  const { data: currentMedia } = await supabase
+    .from("event_media")
+    .select("display_order")
+    .eq("event_id", eventId)
+    .order("display_order", { ascending: false })
+    .limit(1);
+
+  const nextOrder = currentMedia && currentMedia.length > 0 ? (currentMedia[0].display_order || 0) + 1 : 1;
+
+  // 3. Create event_media association
+  const { data: linkRow, error: linkError } = await supabase
+    .from("event_media")
+    .insert({
+      event_id: eventId,
+      media_id: uploadedMedia.id,
+      display_order: nextOrder,
+    })
+    .select(`
+      id,
+      event_id,
+      media_id,
+      display_order,
+      media:media_id (
+        id,
+        file_name,
+        storage_path,
+        mime_type,
+        file_size,
+        width,
+        height,
+        alt_text,
+        caption,
+        created_at
+      )
+    `)
+    .single();
+
+  if (linkError) {
+    console.error("Error linking event_media:", linkError.message);
+    throw new Error(`Failed to associate media with event: ${linkError.message}`);
+  }
+
+  return {
+    id: linkRow.id,
+    event_id: linkRow.event_id,
+    media_id: linkRow.media_id,
+    display_order: linkRow.display_order,
+    media: linkRow.media,
+    publicUrl: getMediaPublicUrl(linkRow.media?.storage_path),
+    fileName: linkRow.media?.file_name,
+    altText: linkRow.media?.alt_text,
+    caption: linkRow.media?.caption,
+    width: linkRow.media?.width,
+    height: linkRow.media?.height,
+    fileSize: linkRow.media?.file_size,
+    mimeType: linkRow.media?.mime_type,
+    createdAt: linkRow.media?.created_at,
+  };
+}
+
+/**
+ * Remove an event photograph association (deletes event_media row only, preserving underlying media)
+ */
+export async function removeEventMedia(eventMediaId) {
+  if (!eventMediaId) throw new Error("Event Media ID is required.");
+
+  const { error } = await supabase
+    .from("event_media")
+    .delete()
+    .eq("id", eventMediaId);
+
+  if (error) {
+    console.error("Error deleting event media association:", error.message);
+    throw new Error(`Failed to remove event photo: ${error.message}`);
+  }
+
+  return true;
+}
+

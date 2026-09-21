@@ -1,41 +1,39 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Footer from "../components/Footer";
-import PageHero from "../components/ui/PageHero";
+import SessionsHero from "../components/sessions/SessionsHero";
+import FeaturedNextSession from "../components/sessions/FeaturedNextSession";
+import ActivityArchive from "../components/sessions/ActivityArchive";
+import SessionDetailModal from "../components/sessions/SessionDetailModal";
 import { getPublicCalendarData, formatTimeDisplay } from "../services/sessionService";
-import {
-  Clock,
-  MapPin,
-  Users,
-  Tag,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  X,
-  ArrowRight,
-  Calendar,
-  Sparkles,
-  CalendarDays,
-  CheckCircle2,
-} from "lucide-react";
+import { ArrowRight, Clock, MapPin, Users } from "lucide-react";
 import "./Sessions.css";
 
-/* ── Constants ─────────────────────────────────────────────── */
-const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-
+/* ── Category Definitions ───────────────────────────────────── */
 const CATEGORIES = [
-  { id: "all", label: "All Activities" },
+  { id: "all", label: "All" },
   { id: "camp", label: "Camps" },
   { id: "outreach", label: "Outreach" },
   { id: "visit", label: "Orphanage Visits" },
   { id: "monthly", label: "Monthly Events" },
 ];
 
-/**
- * Format category badge label
- */
+const MONTH_NAMES = [
+  "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+  "JUL", "AUG", "SEP", "OCT", "NOV", "DEC",
+];
+
+function parseDateComponents(dateStr) {
+  if (!dateStr) return { day: "—", month: "—", weekday: "—", year: "—" };
+  const parts = dateStr.split("-").map(Number);
+  if (parts.length < 3) return { day: dateStr, month: "", weekday: "", year: "" };
+  const d = new Date(parts[0], parts[1] - 1, parts[2]);
+  const day = parts[2];
+  const month = MONTH_NAMES[parts[1] - 1] || "SEP";
+  const year = parts[0];
+  const weekday = d.toLocaleDateString("en-IN", { weekday: "short" }).toUpperCase();
+  return { day, month, weekday, year };
+}
+
 function getCategoryBadge(item) {
   if (item.type === "monthly_event" || item.eventType === "monthly") {
     return "MONTHLY EVENT";
@@ -47,10 +45,7 @@ function getCategoryBadge(item) {
   return (item.eventType || "ACTIVITY").toUpperCase();
 }
 
-/**
- * Check if category matches filter
- */
-function matchesCategoryFilter(item, filterId) {
+function matchesCategory(item, filterId) {
   if (filterId === "all") return true;
   if (filterId === "monthly") {
     return item.type === "monthly_event" || item.eventType === "monthly";
@@ -68,16 +63,13 @@ export default function Sessions() {
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   }, [today]);
 
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth());
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [viewScope, setViewScope] = useState("month"); // "month" | "upcoming"
+  const [scopeFilter, setScopeFilter] = useState("upcoming"); // "upcoming" | "all"
   const [selectedItem, setSelectedItem] = useState(null);
   const [calendarData, setCalendarData] = useState({});
   const [loading, setLoading] = useState(true);
-  const [isTransitioning, setIsTransitioning] = useState(false);
 
-  /* ── Load public calendar data ────────────────────────────── */
+  /* ── Load Public Data from Supabase ───────────────────────── */
   useEffect(() => {
     async function loadData() {
       setLoading(true);
@@ -93,545 +85,276 @@ export default function Sessions() {
     loadData();
   }, []);
 
-  /* ── Close panel on Escape key ────────────────────────────── */
-  useEffect(() => {
-    function handleKeyDown(e) {
-      if (e.key === "Escape" && selectedItem) {
-        setSelectedItem(null);
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedItem]);
+  /* ── Chronologically Flattened Activities List ─────────────── */
+  const { allChronologicalItems, pastArchiveItems } = useMemo(() => {
+    const sortedDates = Object.keys(calendarData).sort();
+    const all = [];
+    const past = [];
 
-  /* ── Month Navigation with subtle slide/fade animation ─────── */
-  const changeMonth = useCallback((dir) => {
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setMonth((m) => {
-        const nm = m + dir;
-        if (nm > 11) {
-          setYear((y) => y + 1);
-          return 0;
-        }
-        if (nm < 0) {
-          setYear((y) => y - 1);
-          return 11;
-        }
-        return nm;
-      });
-      setIsTransitioning(false);
-    }, 180);
-  }, []);
+    sortedDates.forEach((dateStr) => {
+      const items = calendarData[dateStr] || [];
+      const isPast = dateStr < todayKey;
 
-  const goToToday = useCallback(() => {
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setYear(today.getFullYear());
-      setMonth(today.getMonth());
-      setViewScope("month");
-      setIsTransitioning(false);
-    }, 180);
-  }, [today]);
-
-  /* ── Available Years for dropdown selector ─────────────────── */
-  const availableYears = useMemo(() => {
-    const yearsSet = new Set();
-    const currentYear = today.getFullYear();
-    for (let y = currentYear - 3; y <= currentYear + 5; y++) {
-      yearsSet.add(y);
-    }
-    Object.keys(calendarData).forEach((d) => {
-      const y = parseInt(d.split("-")[0], 10);
-      if (!isNaN(y)) yearsSet.add(y);
-    });
-    return Array.from(yearsSet).sort((a, b) => a - b);
-  }, [today, calendarData]);
-
-  /* ── Process and group activities chronologically ──────────── */
-  const { dateGroups, nextActivityId } = useMemo(() => {
-    const allDates = Object.keys(calendarData).sort();
-    const currentMonthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
-
-    let candidateDates = allDates;
-    if (viewScope === "month") {
-      candidateDates = allDates.filter((d) => d.startsWith(currentMonthPrefix));
-    } else if (viewScope === "upcoming") {
-      candidateDates = allDates.filter((d) => d >= todayKey);
-    }
-
-    const groups = [];
-    let foundNextId = null;
-
-    candidateDates.forEach((dateStr) => {
-      const items = (calendarData[dateStr] || [])
-        .filter((it) => matchesCategoryFilter(it, categoryFilter))
-        .sort((a, b) => {
-          const tA = a.startTime || "00:00";
-          const tB = b.startTime || "00:00";
-          return tA.localeCompare(tB);
-        });
-
-      if (items.length > 0) {
-        // Parse date details
-        const parts = dateStr.split("-").map(Number);
-        const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
-        const dayNum = parts[2];
-        const monthAbbr = MONTH_NAMES[parts[1] - 1]?.slice(0, 3).toUpperCase() || "SEP";
-        const weekday = dateObj.toLocaleDateString("en-IN", { weekday: "short" });
-        const isPast = dateStr < todayKey;
-        const isToday = dateStr === todayKey;
-
-        // Find next activity flag
-        if (!foundNextId && !isPast && items.length > 0) {
-          foundNextId = items[0].id;
-        }
-
-        groups.push({
-          dateKey: dateStr,
-          dateObj,
-          dayNum,
-          monthAbbr,
-          weekday,
-          year: parts[0],
+      items.forEach((item) => {
+        const flatItem = {
+          ...item,
+          dateStr,
           isPast,
-          isToday,
-          items,
-        });
-      }
+        };
+        all.push(flatItem);
+        if (isPast) {
+          past.push(flatItem);
+        }
+      });
     });
 
     return {
-      dateGroups: groups,
-      nextActivityId: foundNextId,
+      allChronologicalItems: all,
+      pastArchiveItems: past,
     };
-  }, [calendarData, year, month, viewScope, categoryFilter, todayKey]);
+  }, [calendarData, todayKey]);
 
-  const isCurrentMonth = year === today.getFullYear() && month === today.getMonth();
+  /* ── Featured Next Activity (Single Imminent Session) ──────── */
+  const nextFeaturedItem = useMemo(() => {
+    const upcoming = allChronologicalItems.filter((it) => !it.isPast);
+    if (upcoming.length > 0) return upcoming[0];
+    if (allChronologicalItems.length > 0) return allChronologicalItems[0];
+    return null;
+  }, [allChronologicalItems]);
+
+  /* ── Filtered Remaining Activities (Excluding Featured) ────── */
+  const upcomingActivitiesList = useMemo(() => {
+    let candidateList = allChronologicalItems;
+
+    // Apply Scope Filter
+    if (scopeFilter === "upcoming") {
+      candidateList = candidateList.filter((it) => !it.isPast);
+    }
+
+    // Apply Category Filter
+    candidateList = candidateList.filter((it) => matchesCategory(it, categoryFilter));
+
+    // Exclude the featured session so it does not repeat
+    if (nextFeaturedItem) {
+      candidateList = candidateList.filter((it) => it.id !== nextFeaturedItem.id);
+    }
+
+    return candidateList;
+  }, [allChronologicalItems, scopeFilter, categoryFilter, nextFeaturedItem]);
 
   return (
-    <div className="page-wrapper nss-schedule-page">
-      {/* Shared Page Hero with SESSIONS watermark */}
-      <PageHero
-        watermark="SESSIONS"
-        eyebrow="NSS SCHEDULE"
-        title="Sessions"
-        description="Explore upcoming NSS programmes, community outreach initiatives, annual camps, and monthly split-up activities."
-      />
+    <div className="page-wrapper nss-editorial-page">
+      
+      {/* 1. Magazine / Editorial Hero */}
+      <SessionsHero />
 
-      {/* ── Main Schedule Section ──────────────────────────────── */}
-      <section className="schedule-section">
-        <div className="schedule-container">
-
-          {/* ── Top Schedule Control Bar ─────────────────────────── */}
-          <div className="schedule-control-bar">
-            {/* View Scope Mode: Month View vs Upcoming Stream */}
-            <div className="schedule-scope-toggle">
-              <button
-                type="button"
-                className={`scope-btn ${viewScope === "month" ? "scope-btn--active" : ""}`}
-                onClick={() => setViewScope("month")}
-              >
-                <CalendarDays className="w-3.5 h-3.5 inline mr-1.5" />
-                Monthly Schedule
-              </button>
-              <button
-                type="button"
-                className={`scope-btn ${viewScope === "upcoming" ? "scope-btn--active" : ""}`}
-                onClick={() => setViewScope("upcoming")}
-              >
-                <Sparkles className="w-3.5 h-3.5 inline mr-1.5 text-amber-500" />
-                All Upcoming
-              </button>
-            </div>
-
-            {/* Category Filter Pills */}
-            <div className="schedule-filter-pills" role="tablist" aria-label="Filter schedule by activity category">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={categoryFilter === cat.id}
-                  className={`filter-pill ${categoryFilter === cat.id ? "filter-pill--active" : ""}`}
-                  onClick={() => setCategoryFilter(cat.id)}
-                >
-                  {cat.label}
-                </button>
-              ))}
+      {/* Main Content Area */}
+      <main className="sessions-main-container">
+        
+        {/* 2. Simplified Activity Navigation */}
+        <nav className="sessions-nav-strip" aria-label="Activities Navigation">
+          <div className="sessions-nav-left">
+            <span className="sessions-nav-label">EXPLORE SESSIONS</span>
+            <div className="sessions-tabs" role="tablist">
+              {CATEGORIES.map((cat) => {
+                const isActive = categoryFilter === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    className={`sessions-tab-btn ${isActive ? "sessions-tab-btn--active" : ""}`}
+                    onClick={() => setCategoryFilter(cat.id)}
+                  >
+                    {cat.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* ── Month Navigation (visible in month view) ─────────── */}
-          {viewScope === "month" && (
-            <div className="schedule-month-nav">
-              <div className="month-nav-controls">
-                <button
-                  type="button"
-                  className="month-nav-arrow"
-                  onClick={() => changeMonth(-1)}
-                  aria-label="Previous month"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
+          {/* Far Right: Scope Switcher (Upcoming vs All) */}
+          <div className="sessions-scope-toggle" role="group" aria-label="Scope Toggle">
+            <button
+              type="button"
+              className={`sessions-scope-btn ${scopeFilter === "upcoming" ? "sessions-scope-btn--active" : ""}`}
+              onClick={() => setScopeFilter("upcoming")}
+            >
+              Upcoming
+            </button>
+            <button
+              type="button"
+              className={`sessions-scope-btn ${scopeFilter === "all" ? "sessions-scope-btn--active" : ""}`}
+              onClick={() => setScopeFilter("all")}
+            >
+              All
+            </button>
+          </div>
+        </nav>
 
-                <div className="month-nav-dropdowns">
-                  {/* Month Dropdown Selector */}
-                  <div className="month-select-wrapper">
-                    <select
-                      className="month-nav-select month-nav-select--month"
-                      value={month}
-                      onChange={(e) => {
-                        const newMonth = Number(e.target.value);
-                        setIsTransitioning(true);
-                        setTimeout(() => {
-                          setMonth(newMonth);
-                          setIsTransitioning(false);
-                        }, 160);
-                      }}
-                      aria-label="Choose month"
-                    >
-                      {MONTH_NAMES.map((mName, idx) => (
-                        <option key={idx} value={idx}>
-                          {mName}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="select-caret-icon" aria-hidden="true" />
-                  </div>
+        {loading ? (
+          <div className="sessions-loading-state">
+            <div className="sessions-spinner" />
+            <p className="sessions-loading-text">Loading NSS programme schedule…</p>
+          </div>
+        ) : (
+          <>
+            {/* 3. Featured Next Activity Showcase */}
+            {nextFeaturedItem && (
+              <FeaturedNextSession
+                session={nextFeaturedItem}
+                onSelectSession={setSelectedItem}
+              />
+            )}
 
-                  {/* Year Dropdown Selector */}
-                  <div className="year-select-wrapper">
-                    <select
-                      className="month-nav-select month-nav-select--year"
-                      value={year}
-                      onChange={(e) => {
-                        const newYear = Number(e.target.value);
-                        setIsTransitioning(true);
-                        setTimeout(() => {
-                          setYear(newYear);
-                          setIsTransitioning(false);
-                        }, 160);
-                      }}
-                      aria-label="Choose year"
+            {/* 4. Upcoming Activities Editorial List */}
+            <section className="upcoming-activities-section" aria-label="Upcoming Activities">
+              <div className="upcoming-section-header">
+                <h2 className="upcoming-section-title font-editorial">
+                  UPCOMING ACTIVITIES
+                </h2>
+                <p className="upcoming-section-desc">
+                  A closer look at what's happening across NSS.
+                </p>
+              </div>
+
+              {upcomingActivitiesList.length === 0 ? (
+                <div className="activities-empty-box">
+                  <p className="empty-title">No upcoming activities found</p>
+                  <p className="empty-desc">
+                    {categoryFilter !== "all"
+                      ? "There are no scheduled sessions in this category at this time."
+                      : "Check back soon for new announcements and programme updates."}
+                  </p>
+                  {categoryFilter !== "all" && (
+                    <button
+                      type="button"
+                      className="empty-reset-btn"
+                      onClick={() => setCategoryFilter("all")}
                     >
-                      {availableYears.map((yr) => (
-                        <option key={yr} value={yr}>
-                          {yr}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="select-caret-icon" aria-hidden="true" />
-                  </div>
+                      Show All Categories
+                    </button>
+                  )}
                 </div>
+              ) : (
+                <div className="activity-editorial-list">
+                  {upcomingActivitiesList.map((item) => {
+                    const dateInfo = parseDateComponents(item.dateStr || item.date);
+                    const category = getCategoryBadge(item);
+                    const startTime = item.startTime ? formatTimeDisplay(item.startTime) : "";
+                    const endTime = item.endTime ? formatTimeDisplay(item.endTime) : "";
+                    const timeRange = startTime ? `${startTime}${endTime ? ` — ${endTime}` : ""}` : "";
+                    const location = item.location || "NSS Campus";
+                    const isMonthly = item.type === "monthly_event";
+                    const unitsDisplay = Array.isArray(item.units) && item.units.length > 0
+                      ? isMonthly && item.units.length === 7 ? "All Units (1–7)" : `Units ${item.units.join(" · ")}`
+                      : "All Units";
 
-                <button
-                  type="button"
-                  className="month-nav-arrow"
-                  onClick={() => changeMonth(1)}
-                  aria-label="Next month"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="month-nav-actions">
-                <button
-                  type="button"
-                  className={`today-badge-btn ${isCurrentMonth ? "today-badge-btn--active" : ""}`}
-                  onClick={goToToday}
-                >
-                  Today
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ── Schedule Timeline Area ──────────────────────────── */}
-          {loading ? (
-            <div className="schedule-loading-state">
-              <div className="schedule-loading-spinner" />
-              <p>Loading scheduled activities…</p>
-            </div>
-          ) : (
-            <div className={`schedule-workspace ${selectedItem ? "schedule-workspace--with-detail" : ""}`}>
-              
-              {/* TIMELINE COLUMN */}
-              <div className={`schedule-timeline-pane ${isTransitioning ? "schedule-timeline-pane--fade" : ""}`}>
-                {dateGroups.length === 0 ? (
-                  /* Clean Empty State */
-                  <div className="schedule-empty-card">
-                    <div className="empty-icon-wrap">
-                      <Calendar className="w-8 h-8 text-slate-400" />
-                    </div>
-                    <h3 className="empty-title">No Scheduled Activities</h3>
-                    <p className="empty-desc">
-                      There are no NSS sessions or monthly activities scheduled for{" "}
-                      {viewScope === "month" ? `${MONTH_NAMES[month]} ${year}` : "this selection"}.
-                    </p>
-                    <div className="empty-actions">
-                      {viewScope === "month" ? (
-                        <button
-                          type="button"
-                          className="empty-action-btn"
-                          onClick={() => setViewScope("upcoming")}
-                        >
-                          View All Upcoming Activities
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="empty-action-btn"
-                          onClick={() => setCategoryFilter("all")}
-                        >
-                          Clear Category Filter
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  /* Vertical Chronological Timeline */
-                  <div className="schedule-timeline">
-                    {dateGroups.map((group, groupIdx) => (
-                      <div
-                        key={group.dateKey}
-                        className={`timeline-group ${group.isPast ? "timeline-group--past" : ""} ${group.isToday ? "timeline-group--today" : ""}`}
+                    return (
+                      <article
+                        key={item.id}
+                        className="activity-editorial-row"
+                        onClick={() => setSelectedItem(item)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setSelectedItem(item);
+                          }
+                        }}
+                        aria-label={`View details for ${item.title}`}
                       >
-                        {/* Left Date Column */}
-                        <div className="timeline-date-col">
-                          <div className="date-block">
-                            <span className="date-day">{group.dayNum}</span>
-                            <span className="date-month">{group.monthAbbr}</span>
-                            <span className="date-weekday">{group.weekday}</span>
-                            {group.isToday && <span className="date-today-tag">TODAY</span>}
+                        {/* Column 1: Date */}
+                        <div className="activity-row-date">
+                          <span className="activity-date-num font-editorial">
+                            {dateInfo.day}
+                          </span>
+                          <div className="activity-date-sub">
+                            <span className="activity-date-month">{dateInfo.month}</span>
+                            <span className="activity-date-weekday">{dateInfo.weekday}</span>
                           </div>
                         </div>
 
-                        {/* Middle Spine / Track Line */}
-                        <div className="timeline-track-col" aria-hidden="true">
-                          <div className={`timeline-node ${group.isToday ? "timeline-node--today" : ""}`} />
-                          {groupIdx < dateGroups.length - 1 && <div className="timeline-spine-line" />}
+                        {/* Column 2: Activity Details */}
+                        <div className="activity-row-body">
+                          <div className="activity-category-label">
+                            {category}
+                          </div>
+
+                          <h3 className="activity-row-title font-editorial">
+                            {item.title}
+                          </h3>
+
+                          {item.parentEventTitle ? (
+                            <p className="activity-row-subtitle">
+                              Part of {item.parentEventTitle}
+                            </p>
+                          ) : isMonthly ? (
+                            <p className="activity-row-subtitle">
+                              Monthly All-Unit Scheduled Assembly
+                            </p>
+                          ) : null}
+
+                          {/* Subtle Metadata */}
+                          <div className="activity-row-meta">
+                            {timeRange && (
+                              <span className="activity-meta-item">
+                                <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <span>{timeRange}</span>
+                              </span>
+                            )}
+                            {timeRange && location && <span className="activity-meta-sep">·</span>}
+                            {location && (
+                              <span className="activity-meta-item">
+                                <MapPin className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                                <span>{location}</span>
+                              </span>
+                            )}
+                            {location && unitsDisplay && <span className="activity-meta-sep">·</span>}
+                            {unitsDisplay && (
+                              <span className="activity-meta-item">
+                                <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <span>{unitsDisplay}</span>
+                              </span>
+                            )}
+                          </div>
                         </div>
 
-                        {/* Right Content Column (Activities on this Date) */}
-                        <div className="timeline-activities-col">
-                          {group.items.map((item) => {
-                            const isSelected = selectedItem?.id === item.id;
-                            const isNext = nextActivityId === item.id;
-                            const isMonthly = item.type === "monthly_event";
-                            const categoryBadge = getCategoryBadge(item);
-                            const startTime = item.startTime ? formatTimeDisplay(item.startTime) : "";
-                            const endTime = item.endTime ? formatTimeDisplay(item.endTime) : "";
-
-                            return (
-                              <article
-                                key={item.id}
-                                className={`schedule-item-card ${isMonthly ? "schedule-item-card--monthly" : "schedule-item-card--session"} ${isSelected ? "schedule-item-card--active" : ""} ${isNext ? "schedule-item-card--next" : ""}`}
-                                onClick={() => setSelectedItem(item)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter" || e.key === " ") {
-                                    e.preventDefault();
-                                    setSelectedItem(item);
-                                  }
-                                }}
-                                tabIndex={0}
-                                role="button"
-                                aria-expanded={isSelected}
-                                aria-label={`View details for ${item.title}`}
-                              >
-                                {isNext && (
-                                  <div className="next-activity-indicator">
-                                    <Sparkles className="w-3 h-3 text-amber-500" />
-                                    <span>Next Activity</span>
-                                  </div>
-                                )}
-
-                                {/* Top Header Badge Row */}
-                                <div className="card-top-row">
-                                  <span className={`category-tag ${isMonthly ? "category-tag--monthly" : "category-tag--session"}`}>
-                                    <Tag className="w-3 h-3 inline mr-1" />
-                                    {categoryBadge}
-                                  </span>
-
-                                  {startTime && (
-                                    <span className="time-badge">
-                                      <Clock className="w-3 h-3 inline mr-1 text-slate-500" />
-                                      {startTime}{endTime ? ` — ${endTime}` : ""}
-                                    </span>
-                                  )}
-                                </div>
-
-                                {/* Title & Parent Event */}
-                                <h4 className="card-heading">{item.title}</h4>
-
-                                {item.parentEventTitle && !isMonthly && (
-                                  <div className="card-parent-link">
-                                    <span>Part of </span>
-                                    <strong className="text-slate-800">{item.parentEventTitle}</strong>
-                                  </div>
-                                )}
-
-                                {isMonthly && (
-                                  <div className="card-parent-link">
-                                    <span className="text-amber-800 font-medium">Monthly NSS scheduled split-up programme</span>
-                                  </div>
-                                )}
-
-                                {/* Meta Information Row: Venue & Units */}
-                                <div className="card-meta-row">
-                                  {item.location && (
-                                    <div className="meta-point">
-                                      <MapPin className="w-3.5 h-3.5 text-red-500 inline mr-1" />
-                                      <span>{item.location}</span>
-                                    </div>
-                                  )}
-
-                                  {Array.isArray(item.units) && item.units.length > 0 && (
-                                    <div className="meta-point units-point">
-                                      <Users className="w-3.5 h-3.5 text-slate-600 inline mr-1" />
-                                      <span className="units-label">Units:</span>
-                                      <span className="units-list">
-                                        {isMonthly && item.units.length === 7
-                                          ? "All Units (1–7)"
-                                          : item.units.join(" · ")}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Bottom Interaction Trigger */}
-                                <div className="card-bottom-action">
-                                  <span className="action-label">
-                                    {isMonthly ? "View Monthly Event Details" : "Explore Session Details"}
-                                  </span>
-                                  <ArrowRight className="w-3.5 h-3.5 action-arrow-icon" />
-                                </div>
-                              </article>
-                            );
-                          })}
+                        {/* Column 3: Subtle Action */}
+                        <div className="activity-row-action" aria-hidden="true">
+                          <span className="activity-explore-text">Explore</span>
+                          <ArrowRight className="w-4 h-4 activity-arrow-icon" />
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* ── Slide-In Detail Panel ───────────────────────────── */}
-              {selectedItem && (
-                <aside
-                  className="schedule-detail-drawer"
-                  role="dialog"
-                  aria-modal="true"
-                  aria-label="Activity details"
-                >
-                  <div className="drawer-header">
-                    <div className="drawer-header-left">
-                      <span className={`drawer-badge ${selectedItem.type === "monthly_event" ? "drawer-badge--monthly" : "drawer-badge--session"}`}>
-                        {getCategoryBadge(selectedItem)}
-                      </span>
-                      <span className="drawer-date-chip">
-                        <Calendar className="w-3 h-3 text-gold inline mr-1" />
-                        {selectedItem.date}
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      className="drawer-close-btn"
-                      onClick={() => setSelectedItem(null)}
-                      aria-label="Close activity details"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  <div className="drawer-body">
-                    <h3 className="drawer-title">{selectedItem.title}</h3>
-
-                    {selectedItem.parentEventTitle && selectedItem.type !== "monthly_event" && (
-                      <div className="drawer-parent-box">
-                        <span className="drawer-parent-label">Parent Event:</span>
-                        <h5 className="drawer-parent-title">{selectedItem.parentEventTitle}</h5>
-                      </div>
-                    )}
-
-                    {selectedItem.type === "monthly_event" && (
-                      <div className="drawer-monthly-note">
-                        <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                        <div>
-                          <strong>Monthly NSS Activity</strong>
-                          <p className="text-xs text-amber-800 mt-0.5">
-                            This is a scheduled all-unit NSS monthly activity. Individual sub-sessions are not required.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="drawer-spec-grid">
-                      <div className="spec-item">
-                        <span className="spec-label">
-                          <Clock className="w-3.5 h-3.5 text-slate-500 inline mr-1" />
-                          Time
-                        </span>
-                        <span className="spec-value">
-                          {selectedItem.startTime ? formatTimeDisplay(selectedItem.startTime) : "TBA"}
-                          {selectedItem.endTime ? ` – ${formatTimeDisplay(selectedItem.endTime)}` : ""}
-                        </span>
-                      </div>
-
-                      <div className="spec-item">
-                        <span className="spec-label">
-                          <MapPin className="w-3.5 h-3.5 text-red-500 inline mr-1" />
-                          Location / Venue
-                        </span>
-                        <span className="spec-value">{selectedItem.location || "NSS Campus"}</span>
-                      </div>
-                    </div>
-
-                    {/* Attending Units */}
-                    {Array.isArray(selectedItem.units) && selectedItem.units.length > 0 && (
-                      <div className="drawer-units-section">
-                        <span className="units-section-title">
-                          <Users className="w-3.5 h-3.5 text-slate-700 inline mr-1" />
-                          Attending Units
-                        </span>
-                        <div className="units-pill-container">
-                          {selectedItem.units.map((u) => (
-                            <span key={u} className="unit-number-tag">
-                              Unit {u}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Description */}
-                    {selectedItem.description && (
-                      <div className="drawer-description-section">
-                        <span className="description-section-title">Overview & Schedule Notes</span>
-                        <p className="description-text">{selectedItem.description}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="drawer-footer">
-                    <button
-                      type="button"
-                      className="drawer-dismiss-btn"
-                      onClick={() => setSelectedItem(null)}
-                    >
-                      Close Details
-                    </button>
-                  </div>
-                </aside>
+                      </article>
+                    );
+                  })}
+                </div>
               )}
+            </section>
 
-            </div>
-          )}
+            {/* 5. Minimalist Historical Activity Archive */}
+            {pastArchiveItems.length > 0 && (
+              <ActivityArchive
+                archiveItems={pastArchiveItems}
+                onSelectSession={setSelectedItem}
+              />
+            )}
+          </>
+        )}
 
-        </div>
-      </section>
+      </main>
 
+      {/* Modal: Full Specifications & Calendar Integration */}
+      {selectedItem && (
+        <SessionDetailModal
+          session={selectedItem}
+          onClose={() => setSelectedItem(null)}
+        />
+      )}
+
+      {/* Standard Footer */}
       <Footer />
     </div>
   );

@@ -1,0 +1,498 @@
+/* ================================================================
+   EDITORIAL SESSION DETAIL PAGE STYLESHEET
+   Clean, institutional, typography-first university publication styling.
+   ================================================================ */
+
+.nss-session-detail-page {
+  background-color: #FAF8F5;
+  color: #0F172A;
+  min-height: 100vh;
+}
+
+.session-container {
+  max-width: 1050px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ── 1. Breadcrumb Bar ───────────────────────────────────────── */
+.session-breadcrumbs {
+  background-color: #FFFFFF;
+  border-bottom: 1px solid #EAE6DF;
+  padding: 14px 0;
+}
+
+.session-breadcrumb-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748B;
+  flex-wrap: wrap;
+}
+
+.breadcrumb-nav-item {
+  color: #64748B;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.breadcrumb-nav-item:hover {
+  color: #D94B4B;
+}
+
+.breadcrumb-caret {
+  color: #CBD5E1;
+}
+
+.breadcrumb-nav-active {
+  color: #0F172A;
+  font-weight: 600;
+}
+
+/* ── 2. Session Hero ─────────────────────────────────────────── */
+.session-hero {
+  padding: 44px 0 36px;
+  border-bottom: 1px solid #EBE7DF;
+  background-color: #FAF8F5;
+}
+
+.session-hero-kicker-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.parent-event-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #D94B4B;
+  background-color: #FEF2F2;
+  border: 1px solid rgba(217, 75, 75, 0.2);
+  padding: 4px 12px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.parent-event-badge:hover {
+  background-color: #FEE2E2;
+}
+
+.badge-dash {
+  width: 12px;
+  height: 2px;
+  background-color: #D94B4B;
+}
+
+.session-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.session-share-btn:hover {
+  background: #F8FAFC;
+  color: #0F172A;
+  border-color: #CBD5E1;
+}
+
+.session-hero-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(34px, 5vw, 56px);
+  font-weight: 800;
+  line-height: 1.1;
+  color: #0F172A;
+  letter-spacing: -0.02em;
+  margin-bottom: 18px;
+}
+
+.session-hero-meta-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: #334155;
+  margin-bottom: 32px;
+}
+
+.session-meta-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.session-meta-sep {
+  color: #CBD5E1;
+}
+
+.session-cover-wrap {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 14px 32px -8px rgba(15, 23, 42, 0.12);
+  background-color: #0F172A;
+  position: relative;
+}
+
+.session-cover-img {
+  width: 100%;
+  height: clamp(260px, 40vw, 440px);
+  object-fit: cover;
+  object-position: center 25%;
+  display: block;
+}
+
+.session-cover-badge {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  background-color: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(4px);
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* ── 3. Structured Specifications Grid ───────────────────────── */
+.session-specs-section {
+  padding: 28px 0;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid #EBE7DF;
+}
+
+.session-specs-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr) 1.5fr;
+  gap: 16px;
+}
+
+.spec-item-box {
+  padding: 16px;
+  background-color: #FAF8F5;
+  border: 1px solid #EAE6DF;
+  border-radius: 6px;
+}
+
+.spec-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #64748B;
+  margin-bottom: 6px;
+}
+
+.spec-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0F172A;
+  line-height: 1.3;
+  margin: 0 0 4px 0;
+}
+
+.spec-sub {
+  font-size: 11px;
+  color: #94A3B8;
+  font-weight: 500;
+}
+
+/* ── 4. About the Session Section ────────────────────────────── */
+.session-about-section {
+  padding: 56px 0;
+  border-bottom: 1px solid #EBE7DF;
+}
+
+.session-about-layout {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 48px;
+  align-items: start;
+}
+
+.session-section-heading {
+  font-size: clamp(26px, 3.2vw, 34px);
+  font-weight: 700;
+  color: #0F172A;
+  letter-spacing: -0.015em;
+  margin-bottom: 20px;
+}
+
+.session-prose-body p {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #334155;
+  margin-bottom: 16px;
+}
+
+.session-outcomes-card {
+  background-color: #FFFFFF;
+  border: 1px solid #EAE6DF;
+  border-radius: 8px;
+  padding: 26px 22px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+}
+
+.outcomes-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #EAE6DF;
+}
+
+.outcomes-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+}
+
+.outcomes-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.outcome-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #334155;
+}
+
+/* ── 5. Moments from the Session (Gallery) ───────────────────── */
+.session-gallery-section {
+  padding: 56px 0;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid #EBE7DF;
+}
+
+.gallery-header-block {
+  margin-bottom: 28px;
+}
+
+.gallery-main-title {
+  font-size: clamp(26px, 3.2vw, 34px);
+  font-weight: 700;
+  color: #0F172A;
+  margin-bottom: 6px;
+}
+
+.gallery-main-subtitle {
+  font-size: 14px;
+  color: #64748B;
+}
+
+.session-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.session-photo-card {
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  height: 250px;
+  cursor: pointer;
+  background-color: #0F172A;
+}
+
+.session-photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+  display: block;
+}
+
+.session-photo-card:hover .session-photo-img {
+  transform: scale(1.04);
+}
+
+.session-photo-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(11, 19, 43, 0.85) 0%, transparent 60%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 16px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.session-photo-card:hover .session-photo-overlay {
+  opacity: 1;
+}
+
+.photo-caption-text {
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 500;
+  margin: 0;
+  max-width: 80%;
+}
+
+.photo-zoom-pill {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── 6. Contextual Carousel Navigation ───────────────────────── */
+.session-carousel-nav-section {
+  padding: 44px 0 64px;
+}
+
+.session-nav-card {
+  background-color: #FFFFFF;
+  border: 1px solid #EAE6DF;
+  border-radius: 8px;
+  padding: 20px 24px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+.session-nav-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.session-direction-link {
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: transform 0.15s ease;
+}
+
+.session-direction-link:hover {
+  transform: translateY(-2px);
+}
+
+.direction-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #D94B4B;
+  text-transform: uppercase;
+}
+
+.direction-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0F172A;
+  line-height: 1.3;
+}
+
+.direction-disabled {
+  opacity: 0.4;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hub-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #0F172A;
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.hub-back-btn:hover {
+  background-color: #D94B4B;
+}
+
+/* ── Responsive Rules ────────────────────────────────────────── */
+@media (max-width: 840px) {
+  .session-specs-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .spec-item-box--wide {
+    grid-column: span 2;
+  }
+
+  .session-about-layout {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .session-nav-card {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .session-nav-col.next-col,
+  .direction-disabled.text-right {
+    text-align: left;
+  }
+
+  .direction-label.justify-end {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .session-photos-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .session-photo-card {
+    height: 200px;
+  }
+}
