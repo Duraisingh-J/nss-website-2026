@@ -248,6 +248,7 @@ export async function getPublicEventDetail(eventId) {
           )
         `)
         .eq("event_id", eventId)
+        .eq("is_published", true)
         .order("session_date", { ascending: true })
         .order("start_time", { ascending: true }),
     ]);
