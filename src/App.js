@@ -28,7 +28,7 @@ function AppNavbar() {
 
 export default function App() {
   const basename = process.env.PUBLIC_URL
-    ? new URL(process.env.PUBLIC_URL, window.location.origin).pathname.replace(/\\/$/, "")
+    ? new URL(process.env.PUBLIC_URL, window.location.origin).pathname.replace(/\/$/, "")
     : "";
 
   return (
