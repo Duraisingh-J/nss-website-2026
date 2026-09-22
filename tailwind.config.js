@@ -29,6 +29,20 @@ module.exports = {
           DEFAULT: "#0F172A",
           surface: "#1E293B",
         },
+        "admin-red": {
+          DEFAULT: "#dc2626",
+          500: "#ef4444",
+          600: "#dc2626",
+          700: "#b91c1c",
+          800: "#991b1b",
+        },
+        "admin-navy": {
+          DEFAULT: "#090e17",
+          950: "#090e17",
+          900: "#0f172a",
+          800: "#1e293b",
+          700: "#334155",
+        },
       },
       fontFamily: {
         sans: ["DM Sans", "sans-serif"],

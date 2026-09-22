@@ -4,17 +4,39 @@ import { ArrowRight, Users, Leaf, Heart } from "lucide-react";
 import { gsap, isReducedMotion } from "../../lib/animations";
 import { ImagesSlider } from "../ui/images-slider";
 import { getHeroMedia, DEFAULT_HERO_MEDIA } from "../../services/mediaService";
+import { getPublicHeroSlides } from "../../services/heroSlideService";
 
 export default function Hero() {
   const navigate = useNavigate();
   const heroRef = useRef(null);
   const [heroImages, setHeroImages] = useState(DEFAULT_HERO_MEDIA);
+  const [dynamicSlides, setDynamicSlides] = useState([]);
+  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
 
-  // Dynamically load hero images from Media System / Supabase
+  // Dynamically load hero slides & images from Supabase
   useEffect(() => {
     let isMounted = true;
     async function loadMedia() {
       try {
+        // 1. First attempt to load published hero slides from database
+        const publicSlides = await getPublicHeroSlides();
+        if (isMounted && Array.isArray(publicSlides) && publicSlides.length > 0) {
+          setDynamicSlides(publicSlides);
+          const images = publicSlides
+            .filter((s) => Boolean(s.imageUrl))
+            .map((s, idx) => ({
+              id: s.id,
+              url: s.imageUrl,
+              altText: s.title || `NSS Hero Slide ${idx + 1}`,
+            }));
+
+          if (images.length > 0) {
+            setHeroImages(images);
+            return;
+          }
+        }
+
+        // 2. Fallback to general hero media / default assets
         const media = await getHeroMedia();
         if (isMounted && Array.isArray(media) && media.length > 0) {
           setHeroImages(media);
@@ -89,6 +111,19 @@ export default function Hero() {
     }
   };
 
+  const currentSlide =
+    dynamicSlides && dynamicSlides.length > 0
+      ? dynamicSlides[activeSlideIndex % dynamicSlides.length]
+      : null;
+
+  const currentTitle = currentSlide?.title || "NSS MIT";
+  const currentSubtitle = currentSlide?.subtitle || "Serving Society";
+  const currentDescription =
+    currentSlide?.description ||
+    "The National Service Scheme at MIT Campus, Anna University empowers students to contribute to society through community service, awareness programmes and nation-building initiatives.";
+  const currentButtonText = currentSlide?.button_text || "Explore Our Work";
+  const currentButtonUrl = currentSlide?.button_url || "/events";
+
   return (
     <section
       ref={heroRef}
@@ -101,6 +136,7 @@ export default function Hero() {
         autoplay={true}
         interval={7000}
         direction="fade"
+        onIndexChange={(idx) => setActiveSlideIndex(idx)}
         className="min-h-[90vh] lg:min-h-[92vh] pt-28 pb-20 md:pt-32 md:pb-24 lg:pt-36 lg:pb-28"
       >
         {/* ── Stable Hero Content Grid ─────────────────────────── */}
@@ -118,26 +154,32 @@ export default function Hero() {
               {/* Main Headline */}
               <h1 className="tracking-tight leading-[1.05] mb-6 drop-shadow-[0_4px_16px_rgba(0,0,0,0.8)]">
                 <span className="hero-title-line font-display block text-5xl sm:text-6xl lg:text-7xl font-black text-white">
-                  NSS MIT
+                  {currentTitle}
                 </span>
                 <span className="hero-title-line font-display block text-5xl sm:text-6xl lg:text-7xl font-bold text-[#E0533C] mt-1 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
-                  Serving Society
+                  {currentSubtitle}
                 </span>
               </h1>
 
               {/* Supporting Description */}
               <p className="hero-desc font-sans text-slate-100 text-base sm:text-lg leading-relaxed max-w-xl font-normal mb-8 drop-shadow-md">
-                The National Service Scheme at MIT Campus, Anna University empowers students to contribute to society through community service, awareness programmes and nation-building initiatives.
+                {currentDescription}
               </p>
 
               {/* Action Buttons */}
               <div className="flex flex-wrap items-center gap-4 mb-12 sm:mb-14">
                 <button
                   type="button"
-                  onClick={() => navigate("/events")}
+                  onClick={() => {
+                    if (currentButtonUrl.startsWith("http")) {
+                      window.open(currentButtonUrl, "_blank", "noopener,noreferrer");
+                    } else {
+                      navigate(currentButtonUrl);
+                    }
+                  }}
                   className="hero-btn inline-flex items-center justify-center gap-2.5 bg-[#BC3A26] hover:bg-[#A5311F] text-white font-sans font-semibold text-sm sm:text-base px-6 py-3.5 rounded-lg transition-all shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
-                  <span>Explore Our Work</span>
+                  <span>{currentButtonText}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
 
