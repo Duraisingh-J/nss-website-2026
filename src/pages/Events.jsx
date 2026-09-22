@@ -1,1066 +1,332 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Footer from "../components/Footer";
 import LightboxModal from "../components/ui/LightboxModal";
 import { EVENT_TYPE_DEFINITIONS } from "../data/mockEventsData";
 import { getPublicEvents, getPublicEventDetail } from "../services/eventService";
-import { getEventStatus, getSessionStatus, getMonthStatus, STATUS } from "../utils/timeStatusUtils";
+import { getEventStatus, getSessionStatus, STATUS } from "../utils/timeStatusUtils";
 import useLiveTime from "../hooks/useLiveTime";
-import {
-  Calendar,
-  Clock,
-  MapPin,
-  Users,
-  Layers,
-  ArrowRight,
-  ArrowLeft,
-  CheckCircle2,
-  Image as ImageIcon,
-  ChevronDown,
-  ChevronUp
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarDays, ChevronRight, Clock3, Images, MapPin, Users } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import "./Events.css";
 
-const MONTHS_LIST = [
-  { key: "01", short: "JAN", name: "January", index: "01" },
-  { key: "02", short: "FEB", name: "February", index: "02" },
-  { key: "03", short: "MAR", name: "March", index: "03" },
-  { key: "04", short: "APR", name: "April", index: "04" },
-  { key: "05", short: "MAY", name: "May", index: "05" },
-  { key: "06", short: "JUN", name: "June", index: "06" },
-  { key: "07", short: "JUL", name: "July", index: "07" },
-  { key: "08", short: "AUG", name: "August", index: "08" },
-  { key: "09", short: "SEP", name: "September", index: "09" },
-  { key: "10", short: "OCT", name: "October", index: "10" },
-  { key: "11", short: "NOV", name: "November", index: "11" },
-  { key: "12", short: "DEC", name: "December", index: "12" },
+const MONTHS = [
+  ["01","JAN","January"],["02","FEB","February"],["03","MAR","March"],["04","APR","April"],
+  ["05","MAY","May"],["06","JUN","June"],["07","JUL","July"],["08","AUG","August"],
+  ["09","SEP","September"],["10","OCT","October"],["11","NOV","November"],["12","DEC","December"],
 ];
 
+const typeMatches = (event, type) => {
+  const value = String(event?.event_type || "").toLowerCase();
+  if (type === "camp") return value === "camp";
+  if (type === "outreach") return value === "outreach" || value === "drive";
+  if (type === "orphanage") return value === "orphanage" || value === "orphanage visit" || value === "visit";
+  if (type === "monthly") return value === "monthly" || value === "monthly event" || value === "event" || value === "other";
+  return value === type;
+};
+
+const formatDate = (value) => {
+  if (!value) return "Date to be announced";
+  const parts = String(value).split("T")[0].split("-");
+  if (parts.length !== 3) return value;
+  return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])).toLocaleDateString("en-IN", {
+    day: "2-digit", month: "short", year: "numeric"
+  });
+};
+
+const formatTime = (value) => {
+  if (!value) return "";
+  const [h,m] = String(value).split(":").map(Number);
+  if (Number.isNaN(h)) return value;
+  const d = new Date(2020,0,1,h,m || 0);
+  return d.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
+};
+
+const statusLabel = (status) => status === STATUS.ONGOING ? "Live now" : status === STATUS.COMPLETED ? "Completed" : "Upcoming";
+
+function StatusPill({ status, dark = false }) {
+  return <span className={`events-status events-status--${status.toLowerCase()} ${dark ? "events-status--dark" : ""}`}>
+    {status === STATUS.ONGOING && <i className="events-live-dot" />}
+    {statusLabel(status)}
+  </span>;
+}
+
+function TypePanel({ type, count, active, onClick }) {
+  return (
+    <motion.button
+      type="button"
+      className={`event-type-panel ${active ? "event-type-panel--active" : ""}`}
+      onClick={onClick}
+      layout
+      whileHover={{ y: -4 }}
+      transition={{ type: "spring", stiffness: 300, damping: 28 }}
+    >
+      <img src={type.coverImage} alt="" className="event-type-panel__image" />
+      <div className="event-type-panel__veil" />
+      <div className="event-type-panel__index">0{EVENT_TYPE_DEFINITIONS.indexOf(type) + 1}</div>
+      <div className="event-type-panel__body">
+        <div className="event-type-panel__eyebrow">{type.isMonthlyType ? "CHRONOLOGICAL ARCHIVE" : "EVENT COLLECTION"}</div>
+        <h2>{type.title}</h2>
+        <p>{type.excerpt || type.shortDesc}</p>
+        <div className="event-type-panel__footer">
+          <span>{count} {count === 1 ? "event" : "events"}</span>
+          <span className="event-type-panel__arrow"><ArrowRight size={17} /></span>
+        </div>
+      </div>
+    </motion.button>
+  );
+}
+
+function EventRow({ event, onOpen, now }) {
+  const status = getEventStatus(event, now);
+  const sessions = Array.isArray(event.sessions) ? event.sessions : [];
+  const firstImage = event.coverImage || event.cover_image_url;
+  return (
+    <motion.button type="button" className="event-row" onClick={() => onOpen(event)} layout whileHover={{ y: -2 }}>
+      <div className="event-row__date">
+        <span>{formatDate(event.start_date).split(" ")[0]}</span>
+        <small>{formatDate(event.start_date).split(" ").slice(1).join(" ")}</small>
+      </div>
+      <div className="event-row__image-wrap">
+        {firstImage ? <img src={firstImage} alt="" className="event-row__image" loading="lazy" /> : <div className="event-row__image event-row__image--empty" />}
+      </div>
+      <div className="event-row__content">
+        <div className="event-row__meta"><StatusPill status={status} /><span>{sessions.length} {sessions.length === 1 ? "session" : "sessions"}</span></div>
+        <h3>{event.title}</h3>
+        <p>{event.shortDesc || event.description || "NSS service activity."}</p>
+      </div>
+      <span className="event-row__cta"><ChevronRight size={20} /></span>
+    </motion.button>
+  );
+}
+
+function SessionTimeline({ sessions, now }) {
+  if (!sessions?.length) return <div className="events-empty-sessions">Sessions for this event will appear here once published.</div>;
+  return (
+    <div className="session-timeline">
+      {sessions.map((session, index) => {
+        const status = getSessionStatus(session, now);
+        return (
+          <div className={`session-line ${status === STATUS.ONGOING ? "session-line--live" : ""}`} key={session.id || index}>
+            <div className="session-line__rail"><span>{String(index + 1).padStart(2,"0")}</span><i /></div>
+            <div className="session-line__body">
+              <div className="session-line__top"><span>{formatDate(session.session_date)}</span><StatusPill status={status} /></div>
+              <h3>{session.title}</h3>
+              {session.description && <p>{session.description}</p>}
+              <div className="session-line__facts">
+                <span><Clock3 size={14} />{formatTime(session.start_time)}{session.end_time ? ` — ${formatTime(session.end_time)}` : ""}</span>
+                {session.location && <span><MapPin size={14} />{session.location}</span>}
+                {session.units?.length > 0 && <span><Users size={14} />Units {session.units.join(" · ")}</span>}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function Events() {
-  // Navigation State
-  // "types" | "collection" | "months" | "month-events" | "event-detail"
-  const [activeView, setActiveView] = useState("types");
+  const [events, setEvents] = useState([]);
+  const [view, setView] = useState("types");
   const [selectedType, setSelectedType] = useState(null);
-  const [selectedMonthKey, setSelectedMonthKey] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [selectedYear, setSelectedYear] = useState("2026");
+  const [loading, setLoading] = useState(true);
+  const [lightbox, setLightbox] = useState({ open:false, images:[], index:0 });
+  const { now } = useLiveTime(events);
 
-  // Expanded child session state within Event Detail
-  const [expandedSessionId, setExpandedSessionId] = useState(null);
-
-  // Lightbox viewer state
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxIndex, setLightboxIndex] = useState(0);
-  const [lightboxImages, setLightboxImages] = useState([]);
-
-  function openLightbox(images, idx = 0) {
-    if (!images || images.length === 0) return;
-    setLightboxImages(images);
-    setLightboxIndex(idx);
-    setLightboxOpen(true);
-  }
-
-  const [dbEvents, setDbEvents] = useState([]);
-
-  // Live real-time clock source with boundary-aware transition scheduling
-  const { now } = useLiveTime(selectedEvent ? [selectedEvent, ...dbEvents] : dbEvents);
-
-  // Dynamic Supabase data hook
   useEffect(() => {
-    async function loadDynamic() {
-      try {
-        const events = await getPublicEvents();
-        setDbEvents(events || []);
-      } catch (err) {
-        console.warn("Could not load events:", err);
-      }
-    }
-    loadDynamic();
+    let mounted = true;
+    getPublicEvents().then((data) => mounted && setEvents(data || [])).catch((error) => console.warn("Could not load events:", error)).finally(() => mounted && setLoading(false));
+    return () => { mounted = false; };
   }, []);
 
-  // Scroll smoothly to top on view changes
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [activeView, selectedType, selectedMonthKey, selectedEvent]);
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [view, selectedType, selectedMonth, selectedEvent]);
 
-  // Available academic years from database events
-  const availableYears = useMemo(() => {
-    const years = new Set(["2026"]);
-    dbEvents.forEach((e) => {
-      const d = e.start_date || e.startDate;
-      if (d && d.length >= 4) {
-        years.add(d.slice(0, 4));
-      }
+  const counts = useMemo(() => Object.fromEntries(EVENT_TYPE_DEFINITIONS.map(type => [type.id, events.filter(event => typeMatches(event, type.id)).length])), [events]);
+  const selectedEvents = useMemo(() => selectedType ? events.filter(event => typeMatches(event, selectedType.id)) : [], [events, selectedType]);
+
+  const months = useMemo(() => {
+    if (!selectedType?.isMonthlyType) return [];
+    const grouped = {};
+    events.filter(event => typeMatches(event, "monthly")).forEach(event => {
+      const key = String(event.start_date || "").slice(0,7);
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(event);
     });
-    return Array.from(years).sort((a, b) => b.localeCompare(a));
-  }, [dbEvents]);
+    return grouped;
+  }, [events, selectedType]);
 
-  // Map of events grouped by monthKey (e.g. "2026-09" -> [Event, Event...])
-  const monthlyEventsMap = useMemo(() => {
-    const map = {};
-    dbEvents.forEach((e) => {
-      const type = (e.event_type || e.typeId || "").toLowerCase();
-      if (type === "monthly" || type === "monthly event") {
-        const d = e.start_date || e.startDate;
-        if (d && d.length >= 7) {
-          const mKey = d.slice(0, 7);
-          if (!map[mKey]) map[mKey] = [];
-          map[mKey].push({
-            ...e,
-            dateDisplay: e.dateDisplay || e.start_date,
-            shortDesc: e.shortDesc || e.description || "",
-            coverImage: e.coverImage || e.cover_image_url,
-          });
-        }
-      }
-    });
-    return map;
-  }, [dbEvents]);
+  const monthEvents = selectedMonth ? (months[selectedMonth] || []) : [];
 
-  // Active month's events
-  const activeMonthEvents = useMemo(() => {
-    if (!selectedMonthKey) return [];
-    return monthlyEventsMap[selectedMonthKey] || [];
-  }, [selectedMonthKey, monthlyEventsMap]);
-
-  // Active month display metadata
-  const activeMonthInfo = useMemo(() => {
-    if (!selectedMonthKey) return null;
-    const parts = selectedMonthKey.split("-");
-    const year = parts[0];
-    const monthNum = parts[1];
-    const foundMonth = MONTHS_LIST.find((m) => m.key === monthNum);
-    return {
-      year,
-      monthNum,
-      short: foundMonth ? foundMonth.short : "SEP",
-      fullName: foundMonth ? `${foundMonth.name} ${year}` : selectedMonthKey,
-      eventCount: activeMonthEvents.length
-    };
-  }, [selectedMonthKey, activeMonthEvents]);
-
-  // Events for selected non-monthly category
-  const collectionEvents = useMemo(() => {
-    if (!selectedType || selectedType.id === "monthly") return [];
-    return dbEvents.filter((e) => {
-      const t = (e.event_type || e.typeId || "").toLowerCase();
-      const target = selectedType.id.toLowerCase();
-      if (target === "camp") return t === "camp";
-      if (target === "outreach") return t === "outreach" || t === "drive";
-      if (target === "orphanage" || target === "visit") return t.includes("orphanage") || t.includes("visit");
-      if (target === "monthly") return t === "monthly" || t === "monthly event";
-      return t === target;
-    }).map((ev) => ({
-      ...ev,
-      dateDisplay: ev.dateDisplay || ev.start_date,
-      shortDesc: ev.shortDesc || ev.description || "",
-      coverImage: ev.coverImage || ev.cover_image_url,
-    }));
-  }, [selectedType, dbEvents]);
-
-  // ── Handlers ────────────────────────────────────────────────
-  function handleSelectType(typeDef) {
-    setSelectedType(typeDef);
-    setSelectedEvent(null);
-    if (typeDef.id === "monthly") {
-      setActiveView("months");
-    } else {
-      setActiveView("collection");
-    }
-  }
-
-  function handleSelectMonth(monthKey) {
-    setSelectedMonthKey(monthKey);
-    setSelectedEvent(null);
-    setActiveView("month-events");
-  }
-
-  async function handleOpenEvent(event) {
+  const openEvent = async (event) => {
     setSelectedEvent(event);
-    setExpandedSessionId(null);
-    setActiveView("event-detail");
-
-    if (event.id) {
-      try {
-        const fullDetail = await getPublicEventDetail(event.id);
-        if (fullDetail) {
-          setSelectedEvent((prev) => ({
-            ...prev,
-            ...fullDetail,
-            gallery: fullDetail.gallery?.length > 0 ? fullDetail.gallery : prev?.gallery || [],
-            sessions: fullDetail.sessions?.length > 0 ? fullDetail.sessions : prev?.sessions || [],
-          }));
-        }
-      } catch (err) {
-        console.warn("Using current event data:", err);
-      }
+    setView("event");
+    if (!event?.id) return;
+    try {
+      const detail = await getPublicEventDetail(event.id);
+      if (detail) setSelectedEvent(prev => ({ ...prev, ...detail, sessions: detail.sessions || prev.sessions || [] }));
+    } catch (error) {
+      console.warn("Could not load event detail:", error);
     }
-  }
+  };
 
-  function handleBack() {
-    if (activeView === "event-detail") {
-      if (selectedMonthKey) {
-        setActiveView("month-events");
-      } else if (selectedType && selectedType.id !== "monthly") {
-        setActiveView("collection");
-      } else {
-        setActiveView("types");
-      }
+  const chooseType = (type) => {
+    setSelectedType(type);
+    setSelectedMonth(null);
+    setSelectedEvent(null);
+    setView(type.isMonthlyType ? "months" : "collection");
+  };
+
+  const back = () => {
+    if (view === "event") {
       setSelectedEvent(null);
-    } else if (activeView === "month-events") {
-      setActiveView("months");
-      setSelectedMonthKey(null);
-    } else if (activeView === "months" || activeView === "collection") {
-      setActiveView("types");
+      setView(selectedType?.isMonthlyType && selectedMonth ? "month-events" : selectedType?.isMonthlyType ? "months" : "collection");
+    } else if (view === "month-events") {
+      setSelectedMonth(null);
+      setView("months");
+    } else {
       setSelectedType(null);
-      setSelectedMonthKey(null);
+      setSelectedMonth(null);
+      setView("types");
     }
-  }
+  };
 
-  function toggleSessionExpand(sessionId) {
-    setExpandedSessionId((prev) => (prev === sessionId ? null : sessionId));
-  }
+  const openGallery = (images) => images?.length && setLightbox({ open:true, images, index:0 });
 
   return (
-    <div className="page-wrapper nss-events-page">
-      {/* ── 1. Compact Hero (Discovery Level Only) ─────────────── */}
-      {activeView === "types" && (
-        <header className="events-compact-hero" aria-label="NSS Events Directory">
-          <div className="events-center-container">
-            <div className="hero-kicker">
-              <span className="hero-kicker-dash" />
-              <span>EVENTS DIRECTORY</span>
+    <div className="events-page">
+      <AnimatePresence mode="wait">
+        {view === "types" && (
+          <motion.header className="events-hero" initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-10 }}>
+            <div className="events-shell">
+              <div className="events-hero__eyebrow"><span /> NSS MIT / EVENTS</div>
+              <h1>Service, seen<br /><em>through action.</em></h1>
+              <p>Every NSS activity becomes part of a larger story — organised by what we do, when we do it, and the sessions that bring each event to life.</p>
+              <div className="events-hero__rule"><span>01</span><i /><span>EXPLORE THE ARCHIVE</span></div>
             </div>
-            <h1 className="hero-compact-title font-editorial">
-              Stories of Service, Across Every Kind of Activity
-            </h1>
-            <p className="hero-compact-desc">
-              Explore NSS residential camps, monthly split-up assemblies, community outreach,
-              and student-led civic initiatives across MIT Campus and rural communities.
-            </p>
-          </div>
-        </header>
-      )}
+          </motion.header>
+        )}
+      </AnimatePresence>
 
-      {/* ── 2. Focused Section Header (When Drilled In) ───────── */}
-      {activeView !== "types" && (
-        <header className="events-focused-header" aria-label="Events Navigation">
-          <div className="events-center-container">
-            {/* Contextual Step-Back Button */}
-            <button
-              type="button"
-              className="events-back-nav-btn"
-              onClick={handleBack}
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>
-                {activeView === "event-detail"
-                  ? selectedMonthKey
-                    ? `Back to ${activeMonthInfo?.fullName || "Month"} Events`
-                    : `Back to ${selectedType?.title || "Collection"}`
-                  : activeView === "month-events"
-                  ? "Back to All Months"
-                  : "All Event Types"}
-              </span>
-            </button>
-
-            {/* Header Identity */}
-            <div className="focused-header-identity">
-              {activeView === "months" && (
-                <>
-                  <span className="focused-kicker">CHRONOLOGICAL CALENDAR</span>
-                  <h2 className="focused-title font-editorial">Monthly Events</h2>
-                  <p className="focused-desc">
-                    Explore NSS events organized chronologically across the academic calendar.
-                  </p>
-                </>
-              )}
-
-              {activeView === "month-events" && (
-                <>
-                  <span className="focused-kicker">MONTHLY EVENTS</span>
-                  <h2 className="focused-title font-editorial">
-                    {activeMonthInfo?.fullName}
-                  </h2>
-                  <p className="focused-desc">
-                    {activeMonthEvents.length}{" "}
-                    {activeMonthEvents.length === 1 ? "Event" : "Events"} conducted in{" "}
-                    {activeMonthInfo?.fullName}. Select an event to explore its details and individual sessions.
-                  </p>
-                </>
-              )}
-
-              {activeView === "collection" && selectedType && (
-                <>
-                  <span className="focused-kicker">EVENT TYPE</span>
-                  <h2 className="focused-title font-editorial">{selectedType.title}</h2>
-                  <p className="focused-desc">{selectedType.shortDesc}</p>
-                </>
-              )}
-
-              {activeView === "event-detail" && selectedEvent && (
-                <>
-                  <span className="focused-kicker">
-                    {selectedEvent.categoryLabel?.toUpperCase() || "EVENT DETAILS"}
-                  </span>
-                  <h2 className="focused-title font-editorial">{selectedEvent.title}</h2>
-                  {selectedEvent.tagline && (
-                    <p className="focused-tagline font-editorial">{selectedEvent.tagline}</p>
-                  )}
-                </>
-              )}
+      <main className="events-main">
+        <div className="events-shell">
+          {view !== "types" && (
+            <div className="events-context">
+              <button type="button" className="events-back" onClick={back}><ArrowLeft size={16} /> All Event Types</button>
+              <div>
+                <span>{view === "event" ? "EVENT" : selectedType?.isMonthlyType ? "MONTHLY ARCHIVE" : "EVENT COLLECTION"}</span>
+                <h1>{view === "event" ? selectedEvent?.title : view === "month-events" ? formatMonthTitle(selectedMonth) : selectedType?.title}</h1>
+              </div>
             </div>
-          </div>
-        </header>
-      )}
+          )}
 
-      {/* ── 3. Main Stage Content Container ──────────────────── */}
-      <main className="events-stage-main">
-        <div className="events-center-container">
+          {view === "types" && (
+            <section className="event-types" aria-label="Event Types">
+              <div className="events-section-heading"><span>01 / COLLECTIONS</span><h2>Choose how you want to explore.</h2><p>Four ways to read the NSS archive. Select a collection to move from the overview into its events.</p></div>
+              <div className="event-types-grid">
+                {EVENT_TYPE_DEFINITIONS.map(type => <TypePanel key={type.id} type={type} count={counts[type.id] || 0} onClick={() => chooseType(type)} />)}
+              </div>
+            </section>
+          )}
 
-          {/* ======================================================= */}
-          {/* LEVEL 1: EVENT TYPES (Public Discovery Level)          */}
-          {/* ======================================================= */}
-          {activeView === "types" && (
-            <section className="event-types-section" aria-label="Event Collections">
-              <div className="collections-editorial-grid">
-                {EVENT_TYPE_DEFINITIONS.map((typeDef) => {
-                  const eventCount = dbEvents.filter((e) => {
-                    const t = (e.event_type || e.typeId || "").toLowerCase();
-                    const target = typeDef.id.toLowerCase();
-                    if (target === "camp") return t === "camp";
-                    if (target === "outreach") return t === "outreach" || t === "drive";
-                    if (target === "orphanage" || target === "visit") return t.includes("orphanage") || t.includes("visit");
-                    if (target === "monthly") return t === "monthly" || t === "monthly event";
-                    return t === target;
-                  }).length;
-                  const countText = `${eventCount} ${eventCount === 1 ? "EVENT" : "EVENTS"}`;
+          {view === "collection" && (
+            <section className="events-collection">
+              <div className="events-collection__intro"><div><span>COLLECTION / {String(selectedType?.id || "").toUpperCase()}</span><h2>{selectedType?.tagline || selectedType?.shortDesc}</h2></div><strong>{selectedEvents.length}<small>EVENTS</small></strong></div>
+              <div className="events-list">
+                {loading ? <LoadingRows /> : selectedEvents.length ? selectedEvents.map(event => <EventRow key={event.id} event={event} onOpen={openEvent} now={now} />) : <EmptyState text="No published events in this collection yet." />}
+              </div>
+            </section>
+          )}
 
-                  return (
-                    <article
-                      key={typeDef.id}
-                      className="type-editorial-card"
-                      onClick={() => handleSelectType(typeDef)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          handleSelectType(typeDef);
-                        }
-                      }}
-                      aria-label={`${typeDef.title}, ${countText}. Click to explore collection.`}
-                    >
-                      {/* Animated SVG Border stroke on hover */}
-                      <svg
-                        className="type-card-border-svg"
-                        aria-hidden="true"
-                        preserveAspectRatio="none"
-                      >
-                        <rect
-                          className="type-card-border-rect"
-                          rx="8"
-                          ry="8"
-                          pathLength="100"
-                        />
-                      </svg>
-
-                      {/* Natural Photographic Cover Image */}
-                      <div className="type-card-image-wrap">
-                        <img
-                          src={typeDef.coverImage}
-                          alt=""
-                          className="type-card-img"
-                          loading="lazy"
-                        />
-                        <div className="type-card-scrim" />
-                      </div>
-
-                      {/* Interactive Card Foreground Content */}
-                      <div className="type-card-content">
-                        {/* Top Meta: Kicker and Dynamic Count Badge */}
-                        <div className="type-card-header">
-                          <span className="type-card-kicker">
-                            {typeDef.id === "monthly" ? "CHRONOLOGICAL ARCHIVE" : "COLLECTION"}
-                          </span>
-                          <span className="type-card-count-badge">
-                            {countText}
-                          </span>
-                        </div>
-
-                        {/* Bottom Information: Title + Smooth Reveal Excerpt + Directional Arrow */}
-                        <div className="type-card-body">
-                          <h3 className="type-card-name font-editorial">
-                            {typeDef.title}
-                          </h3>
-
-                          <div className="type-card-reveal-area">
-                            <div className="type-card-reveal-inner">
-                              <p className="type-card-excerpt">
-                                {typeDef.excerpt || typeDef.shortDesc}
-                              </p>
-
-                              <div className="type-card-action">
-                                <span className="type-card-cta-text">
-                                  {typeDef.id === "monthly" ? "Explore Monthly Archive" : "Explore Collection"}
-                                </span>
-                                <ArrowRight className="type-card-arrow-icon" aria-hidden="true" />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </article>
-                  );
+          {view === "months" && (
+            <section className="months-view">
+              <div className="events-section-heading"><span>MONTHLY / CHRONOLOGY</span><h2>Find the month. Then the event.</h2><p>The month is a navigation layer — each event inside it still contains its own sessions.</p></div>
+              <div className="months-grid">
+                {MONTHS.map(([key,short,name]) => {
+                  const monthKey = `${new Date().getFullYear()}-${key}`;
+                  const list = months[monthKey] || [];
+                  return <button key={key} type="button" className={`month-tile ${list.length ? "month-tile--filled" : ""}`} onClick={() => list.length && (setSelectedMonth(monthKey), setView("month-events"))}>
+                    <span>{key}</span><b>{short}</b><small>{name}</small><em>{list.length ? `${list.length} ${list.length === 1 ? "event" : "events"}` : "No published events"}</em>
+                  </button>;
                 })}
               </div>
             </section>
           )}
 
-          {/* ======================================================= */}
-          {/* LEVEL 2B: MONTHLY EVENTS (12-Month Matrix)              */}
-          {/* ======================================================= */}
-          {activeView === "months" && (
-            <section className="months-timeline-section" aria-label="Months Timeline">
-              {/* Year Selector Bar */}
-              <div className="timeline-year-bar">
-                <span className="year-bar-label">ACADEMIC YEAR</span>
-                <div className="year-pills">
-                  {availableYears.map((yr) => (
-                    <button
-                      key={yr}
-                      type="button"
-                      className={`year-pill ${selectedYear === yr ? "year-pill--active" : ""}`}
-                      onClick={() => setSelectedYear(yr)}
-                    >
-                      {yr}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* 12-Month Grid */}
-              <div className="months-matrix-grid">
-                {MONTHS_LIST.map((month) => {
-                  const monthKey = `${selectedYear}-${month.key}`;
-                  const eventsInMonth = monthlyEventsMap[monthKey] || [];
-                  const hasEvents = eventsInMonth.length > 0;
-                  const monthStatus = getMonthStatus(eventsInMonth, now);
-                  const isCompleted = monthStatus === STATUS.COMPLETED;
-                  const isOngoing = monthStatus === STATUS.ONGOING;
-
-                  return (
-                    <div
-                      key={month.key}
-                      className={`month-matrix-card ${hasEvents ? "month--has-activities" : "month--empty"} ${isOngoing ? "month--active-current" : ""}`}
-                      onClick={() => hasEvents && handleSelectMonth(monthKey)}
-                      role={hasEvents ? "button" : "presentation"}
-                      tabIndex={hasEvents ? 0 : -1}
-                      onKeyDown={(e) => {
-                        if (hasEvents && (e.key === "Enter" || e.key === " ")) {
-                          e.preventDefault();
-                          handleSelectMonth(monthKey);
-                        }
-                      }}
-                      aria-label={`${month.name} ${selectedYear}: ${eventsInMonth.length} Events (${monthStatus})`}
-                    >
-                      <div className="month-card-header">
-                        <span className="month-short-name font-editorial">{month.short}</span>
-                        <span className="month-index-num">{month.index}</span>
-                      </div>
-
-                      <div className="month-card-footer">
-                        {hasEvents ? (
-                          <div className="month-activity-info">
-                            <span className={`month-status-dot ${isOngoing ? "dot--active dot--pulse" : isCompleted ? "dot--completed" : "dot--upcoming"}`} />
-                            <span className="month-count-text">
-                              {eventsInMonth.length} {eventsInMonth.length === 1 ? "Event" : "Events"}
-                              {isOngoing && <span className="month-live-label"> · LIVE</span>}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="month-no-activity">No events</span>
-                        )}
-                        {hasEvents && (
-                          <ArrowRight className="w-3.5 h-3.5 month-arrow-icon" />
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+          {view === "month-events" && (
+            <section className="events-collection">
+              <div className="events-collection__intro"><div><span>MONTH / {formatMonthTitle(selectedMonth)}</span><h2>Events recorded this month.</h2></div><strong>{monthEvents.length}<small>EVENTS</small></strong></div>
+              <div className="events-list">{monthEvents.length ? monthEvents.map(event => <EventRow key={event.id} event={event} onOpen={openEvent} now={now} />) : <EmptyState text="No published events for this month." />}</div>
             </section>
           )}
 
-          {/* ======================================================= */}
-          {/* LEVEL 2C: EVENTS IN SELECTED MONTH                      */}
-          {/* ======================================================= */}
-          {activeView === "month-events" && (
-            <section className="collection-events-section" aria-label={`Events in ${activeMonthInfo?.fullName}`}>
-              {activeMonthEvents.length === 0 ? (
-                <div className="events-empty-box">
-                  <p className="empty-title">No events recorded for this month</p>
-                  <button type="button" className="empty-back-btn" onClick={() => setActiveView("months")}>
-                    Return to Month Selector
-                  </button>
-                </div>
-              ) : (
-                <div className="collection-events-list">
-                  {activeMonthEvents.map((event) => {
-                    const sessionCount = Array.isArray(event.sessions) ? event.sessions.length : 1;
-                    const liveStatus = getEventStatus(event, now);
-                    const isCompleted = liveStatus === STATUS.COMPLETED;
-                    const isOngoing = liveStatus === STATUS.ONGOING;
-
-                    return (
-                      <article
-                        key={event.id}
-                        className="collection-event-card"
-                        onClick={() => handleOpenEvent(event)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            handleOpenEvent(event);
-                          }
-                        }}
-                        aria-label={`Explore event: ${event.title}`}
-                      >
-                        {/* Cover Image Column */}
-                        {event.coverImage && (
-                          <div className="event-card-media-wrap">
-                            <img
-                              src={event.coverImage}
-                              alt={event.title}
-                              className="event-card-img"
-                              loading="lazy"
-                            />
-                            <span className={`event-card-status-badge ${isOngoing ? "status-badge--ongoing" : isCompleted ? "status-badge--completed" : "status-badge--upcoming"}`}>
-                              {isOngoing && <span className="status-live-dot" />}
-                              <span>{liveStatus}</span>
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Event Content Column */}
-                        <div className="event-card-body-wrap">
-                          <div>
-                            <div className="event-card-kicker-row">
-                              <span className="event-card-kicker">
-                                {event.categoryLabel || "MONTHLY EVENT"}
-                              </span>
-                              <span className="event-card-sessions-pill">
-                                <Layers className="w-3.5 h-3.5" />
-                                <span>{sessionCount} {sessionCount === 1 ? "Session" : "Sessions"}</span>
-                              </span>
-                            </div>
-
-                            <h3 className="event-card-title font-editorial">
-                              {event.title}
-                            </h3>
-
-                            <div className="event-card-meta-line">
-                              <span className="meta-item">
-                                <Calendar className="w-3.5 h-3.5 text-red-500" />
-                                <span>{event.dateDisplay}</span>
-                              </span>
-                              <span className="meta-sep">·</span>
-                              <span className="meta-item">
-                                <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                                <span>{event.location}</span>
-                              </span>
-                              <span className="meta-sep">·</span>
-                              <span className="meta-item">
-                                <Users className="w-3.5 h-3.5 text-slate-400" />
-                                <span>{event.volunteersCount} Volunteers</span>
-                              </span>
-                            </div>
-
-                            <p className="event-card-desc">
-                              {event.shortDesc}
-                            </p>
-                          </div>
-
-                          <div className="event-card-footer-action">
-                            <span className="event-card-action-btn">
-                              <span>Explore Event & Sessions</span>
-                              <ArrowRight className="w-4 h-4" />
-                            </span>
-                          </div>
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
+          {view === "event" && selectedEvent && (
+            <EventDetail event={selectedEvent} now={now} onBack={back} onGallery={openGallery} />
           )}
-
-          {/* ======================================================= */}
-          {/* LEVEL 2A: NON-MONTHLY CATEGORY EVENTS LIST              */}
-          {/* ======================================================= */}
-          {activeView === "collection" && selectedType && (
-            <section className="collection-events-section" aria-label={selectedType.title}>
-              {collectionEvents.length === 0 ? (
-                <div className="events-empty-box">
-                  <p className="empty-title">No events published in this collection yet</p>
-                  <p className="empty-sub">Check back soon for upcoming programme schedules.</p>
-                  <button type="button" className="empty-back-btn" onClick={() => setActiveView("types")}>
-                    Return to All Event Types
-                  </button>
-                </div>
-              ) : (
-                <div className="collection-events-list">
-                  {collectionEvents.map((event) => {
-                    const sessionCount = Array.isArray(event.sessions) ? event.sessions.length : 1;
-                    const liveStatus = getEventStatus(event, now);
-                    const isCompleted = liveStatus === STATUS.COMPLETED;
-                    const isOngoing = liveStatus === STATUS.ONGOING;
-
-                    return (
-                      <article
-                        key={event.id}
-                        className="collection-event-card"
-                        onClick={() => handleOpenEvent(event)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            handleOpenEvent(event);
-                          }
-                        }}
-                        aria-label={`Explore event: ${event.title}`}
-                      >
-                        {/* Media Image Column */}
-                        {event.coverImage && (
-                          <div className="event-card-media-wrap">
-                            <img
-                              src={event.coverImage}
-                              alt={event.title}
-                              className="event-card-img"
-                              loading="lazy"
-                            />
-                            <span className={`event-card-status-badge ${isOngoing ? "status-badge--ongoing" : isCompleted ? "status-badge--completed" : "status-badge--upcoming"}`}>
-                              {isOngoing && <span className="status-live-dot" />}
-                              <span>{liveStatus}</span>
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Event Content Column */}
-                        <div className="event-card-body-wrap">
-                          <div>
-                            <div className="event-card-kicker-row">
-                              <span className="event-card-kicker">
-                                {event.categoryLabel || "SPECIAL EVENT"}
-                              </span>
-                              <span className="event-card-sessions-pill">
-                                <Layers className="w-3.5 h-3.5" />
-                                <span>{sessionCount} {sessionCount === 1 ? "Session" : "Sessions"}</span>
-                              </span>
-                            </div>
-
-                            <h3 className="event-card-title font-editorial">
-                              {event.title}
-                            </h3>
-
-                            <div className="event-card-meta-line">
-                              <span className="meta-item">
-                                <Calendar className="w-3.5 h-3.5 text-red-500" />
-                                <span>{event.dateDisplay}</span>
-                              </span>
-                              <span className="meta-sep">·</span>
-                              <span className="meta-item">
-                                <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                                <span>{event.location}</span>
-                              </span>
-                              <span className="meta-sep">·</span>
-                              <span className="meta-item">
-                                <Users className="w-3.5 h-3.5 text-slate-400" />
-                                <span>{event.volunteersCount} Volunteers</span>
-                              </span>
-                            </div>
-
-                            <p className="event-card-desc">
-                              {event.shortDesc}
-                            </p>
-                          </div>
-
-                          <div className="event-card-footer-action">
-                            <span className="event-card-action-btn">
-                              <span>Explore Event & Sessions</span>
-                              <ArrowRight className="w-4 h-4" />
-                            </span>
-                          </div>
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
-          )}
-
-          {/* ======================================================= */}
-          {/* LEVEL 3: EVENT DETAIL + CHILD SESSIONS                  */}
-          {/* ======================================================= */}
-          {activeView === "event-detail" && selectedEvent && (
-            <section className="detail-inpage-section" aria-label="Event Details and Sessions">
-              {/* Large Cover Hero Anchor */}
-              {selectedEvent.coverImage && (
-                <div className="detail-cover-hero-wrap">
-                  <img
-                    src={selectedEvent.coverImage}
-                    alt={selectedEvent.title}
-                    className="detail-cover-img"
-                  />
-                  <div className="detail-cover-scrim">
-                    <span className="detail-cover-badge">
-                      NSS MIT · {selectedEvent.categoryLabel?.toUpperCase() || "EVENT ARCHIVE"}
-                    </span>
-                    {(() => {
-                      const liveStatus = getEventStatus(selectedEvent, now);
-                      const isOngoing = liveStatus === STATUS.ONGOING;
-                      const isCompleted = liveStatus === STATUS.COMPLETED;
-                      return (
-                        <span className={`detail-cover-status-badge ${isOngoing ? "status-badge--ongoing" : isCompleted ? "status-badge--completed" : "status-badge--upcoming"}`}>
-                          {isOngoing && <span className="status-live-dot" />}
-                          <span>{liveStatus}</span>
-                        </span>
-                      );
-                    })()}
-                  </div>
-                </div>
-              )}
-
-              {/* Scannable Event Specifications Grid */}
-              <div className="detail-specs-grid">
-                <div className="spec-card">
-                  <span className="spec-label">LIVE STATUS</span>
-                  <p className="spec-value">
-                    {(() => {
-                      const liveStatus = getEventStatus(selectedEvent, now);
-                      const isOngoing = liveStatus === STATUS.ONGOING;
-                      const isCompleted = liveStatus === STATUS.COMPLETED;
-                      return (
-                        <span className={`detail-status-pill ${isOngoing ? "pill--ongoing" : isCompleted ? "pill--completed" : "pill--upcoming"}`}>
-                          {isOngoing && <span className="status-live-dot" />}
-                          <span>{liveStatus}</span>
-                        </span>
-                      );
-                    })()}
-                  </p>
-                </div>
-                <div className="spec-card">
-                  <span className="spec-label">DATE / SCHEDULE</span>
-                  <p className="spec-value">{selectedEvent.dateDisplay}</p>
-                </div>
-                <div className="spec-card">
-                  <span className="spec-label">DURATION & SCALE</span>
-                  <p className="spec-value">{selectedEvent.durationDays || "Multi-Session Event"}</p>
-                </div>
-                <div className="spec-card spec-card--wide">
-                  <span className="spec-label">PRIMARY LOCATION & VENUE</span>
-                  <p className="spec-value">{selectedEvent.location}</p>
-                </div>
-              </div>
-
-              {/* Narrative & Highlights Layout */}
-              <div className="detail-narrative-layout">
-                {/* Left Prose Column: About the Event */}
-                <div className="detail-prose-col">
-                  <h3 className="detail-subheading font-editorial">About the Event</h3>
-                  <div className="detail-prose-body">
-                    {Array.isArray(selectedEvent.about) ? (
-                      selectedEvent.about.map((p, pIdx) => <p key={pIdx}>{p}</p>)
-                    ) : (
-                      <p>{selectedEvent.shortDesc}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Right Outcomes Card */}
-                {selectedEvent.highlights && selectedEvent.highlights.length > 0 && (
-                  <aside className="detail-highlights-card">
-                    <h4 className="highlights-title font-editorial">Key Highlights & Outcomes</h4>
-                    <ul className="highlights-list">
-                      {selectedEvent.highlights.map((h, hIdx) => (
-                        <li key={hIdx} className="highlight-item">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                          <span>{h}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </aside>
-                )}
-              </div>
-
-              {/* ──────────────────────────────────────────────────── */}
-              {/* CHILD SESSIONS SECTION (EVENT -> SESSIONS)            */}
-              {/* ──────────────────────────────────────────────────── */}
-              <div className="event-sessions-container">
-                <div className="event-sessions-header">
-                  <div>
-                    <span className="sessions-kicker">ACTIVITIES & TIMELINE</span>
-                    <h3 className="sessions-main-title font-editorial">Sessions</h3>
-                  </div>
-                  <span className="sessions-count-badge">
-                    {Array.isArray(selectedEvent.sessions) ? selectedEvent.sessions.length : 0} {selectedEvent.sessions?.length === 1 ? "Session" : "Sessions"}
-                  </span>
-                </div>
-
-                {Array.isArray(selectedEvent.sessions) && selectedEvent.sessions.length > 0 ? (
-                  <div className="event-sessions-list">
-                    {selectedEvent.sessions.map((session, sIdx) => {
-                      const isExpanded = expandedSessionId === session.id;
-                      const parts = session.date ? session.date.split("-") : ["2026", "09", "18"];
-                      const dayNum = parts[2] || `${sIdx + 1}`;
-                      const monthNum = parts[1] || "09";
-                      const foundMonth = MONTHS_LIST.find((m) => m.key === monthNum);
-                      const monthText = foundMonth ? foundMonth.short : "SEP";
-
-                      const sessionLiveStatus = getSessionStatus(session, now);
-                      const isSessionOngoing = sessionLiveStatus === STATUS.ONGOING;
-                      const isSessionCompleted = sessionLiveStatus === STATUS.COMPLETED;
-
-                      const sessionPhotos =
-                        session.gallery && session.gallery.length > 0
-                          ? session.gallery
-                          : Array.isArray(session.photos) && session.photos.length > 0
-                          ? session.photos.map((p) => ({
-                              url: p.publicUrl || p.url,
-                              caption: p.caption || p.alt_text || session.title,
-                            }))
-                          : [];
-
-                      return (
-                        <article
-                          key={session.id || sIdx}
-                          className={`session-timeline-card ${isExpanded ? "session-card--expanded" : ""} ${isSessionOngoing ? "session-card--ongoing" : ""}`}
-                        >
-                          <div
-                            className="session-card-main-bar"
-                            onClick={() => toggleSessionExpand(session.id)}
-                            role="button"
-                            tabIndex={0}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" || e.key === " ") {
-                                e.preventDefault();
-                                toggleSessionExpand(session.id);
-                              }
-                            }}
-                            aria-expanded={isExpanded}
-                            aria-label={`Toggle session details for ${session.title}`}
-                          >
-                            {/* Date Badge Column */}
-                            <div className="session-card-date-badge">
-                              <span className="session-badge-day font-editorial">{dayNum}</span>
-                              <span className="session-badge-month">{monthText}</span>
-                              {session.weekday && (
-                                <span className="session-badge-weekday">{session.weekday}</span>
-                              )}
-                            </div>
-
-                            {/* Session Information */}
-                            <div className="session-card-content">
-                              <div className="session-card-kicker-row">
-                                <span className="session-pill">
-                                  {session.dayLabel || `Session ${sIdx + 1}`}
-                                </span>
-                                <span className={`session-status-pill ${isSessionOngoing ? "session-status--ongoing" : isSessionCompleted ? "session-status--completed" : "session-status--upcoming"}`}>
-                                  {isSessionOngoing && <span className="status-live-dot" />}
-                                  <span>{sessionLiveStatus}</span>
-                                </span>
-                                {session.unitsDisplay && (
-                                  <span className="session-units-pill">
-                                    <Users className="w-3 h-3" />
-                                    <span>{session.unitsDisplay}</span>
-                                  </span>
-                                )}
-                                {sessionPhotos.length > 0 && (
-                                  <span className="session-units-pill text-red-600 bg-red-50/80 border-red-200">
-                                    <ImageIcon className="w-3 h-3" />
-                                    <span>{sessionPhotos.length} {sessionPhotos.length === 1 ? "Photo" : "Photos"}</span>
-                                  </span>
-                                )}
-                              </div>
-
-                              <h4 className="session-card-title font-editorial">
-                                {session.title}
-                              </h4>
-
-                              <div className="session-card-meta-row">
-                                <span className="session-meta-item">
-                                  <Clock className="w-3.5 h-3.5 text-slate-400" />
-                                  <span>{session.timeDisplay}</span>
-                                </span>
-                                <span className="session-meta-sep">·</span>
-                                <span className="session-meta-item">
-                                  <MapPin className="w-3.5 h-3.5 text-red-500" />
-                                  <span>{session.location}</span>
-                                </span>
-                              </div>
-
-                              <p className="session-card-summary">
-                                {session.shortDesc}
-                              </p>
-                            </div>
-
-                            {/* Expand Indicator */}
-                            <div className="session-card-expand-btn">
-                              {isExpanded ? (
-                                <ChevronUp className="w-5 h-5 text-slate-500" />
-                              ) : (
-                                <ChevronDown className="w-5 h-5 text-slate-500" />
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Collapsible Session Details */}
-                          {isExpanded && (
-                            <div className="session-card-expanded-body">
-                              {session.about && session.about.length > 0 && (
-                                <div className="session-about-prose">
-                                  {session.about.map((p, pIdx) => (
-                                    <p key={pIdx}>{p}</p>
-                                  ))}
-                                </div>
-                              )}
-
-                              {session.outcomes && session.outcomes.length > 0 && (
-                                <div className="session-outcomes-box">
-                                  <span className="outcomes-label">Key Outcomes & Deliverables:</span>
-                                  <ul className="outcomes-list">
-                                    {session.outcomes.map((out, oIdx) => (
-                                      <li key={oIdx}>
-                                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                                        <span>{out}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-
-                              {session.organizer && (
-                                <p className="session-organizer-line">
-                                  <strong>Coordinated by:</strong> {session.organizer}
-                                </p>
-                              )}
-
-                              {/* Session Photos Grid */}
-                              {sessionPhotos.length > 0 && (
-                                <div className="pt-3 mt-3 border-t border-slate-200/80">
-                                  <div className="flex items-center gap-1.5 mb-2.5">
-                                    <ImageIcon className="w-3.5 h-3.5 text-red-600" />
-                                    <span className="text-xs font-semibold text-slate-800">
-                                      Session Photographs ({sessionPhotos.length})
-                                    </span>
-                                  </div>
-                                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                    {sessionPhotos.map((photo, pIdx) => (
-                                      <div
-                                        key={pIdx}
-                                        className="relative aspect-4/3 rounded-md overflow-hidden bg-slate-100 border border-slate-200 cursor-pointer group shadow-2xs"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          openLightbox(sessionPhotos, pIdx);
-                                        }}
-                                        title={photo.caption || "View photo"}
-                                      >
-                                        <img
-                                          src={photo.url}
-                                          alt={photo.caption || `Session photo ${pIdx + 1}`}
-                                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                                          loading="lazy"
-                                        />
-                                        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                          <ImageIcon className="w-4 h-4 text-white drop-shadow-sm" />
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </article>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="sessions-empty-text">No sessions scheduled for this event yet.</p>
-                )}
-              </div>
-
-              {/* Moments Photography Gallery (Event Level) */}
-              {Array.isArray(selectedEvent.gallery) && selectedEvent.gallery.length > 0 && (
-                <div className="detail-gallery-section">
-                  <h3 className="detail-subheading font-editorial">Moments from the Event</h3>
-                  <div className="detail-gallery-grid">
-                    {selectedEvent.gallery.map((photo, gIdx) => (
-                      <div
-                        key={gIdx}
-                        className="detail-gallery-thumb-card"
-                        onClick={() => openLightbox(selectedEvent.gallery, gIdx)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            openLightbox(selectedEvent.gallery, gIdx);
-                          }
-                        }}
-                        aria-label={`View photo: ${photo.caption}`}
-                      >
-                        <img
-                          src={photo.url}
-                          alt={photo.caption || `Event photo ${gIdx + 1}`}
-                          className="gallery-thumb-img"
-                          loading="lazy"
-                        />
-                        <div className="gallery-thumb-overlay">
-                          <p className="thumb-caption">{photo.caption}</p>
-                          <ImageIcon className="w-4 h-4 text-white" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Bottom Return Button */}
-              <div className="detail-bottom-return-bar">
-                <button
-                  type="button"
-                  className="detail-return-btn"
-                  onClick={handleBack}
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>
-                    {selectedMonthKey
-                      ? `Return to ${activeMonthInfo?.fullName || "Month"} Events`
-                      : `Return to ${selectedType?.title || "Collection"}`}
-                  </span>
-                </button>
-              </div>
-            </section>
-          )}
-
         </div>
       </main>
 
-      {/* Lightbox Modal */}
-      {lightboxOpen && (
-        <LightboxModal
-          images={lightboxImages.length > 0 ? lightboxImages : selectedEvent?.gallery || []}
-          currentIndex={lightboxIndex}
-          onClose={() => setLightboxOpen(false)}
-          onNavigate={(newIdx) => setLightboxIndex(newIdx)}
-        />
-      )}
-
       <Footer />
+      <LightboxModal
+        isOpen={lightbox.open}
+        images={lightbox.images}
+        currentIndex={lightbox.index}
+        onClose={() => setLightbox(v => ({ ...v, open:false }))}
+        onNext={() => setLightbox(v => ({ ...v, index:(v.index + 1) % v.images.length }))}
+        onPrev={() => setLightbox(v => ({ ...v, index:(v.index - 1 + v.images.length) % v.images.length }))}
+      />
     </div>
   );
+}
+
+function EventDetail({ event, now, onBack, onGallery }) {
+  const status = getEventStatus(event, now);
+  const sessions = event.sessions || [];
+  const gallery = event.gallery || event.photos || [];
+  return (
+    <motion.article className="event-detail" initial={{ opacity:0 }} animate={{ opacity:1 }}>
+      <div className="event-detail__hero">
+        {event.coverImage && <img src={event.coverImage} alt="" />}
+        <div className="event-detail__hero-shade" />
+        <div className="event-detail__hero-copy">
+          <StatusPill status={status} dark />
+          <span>{event.categoryLabel || "NSS EVENT"}</span>
+          <h2>{event.title}</h2>
+          <p>{event.description || event.shortDesc}</p>
+        </div>
+      </div>
+      <div className="event-detail__facts">
+        <Fact icon={<CalendarDays size={17}/>} label="DATE" value={event.dateDisplay || formatDate(event.start_date)} />
+        <Fact icon={<Clock3 size={17}/>} label="STATUS" value={statusLabel(status)} />
+        <Fact icon={<MapPin size={17}/>} label="LOCATION" value={event.location || sessions[0]?.location || "NSS MIT Campus"} />
+        <Fact icon={<Users size={17}/>} label="SESSIONS" value={String(sessions.length)} />
+      </div>
+      <div className="event-detail__body">
+        <div className="event-detail__heading"><span>EVENT ITINERARY</span><h2>One event.<br /><em>Multiple moments.</em></h2></div>
+        <SessionTimeline sessions={sessions} now={now} />
+        {gallery.length > 0 && (
+          <section className="event-gallery">
+            <div className="event-gallery__heading"><span>DOCUMENTATION</span><h2>From the archive</h2></div>
+            <div className="event-gallery__grid">{gallery.slice(0,8).map((image,index) => <button type="button" key={image.id || index} onClick={() => onGallery(gallery)}><img src={image.url} alt={image.alt || image.caption || event.title} loading="lazy" /></button>)}</div>
+          </section>
+        )}
+      </div>
+      <button type="button" className="events-detail-back" onClick={onBack}><ArrowLeft size={16}/> Back to events</button>
+    </motion.article>
+  );
+}
+
+function Fact({ icon, label, value }) {
+  return <div className="event-fact"><span>{icon}</span><small>{label}</small><strong>{value}</strong></div>;
+}
+function LoadingRows() { return <div className="events-loading">{[1,2,3].map(i => <div key={i} />)}</div>; }
+function EmptyState({ text }) { return <div className="events-empty">{text}</div>; }
+function formatMonthTitle(value) {
+  if (!value) return "Month";
+  const [year,month] = value.split("-");
+  const found = MONTHS.find(item => item[0] === month);
+  return found ? `${found[2]} ${year}` : value;
 }
