@@ -31,9 +31,7 @@ function AppNavbar() {
 }
 
 export default function App() {
-  const basename = process.env.PUBLIC_URL
-    ? new URL(process.env.PUBLIC_URL, window.location.origin).pathname.replace(/\/$/, "")
-    : "";
+  const basename = "/src/nss";
 
   return (
     <BrowserRouter basename={basename}>
