@@ -76,7 +76,10 @@ export function parseDateTime(dateStr, timeStr, isEnd = false) {
     }
   }
 
-  return new Date(year, month, day, hours, minutes, seconds, milliseconds);
+  // NSS schedules are stored as India Standard Time (Asia/Kolkata, UTC+05:30).
+  // Build the instant explicitly so the result is identical regardless of the viewer's device timezone.
+  const utcMs = Date.UTC(year, month, day, hours, minutes, seconds, milliseconds);
+  return new Date(utcMs - (5 * 60 + 30) * 60 * 1000);
 }
 
 /**
