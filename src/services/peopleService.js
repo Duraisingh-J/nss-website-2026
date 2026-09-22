@@ -146,48 +146,44 @@ export async function getPublicPeople() {
     (p) => p.roleName?.toLowerCase().includes("program officer") || p.roleName?.toLowerCase().includes("programme officer")
   );
 
-  const treasurers = allPeople.filter(
-    (p) => p.roleName?.toLowerCase().includes("treasurer")
-  );
-
-  const sessionCoordinators = allPeople.filter(
-    (p) => p.roleName?.toLowerCase().includes("session coordinator")
-  );
-
-  const reportHeads = allPeople.filter(
-    (p) => p.roleName?.toLowerCase().includes("report head")
-  );
-
-  const designHeads = allPeople.filter(
-    (p) => p.roleName?.toLowerCase().includes("design head")
-  );
-
   const unitIncharges = allPeople.filter(
     (p) => p.roleName?.toLowerCase().includes("unit leader") || p.roleName?.toLowerCase().includes("unit incharge")
   );
 
-  const volunteers = allPeople.filter(
+  const getRolePriority = (roleName = "") => {
+    const role = roleName.toLowerCase();
+    if (role.includes("joint treasurer")) return 2;
+    if (role.includes("treasurer")) return 1;
+    if (role.includes("session")) return 3;
+    if (role.includes("report")) return 4;
+    if (role.includes("design")) return 5;
+    return 6; // Other volunteers / members
+  };
+
+  const officeBearers = allPeople.filter(
     (p) =>
-      p.roleName?.toLowerCase().includes("volunteer") ||
-      (!programOfficers.includes(p) &&
-        !treasurers.includes(p) &&
-        !sessionCoordinators.includes(p) &&
-        !reportHeads.includes(p) &&
-        !designHeads.includes(p) &&
-        !unitIncharges.includes(p) &&
-        p !== nssCoordinator)
-  );
+      p !== nssCoordinator &&
+      !programOfficers.includes(p) &&
+      !unitIncharges.includes(p)
+  ).sort((a, b) => {
+      // 1. Year: Final Years (4) first, then Pre-Final (3)
+      const yearDiff = (Number(b.rawYear) || 0) - (Number(a.rawYear) || 0);
+      if (yearDiff !== 0) return yearDiff;
+
+      // 2. Specific role order: Treasurer -> Joint Treasurer -> Session -> Report -> Design
+      const priorityDiff = getRolePriority(a.roleName) - getRolePriority(b.roleName);
+      if (priorityDiff !== 0) return priorityDiff;
+
+      // 3. Alphabetical by Name if same year & role
+      return (a.name || "").localeCompare(b.name || "");
+    });
 
   return {
     all: allPeople,
     nssCoordinator,
     programOfficers,
-    treasurers,
-    sessionCoordinators,
-    reportHeads,
-    designHeads,
     unitIncharges,
-    volunteers,
+    officeBearers,
   };
 }
 
