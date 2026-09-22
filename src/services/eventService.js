@@ -210,6 +210,7 @@ export async function getPublicEventDetail(eventId) {
         )
       `)
       .eq("id", eventId)
+      .eq("is_published", true)
       .single();
 
     if (error || !eventRow) return null;
