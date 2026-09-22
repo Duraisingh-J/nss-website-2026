@@ -445,46 +445,7 @@ export async function getPublicCalendarData() {
     });
   });
 
-  // 2. Process Monthly Events (or events of category 'monthly')
-  (eventsRes.data || []).forEach((ev) => {
-    const isMonthly =
-      ev.event_type === "monthly" ||
-      ev.event_type === "other" ||
-      ev.event_type === "event";
-
-    if (!isMonthly || !ev.start_date) return;
-
-    const dateKey = ev.start_date;
-    if (!calendarMap[dateKey]) {
-      calendarMap[dateKey] = [];
-    }
-
-    const coverUrl = getMediaPublicUrl(ev.media?.storage_path);
-
-    // Check if not already added
-    const exists = calendarMap[dateKey].some((item) => item.id === `monthly-${ev.id}`);
-    if (!exists) {
-      calendarMap[dateKey].push({
-        id: `monthly-${ev.id}`,
-        eventId: ev.id,
-        type: "monthly_event",
-        title: ev.title,
-        parentEventTitle: null,
-        eventType: "monthly",
-        date: ev.start_date,
-        startTime: "16:30",
-        endTime: "18:00",
-        location: "OAT",
-        units: [1, 2, 3, 4, 5, 6, 7], // All units attend monthly events
-        description: ev.description || "",
-        coverImageUrl: coverUrl,
-        coverImage: coverUrl,
-        gallery: coverUrl ? [{ id: `cover-${ev.id}`, url: coverUrl, caption: ev.title }] : [],
-        photos: coverUrl ? [{ id: `cover-${ev.id}`, url: coverUrl, caption: ev.title }] : [],
-        rawData: ev,
-      });
-    }
-  });
+  // Monthly Events are represented by their published child sessions.
 
   return calendarMap;
 }
