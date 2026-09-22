@@ -283,22 +283,6 @@ export async function saveEventSession(eventId, sessionData, selectedUnits = [])
 export async function syncEventSessions(eventId, eventType, formSessions = []) {
   if (!eventId) throw new Error("Event ID is required to sync sessions.");
 
-  const isMonthly =
-    eventType === "monthly" ||
-    eventType === "Monthly Event";
-
-  // If Monthly Event, delete all existing DB sessions for this event
-  if (isMonthly) {
-    const { error: delError } = await supabase
-      .from("sessions")
-      .delete()
-      .eq("event_id", eventId);
-    if (delError) {
-      console.error("Error deleting sessions for monthly event:", delError.message);
-    }
-    return [];
-  }
-
   // Fetch current DB sessions for this event
   const existingDbSessions = await getSessionsForEvent(eventId);
   const formSessionIds = new Set(
