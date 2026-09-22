@@ -1,18 +1,22 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Calendar, MapPin, Layers, ArrowRight } from "lucide-react";
+import { getEventStatus, STATUS } from "../../utils/timeStatusUtils";
+import useLiveTime from "../../hooks/useLiveTime";
 
 /**
  * EventCard — Clean Institutional Event Card
- * Answers "What is this event?"
+ * Answers "What is this event?" with Live Automatic Status Updates
  */
-export default function EventCard({ event }) {
+export default function EventCard({ event, currentTime }) {
+  const { now } = useLiveTime(event ? [event] : []);
   if (!event) return null;
 
+  const effectiveNow = currentTime || now;
   const sessionCount = Array.isArray(event.sessions) ? event.sessions.length : (event.totalSessions || 0);
-  const statusLabel = event.status || (event.timingStatus || "Upcoming");
-  const isCompleted = statusLabel.toLowerCase() === "completed";
-  const isOngoing = statusLabel.toLowerCase() === "ongoing";
+  const statusLabel = getEventStatus(event, effectiveNow);
+  const isCompleted = statusLabel === STATUS.COMPLETED;
+  const isOngoing = statusLabel === STATUS.ONGOING;
 
   const eventLink = `/events/${event.slug || event.id}`;
 
@@ -37,7 +41,8 @@ export default function EventCard({ event }) {
         {/* Status Badge */}
         <div className="nss-event-card-badges">
           <span className={`nss-status-badge ${isCompleted ? "status--completed" : isOngoing ? "status--ongoing" : "status--upcoming"}`}>
-            {statusLabel}
+            {isOngoing && <span className="status-live-dot" />}
+            <span>{statusLabel}</span>
           </span>
         </div>
       </div>

@@ -3,6 +3,8 @@ import Footer from "../components/Footer";
 import LightboxModal from "../components/ui/LightboxModal";
 import { EVENT_TYPE_DEFINITIONS } from "../data/mockEventsData";
 import { getPublicEvents, getPublicEventDetail } from "../services/eventService";
+import { getEventStatus, getSessionStatus, getMonthStatus, STATUS } from "../utils/timeStatusUtils";
+import useLiveTime from "../hooks/useLiveTime";
 import {
   Calendar,
   Clock,
@@ -58,6 +60,9 @@ export default function Events() {
   }
 
   const [dbEvents, setDbEvents] = useState([]);
+
+  // Live real-time clock source with boundary-aware transition scheduling
+  const { now } = useLiveTime(selectedEvent ? [selectedEvent, ...dbEvents] : dbEvents);
 
   // Dynamic Supabase data hook
   useEffect(() => {
@@ -439,13 +444,14 @@ export default function Events() {
                   const monthKey = `${selectedYear}-${month.key}`;
                   const eventsInMonth = monthlyEventsMap[monthKey] || [];
                   const hasEvents = eventsInMonth.length > 0;
-                  const isCompleted = month.key < "09";
-                  const isActive = month.key === "09";
+                  const monthStatus = getMonthStatus(eventsInMonth, now);
+                  const isCompleted = monthStatus === STATUS.COMPLETED;
+                  const isOngoing = monthStatus === STATUS.ONGOING;
 
                   return (
                     <div
                       key={month.key}
-                      className={`month-matrix-card ${hasEvents ? "month--has-activities" : "month--empty"} ${isActive ? "month--active-current" : ""}`}
+                      className={`month-matrix-card ${hasEvents ? "month--has-activities" : "month--empty"} ${isOngoing ? "month--active-current" : ""}`}
                       onClick={() => hasEvents && handleSelectMonth(monthKey)}
                       role={hasEvents ? "button" : "presentation"}
                       tabIndex={hasEvents ? 0 : -1}
@@ -455,7 +461,7 @@ export default function Events() {
                           handleSelectMonth(monthKey);
                         }
                       }}
-                      aria-label={`${month.name} ${selectedYear}: ${eventsInMonth.length} Events`}
+                      aria-label={`${month.name} ${selectedYear}: ${eventsInMonth.length} Events (${monthStatus})`}
                     >
                       <div className="month-card-header">
                         <span className="month-short-name font-editorial">{month.short}</span>
@@ -465,9 +471,10 @@ export default function Events() {
                       <div className="month-card-footer">
                         {hasEvents ? (
                           <div className="month-activity-info">
-                            <span className={`month-status-dot ${isCompleted ? "dot--completed" : isActive ? "dot--active" : "dot--upcoming"}`} />
+                            <span className={`month-status-dot ${isOngoing ? "dot--active dot--pulse" : isCompleted ? "dot--completed" : "dot--upcoming"}`} />
                             <span className="month-count-text">
                               {eventsInMonth.length} {eventsInMonth.length === 1 ? "Event" : "Events"}
+                              {isOngoing && <span className="month-live-label"> · LIVE</span>}
                             </span>
                           </div>
                         ) : (
@@ -500,6 +507,9 @@ export default function Events() {
                 <div className="collection-events-list">
                   {activeMonthEvents.map((event) => {
                     const sessionCount = Array.isArray(event.sessions) ? event.sessions.length : 1;
+                    const liveStatus = getEventStatus(event, now);
+                    const isCompleted = liveStatus === STATUS.COMPLETED;
+                    const isOngoing = liveStatus === STATUS.ONGOING;
 
                     return (
                       <article
@@ -525,8 +535,9 @@ export default function Events() {
                               className="event-card-img"
                               loading="lazy"
                             />
-                            <span className="event-card-status-badge">
-                              {event.status || "Upcoming"}
+                            <span className={`event-card-status-badge ${isOngoing ? "status-badge--ongoing" : isCompleted ? "status-badge--completed" : "status-badge--upcoming"}`}>
+                              {isOngoing && <span className="status-live-dot" />}
+                              <span>{liveStatus}</span>
                             </span>
                           </div>
                         )}
@@ -602,6 +613,9 @@ export default function Events() {
                 <div className="collection-events-list">
                   {collectionEvents.map((event) => {
                     const sessionCount = Array.isArray(event.sessions) ? event.sessions.length : 1;
+                    const liveStatus = getEventStatus(event, now);
+                    const isCompleted = liveStatus === STATUS.COMPLETED;
+                    const isOngoing = liveStatus === STATUS.ONGOING;
 
                     return (
                       <article
@@ -627,8 +641,9 @@ export default function Events() {
                               className="event-card-img"
                               loading="lazy"
                             />
-                            <span className="event-card-status-badge">
-                              {event.status || "Upcoming"}
+                            <span className={`event-card-status-badge ${isOngoing ? "status-badge--ongoing" : isCompleted ? "status-badge--completed" : "status-badge--upcoming"}`}>
+                              {isOngoing && <span className="status-live-dot" />}
+                              <span>{liveStatus}</span>
                             </span>
                           </div>
                         )}
@@ -704,6 +719,17 @@ export default function Events() {
                     <span className="detail-cover-badge">
                       NSS MIT · {selectedEvent.categoryLabel?.toUpperCase() || "EVENT ARCHIVE"}
                     </span>
+                    {(() => {
+                      const liveStatus = getEventStatus(selectedEvent, now);
+                      const isOngoing = liveStatus === STATUS.ONGOING;
+                      const isCompleted = liveStatus === STATUS.COMPLETED;
+                      return (
+                        <span className={`detail-cover-status-badge ${isOngoing ? "status-badge--ongoing" : isCompleted ? "status-badge--completed" : "status-badge--upcoming"}`}>
+                          {isOngoing && <span className="status-live-dot" />}
+                          <span>{liveStatus}</span>
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
               )}
@@ -711,16 +737,28 @@ export default function Events() {
               {/* Scannable Event Specifications Grid */}
               <div className="detail-specs-grid">
                 <div className="spec-card">
+                  <span className="spec-label">LIVE STATUS</span>
+                  <p className="spec-value">
+                    {(() => {
+                      const liveStatus = getEventStatus(selectedEvent, now);
+                      const isOngoing = liveStatus === STATUS.ONGOING;
+                      const isCompleted = liveStatus === STATUS.COMPLETED;
+                      return (
+                        <span className={`detail-status-pill ${isOngoing ? "pill--ongoing" : isCompleted ? "pill--completed" : "pill--upcoming"}`}>
+                          {isOngoing && <span className="status-live-dot" />}
+                          <span>{liveStatus}</span>
+                        </span>
+                      );
+                    })()}
+                  </p>
+                </div>
+                <div className="spec-card">
                   <span className="spec-label">DATE / SCHEDULE</span>
                   <p className="spec-value">{selectedEvent.dateDisplay}</p>
                 </div>
                 <div className="spec-card">
                   <span className="spec-label">DURATION & SCALE</span>
                   <p className="spec-value">{selectedEvent.durationDays || "Multi-Session Event"}</p>
-                </div>
-                <div className="spec-card">
-                  <span className="spec-label">VOLUNTEER MOBILIZATION</span>
-                  <p className="spec-value">{selectedEvent.volunteersCount ? `${selectedEvent.volunteersCount} Volunteers` : "All Units"}</p>
                 </div>
                 <div className="spec-card spec-card--wide">
                   <span className="spec-label">PRIMARY LOCATION & VENUE</span>
@@ -782,6 +820,10 @@ export default function Events() {
                       const foundMonth = MONTHS_LIST.find((m) => m.key === monthNum);
                       const monthText = foundMonth ? foundMonth.short : "SEP";
 
+                      const sessionLiveStatus = getSessionStatus(session, now);
+                      const isSessionOngoing = sessionLiveStatus === STATUS.ONGOING;
+                      const isSessionCompleted = sessionLiveStatus === STATUS.COMPLETED;
+
                       const sessionPhotos =
                         session.gallery && session.gallery.length > 0
                           ? session.gallery
@@ -795,7 +837,7 @@ export default function Events() {
                       return (
                         <article
                           key={session.id || sIdx}
-                          className={`session-timeline-card ${isExpanded ? "session-card--expanded" : ""}`}
+                          className={`session-timeline-card ${isExpanded ? "session-card--expanded" : ""} ${isSessionOngoing ? "session-card--ongoing" : ""}`}
                         >
                           <div
                             className="session-card-main-bar"
@@ -825,6 +867,10 @@ export default function Events() {
                               <div className="session-card-kicker-row">
                                 <span className="session-pill">
                                   {session.dayLabel || `Session ${sIdx + 1}`}
+                                </span>
+                                <span className={`session-status-pill ${isSessionOngoing ? "session-status--ongoing" : isSessionCompleted ? "session-status--completed" : "session-status--upcoming"}`}>
+                                  {isSessionOngoing && <span className="status-live-dot" />}
+                                  <span>{sessionLiveStatus}</span>
                                 </span>
                                 {session.unitsDisplay && (
                                   <span className="session-units-pill">

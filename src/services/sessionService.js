@@ -1,5 +1,6 @@
 import { supabase } from "../lib/supabase.js";
 import { uploadMedia, getMediaPublicUrl } from "./mediaService.js";
+import { getSessionStatus } from "../utils/timeStatusUtils.js";
 
 /**
  * Formats time string (e.g. "10:00:00" or "10:00" -> "10:00 AM")
@@ -54,31 +55,11 @@ export function calculateDuration(startDateStr, startTimeStr, endTimeStr) {
 }
 
 /**
- * Calculates timing status (Upcoming, Ongoing, Completed)
+ * Calculates timing status (UPCOMING, ONGOING, COMPLETED)
  */
-export function getSessionTimingStatus(session) {
-  if (!session || !session.session_date) return "Upcoming";
-
-  const now = new Date();
-  const startDateStr = session.session_date;
-
-  const startTimeStr = session.start_time || "00:00:00";
-  const startIso = `${startDateStr}T${startTimeStr.length === 5 ? startTimeStr + ":00" : startTimeStr}`;
-  const startDateTime = new Date(startIso);
-
-  const endTimeStr = session.end_time || "23:59:59";
-  const endIso = `${startDateStr}T${endTimeStr.length === 5 ? endTimeStr + ":00" : endTimeStr}`;
-  const endDateTime = new Date(endIso);
-
-  if (isNaN(startDateTime.getTime())) return "Upcoming";
-
-  if (now < startDateTime) {
-    return "Upcoming";
-  } else if (now >= startDateTime && now <= endDateTime) {
-    return "Ongoing";
-  } else {
-    return "Completed";
-  }
+export function getSessionTimingStatus(session, now = new Date()) {
+  if (!session) return "UPCOMING";
+  return getSessionStatus(session, now);
 }
 
 /**

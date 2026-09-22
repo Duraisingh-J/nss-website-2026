@@ -1,5 +1,6 @@
 import { supabase } from "../lib/supabase.js";
 import { uploadMedia, getMediaPublicUrl, deleteMedia } from "./mediaService.js";
+import { getEventStatus } from "../utils/timeStatusUtils.js";
 
 export { getMediaPublicUrl };
 
@@ -27,22 +28,11 @@ export function formatEventCategoryLabel(type) {
 }
 
 /**
- * Calculates timing status (Upcoming, Ongoing, Completed) from start_date & end_date
+ * Calculates timing status (UPCOMING, ONGOING, COMPLETED) from sessions or dates
  */
-export function getEventTimingStatus(event) {
-  if (!event || !event.start_date) return "Upcoming";
-
-  const todayStr = new Date().toISOString().split("T")[0];
-  const startDateStr = event.start_date;
-  const endDateStr = event.end_date || startDateStr;
-
-  if (todayStr < startDateStr) {
-    return "Upcoming";
-  } else if (todayStr >= startDateStr && todayStr <= endDateStr) {
-    return "Ongoing";
-  } else {
-    return "Completed";
-  }
+export function getEventTimingStatus(event, now = new Date()) {
+  if (!event) return "UPCOMING";
+  return getEventStatus(event, now);
 }
 
 /**
@@ -72,13 +62,34 @@ export function transformEvent(row) {
 
   const isPublished = Boolean(row.is_published);
   const coverImageUrl = getMediaPublicUrl(row.media?.storage_path);
-  const timingStatus = getEventTimingStatus(row);
   const categoryLabel = formatEventCategoryLabel(row.event_type);
+
+  const sessions = Array.isArray(row.sessions)
+    ? row.sessions
+        .filter((s) => s.is_published !== false)
+        .map((s) => ({
+          id: s.id,
+          event_id: s.event_id,
+          title: s.title,
+          session_date: s.session_date,
+          date: s.session_date,
+          start_time: s.start_time,
+          end_time: s.end_time,
+          location: s.location || "NSS Campus",
+        }))
+    : [];
+
+  const rawEvent = {
+    ...row,
+    sessions,
+  };
+  const timingStatus = getEventTimingStatus(rawEvent);
 
   return {
     id: row.id,
     title: row.title || "Untitled Event",
     description: row.description || "",
+    shortDesc: row.description || "",
     event_type: row.event_type || "camp",
     categoryLabel: categoryLabel,
     start_date: row.start_date || "",
@@ -86,7 +97,10 @@ export function transformEvent(row) {
     is_published: isPublished,
     cover_media_id: row.cover_media_id || null,
     cover_image_url: coverImageUrl,
+    coverImage: coverImageUrl,
     timingStatus: timingStatus,
+    status: timingStatus,
+    sessions: sessions,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -126,7 +140,7 @@ export async function getAdminEvents() {
 }
 
 /**
- * Fetch published events for public website
+ * Fetch published events for public website with published sessions
  */
 export async function getPublicEvents() {
   const { data, error } = await supabase
@@ -146,6 +160,16 @@ export async function getPublicEvents() {
         id,
         storage_path,
         file_name
+      ),
+      sessions (
+        id,
+        event_id,
+        title,
+        session_date,
+        start_time,
+        end_time,
+        location,
+        is_published
       )
     `)
     .eq("is_published", true)
