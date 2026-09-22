@@ -16,6 +16,10 @@ import Dashboard from "./pages/admin/Dashboard";
 import PeopleManagement from "./pages/admin/PeopleManagement";
 import RoleManagement from "./pages/admin/RoleManagement";
 import EventsManagement from "./pages/admin/EventsManagement";
+import AnnouncementsManagement from "./pages/admin/AnnouncementsManagement";
+import AchievementsManagement from "./pages/admin/AchievementsManagement";
+import ReportsManagement from "./pages/admin/ReportsManagement";
+import HeroSlidesManagement from "./pages/admin/HeroSlidesManagement";
 
 // Render public navbar only for public customer-facing routes
 function AppNavbar() {
@@ -58,6 +62,10 @@ export default function App() {
               <Route path="people" element={<PeopleManagement />} />
               <Route path="roles" element={<RoleManagement />} />
               <Route path="events" element={<EventsManagement />} />
+              <Route path="announcements" element={<AnnouncementsManagement />} />
+              <Route path="achievements" element={<AchievementsManagement />} />
+              <Route path="reports" element={<ReportsManagement />} />
+              <Route path="hero-slides" element={<HeroSlidesManagement />} />
               <Route path="sessions" element={<Navigate to="/admin/events" replace />} />
               <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
             </Route>
