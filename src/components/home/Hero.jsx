@@ -1,9 +1,9 @@
 import React, { useRef, useLayoutEffect, useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Users, Leaf, Heart, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { gsap, isReducedMotion } from "../../lib/animations";
 import { ThreeDMarquee } from "../ui/3d-marquee";
-import { getHeroMedia, DEFAULT_HERO_MEDIA } from "../../services/mediaService";
+import { getHeroMedia } from "../../services/mediaService";
 import { getPublicHeroSlides } from "../../services/heroSlideService";
 
 // Curated NSS action images for 3D isometric marquee from /public/images/Hero*
@@ -101,16 +101,10 @@ export default function Hero() {
           "-=0.3"
         )
         .fromTo(
-          ".hero-feature-item",
-          { opacity: 0, y: 12 },
-          { opacity: 1, y: 0, duration: 0.5, stagger: 0.08, ease: "power2.out" },
-          "-=0.2"
-        )
-        .fromTo(
           ".hero-cursive-tag",
           { opacity: 0, y: -10, rotate: -8 },
           { opacity: 1, y: 0, rotate: -6, duration: 0.8, ease: "power2.out" },
-          "-=0.7"
+          "-=0.5"
         )
         .fromTo(
           ".hero-motto-card",
@@ -177,10 +171,17 @@ export default function Hero() {
           {/* Left Column: Mission, Typography, Actions, Focus Areas */}
           <div className="lg:col-span-7 flex flex-col justify-center">
 
-            {/* Eyebrow / Live Indicator */}
-            <div className="hero-eyebrow inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-700/80 text-slate-200 text-[11px] sm:text-xs font-semibold tracking-[0.2em] uppercase mb-4 w-fit shadow-md">
-              <Sparkles className="w-3.5 h-3.5 text-[#E0533C]" />
-              <span>SERVICE · LEADERSHIP · SOCIAL RESPONSIBILITY</span>
+            {/* Mission Pillars Badges (Separate Boxes) */}
+            <div className="hero-eyebrow flex flex-wrap items-center gap-2 mb-5">
+              <span className="inline-flex items-center px-3.5 py-1.5 rounded-lg bg-slate-900/90 border border-slate-700/80 text-slate-200 text-xs font-semibold tracking-wide shadow-sm backdrop-blur-sm">
+                Service
+              </span>
+              <span className="inline-flex items-center px-3.5 py-1.5 rounded-lg bg-slate-900/90 border border-slate-700/80 text-slate-200 text-xs font-semibold tracking-wide shadow-sm backdrop-blur-sm">
+                Leadership
+              </span>
+              <span className="inline-flex items-center px-3.5 py-1.5 rounded-lg bg-slate-900/90 border border-slate-700/80 text-slate-200 text-xs font-semibold tracking-wide shadow-sm backdrop-blur-sm">
+                Social Responsibility
+              </span>
             </div>
 
             {/* Main Headline */}
@@ -199,7 +200,7 @@ export default function Hero() {
             </p>
 
             {/* Action Buttons */}
-            <div className="flex flex-wrap items-center gap-4 mb-10 sm:mb-12">
+            <div className="flex flex-wrap items-center gap-4">
               <button
                 type="button"
                 onClick={() => {
@@ -223,56 +224,6 @@ export default function Hero() {
                 <span>Learn About NSS</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
-            </div>
-
-            {/* Focus Pillars Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 pt-4 border-t border-slate-800/80 max-w-2xl">
-
-              {/* Item 1: Students */}
-              <div className="hero-feature-item flex items-center gap-3 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/60">
-                <div className="w-9 h-9 rounded-lg border border-slate-700 flex items-center justify-center text-[#E0533C] shrink-0 bg-slate-800/80 shadow-inner">
-                  <Users className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-bold text-xs tracking-wider text-white uppercase">
-                    STUDENTS
-                  </span>
-                  <span className="text-[10px] text-slate-300 tracking-wider uppercase mt-0.5">
-                    FOR A BETTER TOMORROW
-                  </span>
-                </div>
-              </div>
-
-              {/* Item 2: Communities */}
-              <div className="hero-feature-item flex items-center gap-3 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/60">
-                <div className="w-9 h-9 rounded-lg border border-slate-700 flex items-center justify-center text-emerald-400 shrink-0 bg-slate-800/80 shadow-inner">
-                  <Leaf className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-bold text-xs tracking-wider text-white uppercase">
-                    COMMUNITIES
-                  </span>
-                  <span className="text-[10px] text-slate-300 tracking-wider uppercase mt-0.5">
-                    FOR A STRONGER INDIA
-                  </span>
-                </div>
-              </div>
-
-              {/* Item 3: Service */}
-              <div className="hero-feature-item flex items-center gap-3 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/60">
-                <div className="w-9 h-9 rounded-lg border border-slate-700 flex items-center justify-center text-red-400 shrink-0 bg-slate-800/80 shadow-inner">
-                  <Heart className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-bold text-xs tracking-wider text-white uppercase">
-                    SERVICE
-                  </span>
-                  <span className="text-[10px] text-slate-300 tracking-wider uppercase mt-0.5">
-                    BEYOND THE CLASSROOM
-                  </span>
-                </div>
-              </div>
-
             </div>
 
           </div>

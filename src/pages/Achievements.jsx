@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import PageHero from "../components/ui/PageHero";
 import Footer from "../components/Footer";
 import AchievementsCarousel from "../components/ui/AchievementsCarousel";
 import { getPublicAchievements } from "../services/achievementService";
@@ -142,79 +141,112 @@ export default function Achievements() {
   }, [activeDetail, handlePrevDetail, handleNextDetail]);
 
   return (
-    <div className="page-wrapper achievements-page">
-      {/* ── 1. Shared Editorial Hero ── */}
-      <PageHero
-        watermark="ACHIEVEMENTS"
-        eyebrow="NSS ACHIEVEMENTS"
-        title="Achievements"
-        description="Recognising the milestones, contributions, and accomplishments that shape the NSS journey at MIT."
-      />
+    <div className="achievements-page">
+      {/* ── 1. Hero Header (Matching Events Page Header) ── */}
+      <header className="achievements-hero">
+        <div className="achievements-shell achievements-hero__shell">
+          <div className="achievements-hero__content">
+            <h1>ACHIEVEMENTS</h1>
+            <div className="achievements-hero__statement">
+              Milestones <em>of distinction.</em>
+            </div>
+            <p>
+              Recognising the milestones, contributions, and accomplishments that shape the NSS journey at MIT — chronicling state awards, university citations, and community service honours.
+            </p>
+          </div>
+          <div className="achievements-hero__background-word" aria-hidden="true">
+            ACHIEVEMENTS
+          </div>
+        </div>
+      </header>
 
-      {/* ── 2. Content Experience ── */}
+      {/* ── 2. Content Experience (Clean White Background) ── */}
       <main className="achievements-main">
         <div className="achievements-shell">
-          {/* Editorial Section Introduction & Filter Toolbar */}
-          <header className="achievements-header">
-            <div className="achievements-header__titles">
-              <span className="achievements-header__eyebrow">NSS RECOGNITION ARCHIVE</span>
-              <h2 className="achievements-header__title">Milestones of Distinction</h2>
-              <p className="achievements-header__lead">
-                An institutional archive chronicling state awards, university citations, and community service honours conferred upon National Service Scheme volunteers and units at Madras Institute of Technology, Anna University.
-              </p>
-            </div>
-
-            {/* Filter Pills — directly controls the interactive Carousel */}
-            {achievements.length > 0 && (availableYears.length > 1 || availableCategories.length > 1) && (
-              <div className="achievements-filters" role="toolbar" aria-label="Archive filters">
+          {/* Redesigned Elevated Filter Toolbar */}
+          {achievements.length > 0 && (availableYears.length > 1 || availableCategories.length > 1) && (
+            <div className="achievements-filters-toolbar" role="toolbar" aria-label="Archive filters">
+              <div className="achievements-filters-groups">
+                {/* Academic Year Segmented Control */}
                 {availableYears.length > 1 && (
-                  <div className="achievements-pill-group">
-                    <span className="achievements-pill-group__caption">YEAR</span>
-                    <button
-                      type="button"
-                      className={`achievements-pill ${selectedYear === "all" ? "achievements-pill--active" : ""}`}
-                      onClick={() => setSelectedYear("all")}
-                    >
-                      All
-                    </button>
-                    {availableYears.map((year) => (
+                  <div className="achievements-filter-section">
+                    <span className="achievements-filter-label">Year</span>
+                    <div className="achievements-segment-track">
                       <button
-                        key={year}
                         type="button"
-                        className={`achievements-pill ${selectedYear === year ? "achievements-pill--active" : ""}`}
-                        onClick={() => setSelectedYear(year)}
+                        className={`achievements-segment-btn ${selectedYear === "all" ? "achievements-segment-btn--active" : ""}`}
+                        onClick={() => setSelectedYear("all")}
                       >
-                        {year}
+                        All
                       </button>
-                    ))}
+                      {availableYears.map((year) => (
+                        <button
+                          key={year}
+                          type="button"
+                          className={`achievements-segment-btn ${selectedYear === year ? "achievements-segment-btn--active" : ""}`}
+                          onClick={() => setSelectedYear(year)}
+                        >
+                          {year}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
 
+                {/* Divider between year and category */}
+                {availableYears.length > 1 && availableCategories.length > 1 && (
+                  <div className="achievements-filter-sep" aria-hidden="true" />
+                )}
+
+                {/* Category Chips */}
                 {availableCategories.length > 1 && (
-                  <div className="achievements-pill-group">
-                    <span className="achievements-pill-group__caption">CATEGORY</span>
-                    <button
-                      type="button"
-                      className={`achievements-pill ${selectedCategory === "all" ? "achievements-pill--active" : ""}`}
-                      onClick={() => setSelectedCategory("all")}
-                    >
-                      All
-                    </button>
-                    {availableCategories.map((cat) => (
+                  <div className="achievements-filter-section">
+                    <span className="achievements-filter-label">Category</span>
+                    <div className="achievements-chips-track">
                       <button
-                        key={cat}
                         type="button"
-                        className={`achievements-pill ${selectedCategory === cat ? "achievements-pill--active" : ""}`}
-                        onClick={() => setSelectedCategory(cat)}
+                        className={`achievements-chip-btn ${selectedCategory === "all" ? "achievements-chip-btn--active" : ""}`}
+                        onClick={() => setSelectedCategory("all")}
                       >
-                        {cat}
+                        All
                       </button>
-                    ))}
+                      {availableCategories.map((cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          className={`achievements-chip-btn ${selectedCategory === cat ? "achievements-chip-btn--active" : ""}`}
+                          onClick={() => setSelectedCategory(cat)}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
-            )}
-          </header>
+
+              {/* Meta actions (Reset & Record counter) */}
+              <div className="achievements-filters-meta">
+                {(selectedYear !== "all" || selectedCategory !== "all") && (
+                  <button
+                    type="button"
+                    className="achievements-reset-filter-btn"
+                    onClick={() => {
+                      setSelectedYear("all");
+                      setSelectedCategory("all");
+                    }}
+                    title="Reset filters to All"
+                  >
+                    <RotateCcw size={11} />
+                    <span>Reset</span>
+                  </button>
+                )}
+                <span className="achievements-count-badge">
+                  <strong>{filteredAchievements.length}</strong> {filteredAchievements.length === 1 ? "Record" : "Records"}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* ── 3. Content States (Strictly Data-Driven) ── */}
           {loading ? (
