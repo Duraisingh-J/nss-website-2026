@@ -143,6 +143,77 @@ export async function getAdminAchievements() {
 }
 
 /**
+ * Fetches published achievements for public website presentation.
+ * Filters strictly by is_published = true.
+ * Ordered by achievement_date descending, then created_at descending.
+ */
+export async function getPublicAchievements() {
+  try {
+    const { data, error } = await supabase
+      .from("achievements")
+      .select(`
+        id,
+        title,
+        description,
+        achievement_date,
+        category,
+        media_id,
+        person_id,
+        unit,
+        is_published,
+        created_at,
+        updated_at,
+        media:media_id (
+          id,
+          storage_path
+        ),
+        person:person_id (
+          id,
+          name,
+          designation,
+          unit
+        )
+      `)
+      .eq("is_published", true)
+      .order("achievement_date", { ascending: false })
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.warn("Primary public achievements query failed, attempting base table fallback:", error.message);
+      const fallback = await supabase
+        .from("achievements")
+        .select(`
+          id,
+          title,
+          description,
+          achievement_date,
+          category,
+          media_id,
+          person_id,
+          unit,
+          is_published,
+          created_at,
+          updated_at
+        `)
+        .eq("is_published", true)
+        .order("achievement_date", { ascending: false })
+        .order("created_at", { ascending: false });
+
+      if (fallback.error) {
+        throw fallback.error;
+      }
+
+      return (fallback.data || []).map(transformAchievement);
+    }
+
+    return (data || []).map(transformAchievement);
+  } catch (err) {
+    console.error("Error fetching public achievements:", err);
+    throw err;
+  }
+}
+
+/**
  * Fetches people list for optional achievement recipient linking
  */
 export async function getPeopleForSelection() {

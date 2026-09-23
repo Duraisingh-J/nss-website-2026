@@ -5,6 +5,7 @@ import ScrollToTop from "./components/ScrollToTop";
 import Home from "./pages/Home";
 import Events from "./pages/Events";
 import People from "./pages/People";
+import Achievements from "./pages/Achievements";
 import "./styles/global.css";
 
 // Admin CMS Imports
@@ -48,6 +49,7 @@ export default function App() {
           <Route path="/events/:eventId" element={<Navigate to="/events" replace />} />
           <Route path="/events/:eventId/sessions/:sessionId" element={<Navigate to="/events" replace />} />
           <Route path="/people" element={<People />} />
+          <Route path="/achievements" element={<Achievements />} />
 
           {/* Admin CMS Authentication */}
           <Route path="/admin/login" element={<Login />} />

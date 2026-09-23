@@ -7,10 +7,10 @@ export default function Footer() {
   return (
     <footer className="bg-[#070A12] text-slate-200 pt-20 pb-0 overflow-hidden relative border-t border-slate-800/60 selection:bg-red-500/30">
       <div className="max-w-7xl mx-auto px-6 sm:px-8">
-        
+
         {/* ── 4 Main Content Areas Grid ────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-12 pb-16">
-          
+
           {/* 1 — NSS BRAND (Spans 5 columns on desktop) */}
           <div className="lg:col-span-5 flex flex-col justify-start pr-0 lg:pr-8">
             <div className="flex items-center gap-3.5 mb-4">
@@ -52,6 +52,7 @@ export default function Footer() {
                 { name: "Home", path: "/" },
                 { name: "Events", path: "/events" },
                 { name: "People", path: "/people" },
+                { name: "Achievements", path: "/achievements" },
               ].map((item) => (
                 <li key={item.name}>
                   <NavLink
@@ -70,7 +71,7 @@ export default function Footer() {
             <h4 className="text-[11px] font-bold uppercase tracking-widest text-slate-300 mb-4">
               Connect
             </h4>
-            
+
             {/* Simple Horizontal Social Icons */}
             <div className="flex items-center gap-4 pt-1">
               {/* Instagram */}
