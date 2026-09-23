@@ -141,9 +141,7 @@ export default function Events() {
     return () => { mounted = false; };
   }, []);
 
-  useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-  }, [view, selectedType, selectedMonth, selectedEvent]);
+  
 
   const counts = useMemo(() => Object.fromEntries(EVENT_TYPE_DEFINITIONS.map(type => [type.id, events.filter(event => typeMatches(event, type.id)).length])), [events]);
   const selectedEvents = useMemo(() => selectedType ? events.filter(event => typeMatches(event, selectedType.id)) : [], [events, selectedType]);

@@ -1,0 +1,862 @@
+/* ==========================================================================
+   NSS Intro Experience — Cinematic Design System
+   "A Movement of Many" — Hero Photo-to-Logo Architecture
+   ========================================================================== */
+
+:root {
+  --bg-deep: #070709;
+  --bg-surface: #0e1017;
+  --bg-card: rgba(18, 22, 34, 0.9);
+
+  --nss-red: #E63946;
+  --nss-red-deep: #9A031E;
+  --nss-red-glow: rgba(230, 57, 70, 0.25);
+  
+  --nss-navy: #1D3557;
+  --nss-navy-deep: #0D1B2A;
+  --nss-navy-glow: rgba(29, 53, 87, 0.35);
+
+  --nss-gold: #E0A96D;
+  --nss-gold-glow: rgba(224, 169, 109, 0.3);
+
+  --text-pure: #FFFFFF;
+  --text-muted: #94A3B8;
+  --text-dim: #64748B;
+
+  --font-serif: 'Cinzel', Georgia, serif;
+  --font-sans: 'Outfit', 'Inter', -apple-system, sans-serif;
+  --font-body: 'Plus Jakarta Sans', 'Inter', sans-serif;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-deep);
+  color: var(--text-pure);
+  font-family: var(--font-body);
+  user-select: none;
+}
+
+/* ==========================================================================
+   Intro Container & Background
+   ========================================================================== */
+
+.intro-viewport {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-deep);
+  perspective: 1200px;
+}
+
+.ambient-lighting {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.ambient-blob-1 {
+  position: absolute;
+  top: -10%;
+  left: 25%;
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, var(--nss-navy-glow) 0%, transparent 70%);
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.5;
+  animation: floatSlow 20s ease-in-out infinite alternate;
+}
+
+.ambient-blob-2 {
+  position: absolute;
+  bottom: -15%;
+  right: 20%;
+  width: 45vw;
+  height: 45vw;
+  background: radial-gradient(circle, var(--nss-red-glow) 0%, transparent 70%);
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.35;
+  animation: floatSlow 16s ease-in-out infinite alternate-reverse;
+}
+
+.ambient-center-flare {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 35vw;
+  height: 35vw;
+  background: radial-gradient(circle, rgba(230, 57, 70, 0.12) 0%, rgba(29, 53, 87, 0.15) 50%, transparent 70%);
+  border-radius: 50%;
+  filter: blur(70px);
+  transition: opacity 1.5s ease-out, transform 1.5s ease-out;
+}
+
+.ambient-grid {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 70px 70px;
+  mask-image: radial-gradient(circle at center, black 30%, transparent 80%);
+  opacity: 0.3;
+}
+
+.noise-overlay {
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.3;
+}
+
+/* ==========================================================================
+   Phase 1: Prologue / Opening Statement
+   ========================================================================== */
+
+.prologue-container {
+  position: relative;
+  z-index: 40;
+  text-align: center;
+  max-width: 820px;
+  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.prologue-tag {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--nss-gold);
+  opacity: 0;
+  transform: translateY(10px);
+  animation: fadeInUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.2s;
+}
+
+.prologue-headline {
+  font-family: var(--font-serif);
+  font-size: clamp(2.2rem, 5.5vw, 3.8rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  background: linear-gradient(180deg, #FFFFFF 40%, #CBD5E1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  opacity: 0;
+  transform: translateY(14px);
+  animation: fadeInUp 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.6s;
+}
+
+.prologue-subline {
+  font-family: var(--font-body);
+  font-size: clamp(0.95rem, 2vw, 1.2rem);
+  color: var(--text-muted);
+  max-width: 600px;
+  line-height: 1.6;
+  opacity: 0;
+  transform: translateY(14px);
+  animation: fadeInUp 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards 1.1s;
+}
+
+.prologue-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--nss-red);
+  box-shadow: 0 0 16px var(--nss-red);
+  margin-top: 14px;
+  opacity: 0;
+  animation: fadeInPulse 2s ease-in-out infinite 1.6s;
+}
+
+/* ==========================================================================
+   Phases 2 & 3: Photographic Field & Controlled Convergence
+   ========================================================================== */
+
+.photo-space-canvas {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 15;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.photo-space-anchor {
+  position: relative;
+  width: 0;
+  height: 0;
+}
+
+/* Photo Cards in Space */
+.photo-space-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 140px;
+  margin-top: -55px;
+  margin-left: -70px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-surface);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.7);
+  transition: transform 2.2s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 1.8s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 1.8s ease;
+  will-change: transform, opacity;
+  pointer-events: auto;
+}
+
+.photo-space-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: brightness(0.9) contrast(1.08);
+}
+
+.photo-card-sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Depth Layers */
+.photo-space-card.depth-near {
+  width: 175px;
+  margin-top: -65px;
+  margin-left: -87.5px;
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 24px 48px -10px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.photo-space-card.depth-middle {
+  width: 135px;
+  margin-top: -50px;
+  margin-left: -67.5px;
+}
+
+.photo-space-card.depth-far {
+  width: 100px;
+  margin-top: -38px;
+  margin-left: -50px;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Inward Glide Convergence modifier */
+.photo-space-card.inward-glide {
+  transition: transform 2.2s cubic-bezier(0.25, 1, 0.5, 1),
+              opacity 1.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ==========================================================================
+   Phase 4: Official NSS Logo Reveal (Prestigious, Restrained)
+   ========================================================================== */
+
+.official-logo-stage {
+  position: absolute;
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+  transition: all 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Dedicated Hold State (Centered prominently) */
+.official-logo-stage.dedicated-hold {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  gap: 20px;
+}
+
+/* Integrated Header State (Transitioned smoothly to top during countdown/ready) */
+.official-logo-stage.integrated-header {
+  top: 14%;
+  left: 50%;
+  transform: translate(-50%, 0) scale(0.85);
+  gap: 12px;
+}
+
+.official-logo-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.official-logo-halo {
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(230, 57, 70, 0.25) 0%, rgba(224, 169, 109, 0.15) 50%, transparent 70%);
+  filter: blur(20px);
+  animation: fadeInPulse 3s ease-in-out infinite;
+}
+
+.official-nss-logo-img {
+  position: relative;
+  width: clamp(140px, 22vw, 210px);
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.75)) drop-shadow(0 0 18px rgba(230, 57, 70, 0.3));
+  opacity: 0;
+  transform: scale(0.92);
+  animation: logoRevealAnim 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.official-logo-typography {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+  transform: translateY(12px);
+  animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.4s;
+}
+
+.official-org-title {
+  font-family: var(--font-serif);
+  font-size: clamp(1.1rem, 2.4vw, 1.6rem);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #FFFFFF;
+  text-transform: uppercase;
+}
+
+.official-unit-subtitle {
+  font-family: var(--font-sans);
+  font-size: clamp(0.75rem, 1.4vw, 0.9rem);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--nss-gold);
+}
+
+/* ==========================================================================
+   Phase 5: Motto Reveal ("NOT ME, BUT YOU")
+   ========================================================================== */
+
+.motto-reveal-container {
+  position: absolute;
+  top: 52%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+  max-width: 800px;
+}
+
+.motto-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--nss-gold);
+  opacity: 0;
+  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.motto-hero-text {
+  font-family: var(--font-serif);
+  font-size: clamp(2.4rem, 6.5vw, 4.4rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  background: linear-gradient(135deg, #FFFFFF 0%, #F1F5F9 50%, var(--nss-red) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 35px rgba(230, 57, 70, 0.25);
+  opacity: 0;
+  transform: translateY(16px);
+  animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.2s;
+}
+
+.motto-sub-statement {
+  font-family: var(--font-body);
+  font-size: clamp(0.95rem, 2vw, 1.2rem);
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  opacity: 0;
+  transform: translateY(12px);
+  animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.4s;
+}
+
+/* ==========================================================================
+   Phase 6 & 7: Center Action Overlay (Countdown & Enter State)
+   ========================================================================== */
+
+.center-action-overlay {
+  position: absolute;
+  top: 54%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 600px;
+  padding: 0 20px;
+}
+
+/* Countdown */
+.countdown-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.countdown-digit-box {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+
+.countdown-number {
+  font-family: var(--font-sans);
+  font-size: clamp(2.5rem, 6vw, 4.2rem);
+  font-weight: 800;
+  color: var(--text-pure);
+  line-height: 1;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+  min-width: 1.2ch;
+  text-align: right;
+}
+
+.countdown-divider {
+  font-family: var(--font-serif);
+  font-size: clamp(1.5rem, 3.5vw, 2.5rem);
+  color: var(--nss-red);
+  font-weight: 300;
+}
+
+.countdown-keyword {
+  font-family: var(--font-serif);
+  font-size: clamp(1.6rem, 3.8vw, 2.8rem);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--nss-gold);
+  text-shadow: 0 0 24px var(--nss-gold-glow);
+  text-transform: uppercase;
+}
+
+.countdown-subtext {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  max-width: 440px;
+  text-align: center;
+}
+
+.countdown-progress-track {
+  width: 220px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.countdown-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--nss-navy), var(--nss-red), var(--nss-gold));
+  border-radius: 999px;
+  transition: width 0.3s linear;
+}
+
+/* Enter CTA Button */
+.enter-cta-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.magnetic-enter-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 40px;
+  background: linear-gradient(135deg, rgba(230, 57, 70, 0.92) 0%, rgba(154, 3, 30, 0.96) 100%);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 12px 32px -6px rgba(230, 57, 70, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.magnetic-enter-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.35) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.magnetic-enter-btn:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 18px 44px -4px rgba(230, 57, 70, 0.7), 0 0 25px rgba(224, 169, 109, 0.4);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.magnetic-enter-btn:hover::before {
+  opacity: 1;
+}
+
+.btn-arrow-icon {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.3s ease;
+}
+
+.magnetic-enter-btn:hover .btn-arrow-icon {
+  transform: translateX(4px);
+}
+
+.enter-ripple-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  border: 1px solid rgba(230, 57, 70, 0.5);
+  transform: translate(-50%, -50%) scale(1);
+  animation: rippleExpand 2.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   Portal Transition & Completed Modal
+   ========================================================================== */
+
+.portal-aperture-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  background: radial-gradient(circle at center, transparent 0%, var(--bg-deep) 100%);
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 1.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.portal-active .portal-aperture-overlay {
+  opacity: 1;
+  transform: scale(1.6);
+  background: radial-gradient(circle at center, rgba(230, 57, 70, 0.35) 0%, var(--bg-deep) 80%);
+}
+
+.portal-reveal-card {
+  position: relative;
+  z-index: 120;
+  max-width: 680px;
+  padding: 40px;
+  background: rgba(14, 16, 23, 0.96);
+  border: 1px solid rgba(230, 57, 70, 0.3);
+  border-radius: 24px;
+  text-align: center;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8), 0 0 40px rgba(230, 57, 70, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  animation: modalEnter 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.portal-icon-badge {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--nss-red), var(--nss-navy));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 25px rgba(230, 57, 70, 0.5);
+}
+
+.replay-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  color: var(--text-pure);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.replay-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   Skip Control & Dev Drawer
+   ========================================================================== */
+
+.skip-control {
+  position: absolute;
+  top: 28px;
+  right: 28px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  background: rgba(14, 16, 23, 0.75);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.skip-control:hover {
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(230, 57, 70, 0.25);
+  transform: translateY(-1px);
+}
+
+.dev-drawer-toggle {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  z-index: 50;
+  padding: 8px 14px;
+  background: rgba(14, 16, 23, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: var(--text-dim);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.dev-drawer-toggle:hover {
+  color: #FFF;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.dev-drawer-panel {
+  position: absolute;
+  bottom: 68px;
+  right: 24px;
+  width: 320px;
+  padding: 20px;
+  background: rgba(14, 16, 23, 0.96);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  z-index: 60;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dev-drawer-title {
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--nss-gold);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dev-phase-btn {
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.dev-phase-btn.active {
+  background: rgba(230, 57, 70, 0.25);
+  border-color: var(--nss-red);
+  color: #FFF;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Keyframe Animations
+   ========================================================================== */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInPulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes logoRevealAnim {
+  0% {
+    opacity: 0;
+    transform: scale(0.88);
+    filter: blur(8px) drop-shadow(0 0 0 rgba(0,0,0,0));
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0px) drop-shadow(0 12px 28px rgba(0, 0, 0, 0.75)) drop-shadow(0 0 18px rgba(230, 57, 70, 0.3));
+  }
+}
+
+@keyframes floatSlow {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    transform: translate(5%, 6%) scale(1.06);
+  }
+}
+
+@keyframes rippleExpand {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.6);
+    opacity: 0;
+  }
+}
+
+@keyframes modalEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ==========================================================================
+   Responsive Adaptations
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .photo-space-card.depth-near {
+    width: 120px;
+    margin-top: -45px;
+    margin-left: -60px;
+  }
+
+  .photo-space-card.depth-middle {
+    width: 95px;
+    margin-top: -35px;
+    margin-left: -47.5px;
+  }
+
+  .photo-space-card.depth-far {
+    width: 75px;
+    margin-top: -28px;
+    margin-left: -37.5px;
+  }
+
+  .skip-control {
+    top: 18px;
+    right: 18px;
+    padding: 6px 12px;
+    font-size: 0.7rem;
+  }
+
+  .dev-drawer-panel {
+    right: 12px;
+    left: 12px;
+    width: auto;
+  }
+}

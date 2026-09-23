@@ -25,30 +25,23 @@ export default function ScrollToTop() {
   }, []);
 
   // Handle route and hash changes
-  useEffect(() => {
-    if (!hash) {
-      // Instantaneous reset to the very top on route navigation
-      window.scrollTo({
-        top: 0,
-        left: 0,
-        behavior: "instant",
-      });
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    } else {
-      // Preserve intentional anchor navigation
-      const targetId = hash.replace("#", "");
-      const scrollToAnchor = () => {
-        const element = document.getElementById(targetId);
-        if (element) {
-          element.scrollIntoView({ behavior: "smooth" });
-        }
-      };
+ useEffect(() => {
+  if (!hash) {
+    window.scrollTo(0, 0);
+  } else {
+    const targetId = hash.replace("#", "");
 
-      // Ensure target element is in DOM after layout commit
-      requestAnimationFrame(scrollToAnchor);
-    }
-  }, [pathname, hash, navType]);
+    const scrollToAnchor = () => {
+      const element = document.getElementById(targetId);
+
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+      }
+    };
+
+    requestAnimationFrame(scrollToAnchor);
+  }
+}, [pathname, hash, navType]);
 
   return null;
 }

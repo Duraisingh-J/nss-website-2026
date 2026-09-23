@@ -220,3 +220,10 @@ h6 {
   text-align: center;
   width: 100%;
 }
+
+/* ============ 3D TRANSFORMS ============ */
+.transform-3d {
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+}
+
