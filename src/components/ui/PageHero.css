@@ -15,10 +15,10 @@
 .page-hero__watermark {
   position: absolute;
   right: 3vw;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 58%;
+  transform: translateY(-38%);
   font-family: 'Playfair Display', serif;
-  font-size: clamp(72px, 13vw, 160px);
+  font-size: clamp(60px, 11vw, 140px);
   font-weight: 900;
   color: rgba(255, 255, 255, 0.035);
   user-select: none;
@@ -110,11 +110,11 @@
 @keyframes pageHeroWatermarkIn {
   from {
     opacity: 0;
-    transform: translateY(-46%) scale(0.96);
+    transform: translateY(-30%) scale(0.96);
   }
   to {
     opacity: 1;
-    transform: translateY(-50%) scale(1);
+    transform: translateY(-38%) scale(1);
   }
 }
 

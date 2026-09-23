@@ -219,6 +219,8 @@ h6 {
   line-height: 0.75;
   text-align: center;
   width: 100%;
+  max-width: 100%;
+  font-size: clamp(60px, 8vw, 120px);
 }
 
 /* ============ 3D TRANSFORMS ============ */

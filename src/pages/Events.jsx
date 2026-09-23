@@ -8,6 +8,7 @@ import useLiveTime from "../hooks/useLiveTime";
 import { ArrowLeft, ArrowRight, CalendarDays, ChevronRight, Clock3, MapPin, Users } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import "./Events.css";
+import "./EventTypes.css";
 
 const MONTHS = [
   ["01","JAN","January"],["02","FEB","February"],["03","MAR","March"],["04","APR","April"],
@@ -51,10 +52,18 @@ function StatusPill({ status, dark = false }) {
 }
 
 function TypePanel({ type, count, active, onClick }) {
+  const shortforms = {
+    camp: "C",
+    outreach: "OR",
+    orphanage: "OV",
+    monthly: "ME",
+  };
+  const shortform = shortforms[type.id] || type.title.slice(0, 2).toUpperCase();
+
   return (
     <motion.button
       type="button"
-      className={`event-type-panel ${active ? "event-type-panel--active" : ""}`}
+      className={`event-type-panel event-type-card ${active ? "event-type-panel--active" : ""}`}
       onClick={onClick}
       layout
       whileHover={{ y: -4 }}
@@ -62,16 +71,28 @@ function TypePanel({ type, count, active, onClick }) {
     >
       <img src={type.coverImage} alt="" className="event-type-panel__image" />
       <div className="event-type-panel__veil" />
-      <div className="event-type-panel__index">0{EVENT_TYPE_DEFINITIONS.indexOf(type) + 1}</div>
-      <div className="event-type-panel__body">
-        <div className="event-type-panel__eyebrow">{type.isMonthlyType ? "CHRONOLOGICAL ARCHIVE" : "EVENT COLLECTION"}</div>
-        <h2>{type.title}</h2>
-        <p>{type.excerpt || type.shortDesc}</p>
+      <div className="event-type-card__border" />
+      <div className="event-type-card__content">
+        <div className="event-type-card__logo" aria-hidden="true">
+          <span className="event-type-card__short">{shortform}</span>
+          <span className="event-type-card__full">{type.title}</span>
+          <small>NSS EVENT</small>
+        </div>
+        <div className="event-type-panel__eyebrow">
+          {type.isMonthlyType ? "CHRONOLOGICAL ARCHIVE" : "EVENT COLLECTION"}
+        </div>
+        <p>{type.excerpt || type.shortDesc || "Explore NSS activities and events."}</p>
+
+        <div className="event-type-panel__meta">
+          {count} {count === 1 ? "EVENT" : "EVENTS"}
+        </div>
+
         <div className="event-type-panel__footer">
-          <span>{count} {count === 1 ? "event" : "events"}</span>
+          <span className="event-type-panel__explore">EXPLORE</span>
           <span className="event-type-panel__arrow"><ArrowRight size={17} /></span>
         </div>
       </div>
+      <span className="event-type-card__bottom-text">NOT ME BUT YOU</span>
     </motion.button>
   );
 }
@@ -157,8 +178,6 @@ export default function Events() {
     return grouped;
   }, [events, selectedType]);
 
-  const monthEvents = selectedMonth ? (months[selectedMonth] || []) : [];
-
   const openEvent = async (event) => {
     setSelectedEvent(event);
     setView("event");
@@ -181,10 +200,7 @@ export default function Events() {
   const back = () => {
     if (view === "event") {
       setSelectedEvent(null);
-      setView(selectedType?.isMonthlyType && selectedMonth ? "month-events" : selectedType?.isMonthlyType ? "months" : "collection");
-    } else if (view === "month-events") {
-      setSelectedMonth(null);
-      setView("months");
+      setView(selectedType?.isMonthlyType ? "months" : "collection");
     } else {
       setSelectedType(null);
       setSelectedMonth(null);
@@ -200,10 +216,14 @@ export default function Events() {
         {view === "types" && (
           <motion.header className="events-hero" initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-10 }}>
             <div className="events-shell">
-              <div className="events-hero__eyebrow"><span /> NSS MIT / EVENTS</div>
-              <h1>Service, seen<br /><em>through action.</em></h1>
-              <p>Every NSS activity becomes part of a larger story — organised by what we do, when we do it, and the sessions that bring each event to life.</p>
-              <div className="events-hero__rule"><span>01</span><i /><span>EXPLORE THE ARCHIVE</span></div>
+              <div className="events-hero__content">
+                <h1>EVENTS</h1>
+                <div className="events-hero__statement">
+                  Service, seen <em>through action.</em>
+                </div>
+                <p>Every NSS activity becomes part of a larger story — organised by what we do, when we do it, and the sessions that bring each event to life.</p>
+              </div>
+              <div className="events-hero__background-word" aria-hidden="true">EVENTS</div>
             </div>
           </motion.header>
         )}
@@ -216,7 +236,7 @@ export default function Events() {
               <button type="button" className="events-back" onClick={back}><ArrowLeft size={16} /> All Event Types</button>
               <div>
                 <span>{view === "event" ? "EVENT" : selectedType?.isMonthlyType ? "MONTHLY ARCHIVE" : "EVENT COLLECTION"}</span>
-                <h1>{view === "event" ? selectedEvent?.title : view === "month-events" ? formatMonthTitle(selectedMonth) : selectedType?.title}</h1>
+                <h1>{view === "event" ? selectedEvent?.title : selectedType?.title}</h1>
               </div>
             </div>
           )}
@@ -242,22 +262,57 @@ export default function Events() {
           {view === "months" && (
             <section className="months-view">
               <div className="events-section-heading"><span>MONTHLY / CHRONOLOGY</span><h2>Find the month. Then the event.</h2><p>The month is a navigation layer — each event inside it still contains its own sessions.</p></div>
-              <div className="months-grid">
-                {MONTHS.map(([key,short,name]) => {
-                  const monthKey = `${new Date().getFullYear()}-${key}`;
-                  const list = months[monthKey] || [];
-                  return <button key={key} type="button" className={`month-tile ${list.length ? "month-tile--filled" : ""}`} onClick={() => list.length && (setSelectedMonth(monthKey), setView("month-events"))}>
-                    <span>{key}</span><b>{short}</b><small>{name}</small><em>{list.length ? `${list.length} ${list.length === 1 ? "event" : "events"}` : "No published events"}</em>
-                  </button>;
-                })}
+              <div className={`months-browser ${selectedMonth ? "months-browser--selected" : ""}`}>
+                <div className="months-browser__calendar">
+                  <div className="months-grid">
+                    {MONTHS.map(([key,short,name]) => {
+                      const monthKey = `${new Date().getFullYear()}-${key}`;
+                      const list = months[monthKey] || [];
+                      const isSelected = selectedMonth === monthKey;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          className={`month-tile ${list.length ? "month-tile--filled" : ""} ${isSelected ? "month-tile--selected" : ""}`}
+                          onClick={() => list.length && setSelectedMonth(monthKey)}
+                        >
+                          <span>{key}</span><b>{short}</b><small>{name}</small><em>{list.length ? `${list.length} ${list.length === 1 ? "event" : "events"}` : "No events"}</em>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="months-browser__events">
+                  {selectedMonth ? (
+                    <>
+                      <div className="months-browser__events-header">
+                        <div>
+                          <button
+                            type="button"
+                            className="months-browser__back"
+                            onClick={() => setSelectedMonth(null)}
+                          >
+                            <ArrowLeft size={14} />
+                            ALL MONTHS
+                          </button>
+                          <span>MONTH / {formatMonthTitle(selectedMonth)}</span>
+                          <h3>Events recorded this month.</h3>
+                        </div>
+                        <strong>{(months[selectedMonth] || []).length}<small>EVENTS</small></strong>
+                      </div>
+                      <div className="events-list">
+                        {(months[selectedMonth] || []).map(event => <EventRow key={event.id} event={event} onOpen={openEvent} now={now} />)}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="months-browser__empty">
+                      <span>SELECT A MONTH</span>
+                      <h3>Choose a month to explore its events.</h3>
+                      <p>Published events will appear here.</p>
+                    </div>
+                  )}
+                </div>
               </div>
-            </section>
-          )}
-
-          {view === "month-events" && (
-            <section className="events-collection">
-              <div className="events-collection__intro"><div><span>MONTH / {formatMonthTitle(selectedMonth)}</span><h2>Events recorded this month.</h2></div><strong>{monthEvents.length}<small>EVENTS</small></strong></div>
-              <div className="events-list">{monthEvents.length ? monthEvents.map(event => <EventRow key={event.id} event={event} onOpen={openEvent} now={now} />) : <EmptyState text="No published events for this month." />}</div>
             </section>
           )}
 
@@ -293,10 +348,9 @@ function EventDetail({ event, now, onBack, onGallery }) {
         {event.coverImage && <img src={event.coverImage} alt="" />}
         <div className="event-detail__hero-shade" />
         <div className="event-detail__hero-copy">
-          <StatusPill status={status} dark />
-          <span>{event.categoryLabel || "NSS EVENT"}</span>
-          <h2>{event.title}</h2>
-          <p>{event.description || event.shortDesc}</p>
+          <span className="event-detail__hero-status">
+            {statusLabel(status)}
+          </span>
         </div>
       </div>
       <div className="event-detail__facts">
