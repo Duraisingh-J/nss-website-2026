@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, Users, Leaf, Heart, Sparkles } from "lucide-react";
 import { gsap, isReducedMotion } from "../../lib/animations";
 import { ThreeDMarquee } from "../ui/3d-marquee";
-import { getHeroMedia, DEFAULT_HERO_MEDIA } from "../../services/mediaService";
+import { getHeroMedia } from "../../services/mediaService";
 import { getPublicHeroSlides } from "../../services/heroSlideService";
 
 // Curated NSS action images for 3D isometric marquee from /public/images/Hero*
