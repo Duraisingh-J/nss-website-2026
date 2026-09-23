@@ -76,7 +76,6 @@ function TypePanel({ type, count, active, onClick }) {
         <div className="event-type-card__logo" aria-hidden="true">
           <span className="event-type-card__short">{shortform}</span>
           <span className="event-type-card__full">{type.title}</span>
-          <small>NSS EVENT</small>
         </div>
         <div className="event-type-panel__eyebrow">
           {type.isMonthlyType ? "CHRONOLOGICAL ARCHIVE" : "EVENT COLLECTION"}
