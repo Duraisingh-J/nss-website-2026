@@ -53,6 +53,7 @@ export default function Footer() {
                 { name: "Events", path: "/events" },
                 { name: "People", path: "/people" },
                 { name: "Achievements", path: "/achievements" },
+                { name: "Gallery", path: "/gallery" },
               ].map((item) => (
                 <li key={item.name}>
                   <NavLink

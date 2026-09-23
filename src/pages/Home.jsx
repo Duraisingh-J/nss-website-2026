@@ -5,14 +5,13 @@ import StatsSection from "../components/home/StatsSection";
 import ObjectivesSection from "../components/home/ObjectivesSection";
 import MottoSection from "../components/home/MottoSection";
 import ImpactSection from "../components/home/ImpactSection";
-import ActivitiesGallery from "../components/home/ActivitiesGallery";
 import Footer from "../components/Footer";
 import "./Home.css";
 
 /**
  * Merged NSS MIT Home Experience
  * Unifies Identity, Institutional Context, Cardinal Objectives,
- * Key Statistics, Guiding Motto, Impact Domains, and Field Activities.
+ * Key Statistics, Guiding Motto, and Impact Domains.
  */
 export default function Home() {
   return (
@@ -29,18 +28,11 @@ export default function Home() {
       {/* 4. Cardinal Objectives (10-Point Numbered System) */}
       <ObjectivesSection />
 
-      
       {/* 5. Guiding Motto: "Not Me But You" */}
       <MottoSection />
 
       {/* 6. Domains of Community Impact */}
       <ImpactSection />
-
-      {/* 7. Field Documentation & Recent Activities */}
-      <ActivitiesGallery />
-
-      {/* 8. Call to Engagement */}
-      {/* <HomeCTA /> */}
 
       {/* Footer */}
       <Footer />
