@@ -1,42 +1,51 @@
 /* ============================================================
-   PAGE HERO — Shared hero component for People, Events, Sessions
-   Extracted from PeopleHero design pattern
+   PAGE HERO — Unified Editorial Hero Header
+   Matching Events & Achievements Header Aesthetics
    ============================================================ */
 
 .page-hero {
-  background: var(--navy);
-  padding: 44px 5vw 36px;
-  position: relative;
+  position: relative !important;
   overflow: hidden;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  min-height: 390px !important;
+  display: flex;
+  align-items: center;
+  padding: 0 !important;
+  background: #0d1726 !important;
+  color: #ffffff;
+  border-bottom: 0 !important;
 }
 
-/* ── Background Watermark ── */
-.page-hero__watermark {
+.page-hero::after {
+  content: "";
   position: absolute;
-  right: 3vw;
-  top: 58%;
-  transform: translateY(-38%);
-  font-family: 'Playfair Display', serif;
-  font-size: clamp(60px, 11vw, 140px);
-  font-weight: 900;
-  color: rgba(255, 255, 255, 0.035);
-  user-select: none;
-  line-height: 1;
+  z-index: 0;
+  top: -250px;
+  right: 8%;
+  width: 550px;
+  height: 550px;
+  border-radius: 50%;
+  background: rgba(198, 63, 70, 0.045);
+  filter: blur(80px);
   pointer-events: none;
-  letter-spacing: -0.02em;
-  animation: pageHeroWatermarkIn 0.8s ease-out forwards;
 }
 
-/* ── Inner content container ── */
-.page-hero__inner {
-  max-width: 1240px;
-  margin: 0 auto;
+/* ── Shell container ── */
+.page-hero__shell {
   position: relative;
   z-index: 2;
+  width: min(1548px, calc(100% - 64px)) !important;
+  margin: 0 auto !important;
 }
 
-/* ── Eyebrow pill ── */
+/* ── Content column ── */
+.page-hero__content {
+  position: relative;
+  z-index: 3;
+  width: min(880px, 70%);
+  padding: 70px 0 64px;
+}
+
+/* ── Eyebrow pill (optional) ── */
 .page-hero__eyebrow {
   display: inline-flex;
   align-items: center;
@@ -50,104 +59,120 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  padding: 3px 12px;
-  margin-bottom: 10px;
-  animation: pageHeroFadeUp 0.6s ease-out forwards;
+  padding: 4px 14px;
+  margin-bottom: 18px;
 }
 
 .page-hero__eyebrow-dot {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--red);
+  background: #f87171;
   flex-shrink: 0;
 }
 
-/* ── Main Title ── */
+/* ── Main Page Title ── */
 .page-hero__title {
-  font-family: 'DM Sans', sans-serif;
-  font-size: clamp(28px, 4.2vw, 44px);
-  font-weight: 800;
+  margin: 0 !important;
+  color: #ffffff !important;
+  font-family: "DM Sans", Arial, sans-serif !important;
+  font-size: clamp(54px, 6vw, 82px) !important;
+  font-weight: 800 !important;
+  line-height: 0.9 !important;
+  letter-spacing: -0.055em !important;
+  max-width: none !important;
+  text-transform: uppercase;
+}
+
+/* ── Poetic Statement ── */
+.page-hero__statement {
+  margin-top: 18px;
   color: #ffffff;
-  letter-spacing: -0.025em;
-  line-height: 1.15;
-  margin: 0 0 8px 0;
-  animation: pageHeroFadeUp 0.65s ease-out 0.08s forwards;
-  opacity: 0;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: clamp(30px, 3vw, 43px);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+}
+
+.page-hero__statement em {
+  color: #9ca6b6;
+  font-weight: 400;
+  font-style: italic;
 }
 
 /* ── Subtitle / Description ── */
 .page-hero__subtitle {
-  font-family: 'DM Sans', sans-serif;
-  font-size: clamp(13px, 1.6vw, 15px);
-  color: rgba(255, 255, 255, 0.65);
-  max-width: 620px;
-  line-height: 1.55;
-  margin: 0 0 0 0;
-  animation: pageHeroFadeUp 0.7s ease-out 0.16s forwards;
-  opacity: 0;
+  max-width: 680px !important;
+  margin: 18px 0 0 !important;
+  color: #aeb7c5 !important;
+  font-size: 14.5px !important;
+  line-height: 1.65 !important;
+  font-family: "DM Sans", sans-serif;
 }
 
-/* ── Slot for extra controls (e.g. academic year pills) ── */
+/* ── Background Watermark ── */
+.page-hero__watermark {
+  position: absolute;
+  z-index: 1;
+  right: 1.5%;
+  top: 50%;
+  transform: translateY(-46%);
+  color: rgba(255, 255, 255, 0.038);
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: clamp(90px, 12.5vw, 195px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ── Extra controls slot ── */
 .page-hero__controls {
-  margin-top: 16px;
-  animation: pageHeroFadeUp 0.75s ease-out 0.22s forwards;
-  opacity: 0;
-}
-
-/* ── Keyframes ── */
-@keyframes pageHeroFadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes pageHeroWatermarkIn {
-  from {
-    opacity: 0;
-    transform: translateY(-30%) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(-38%) scale(1);
-  }
+  margin-top: 24px;
 }
 
 /* ── Responsive ── */
-@media (max-width: 768px) {
+@media (max-width: 720px) {
   .page-hero {
-    padding: 36px 5vw 28px;
+    min-height: 0 !important;
   }
+
+  .page-hero__shell {
+    width: calc(100% - 32px) !important;
+  }
+
+  .page-hero__content {
+    width: 100%;
+    padding: 60px 0 55px;
+  }
+
+  .page-hero__title {
+    font-size: 58px !important;
+  }
+
+  .page-hero__statement {
+    font-size: 28px !important;
+  }
+
+  .page-hero__subtitle {
+    font-size: 14px !important;
+  }
+
   .page-hero__watermark {
-    right: -2vw;
-    font-size: 100px;
+    right: -10px;
+    top: auto;
+    bottom: -10px;
+    transform: none;
+    font-size: 110px;
   }
 }
 
-@media (max-width: 480px) {
-  .page-hero {
-    padding: 28px 5vw 22px;
-  }
-  .page-hero__watermark {
-    font-size: 72px;
-    opacity: 0.025;
-  }
-}
-
-/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .page-hero__watermark,
-  .page-hero__eyebrow,
-  .page-hero__title,
-  .page-hero__subtitle,
-  .page-hero__controls {
-    animation: none !important;
-    opacity: 1 !important;
-    transform: none !important;
+  .page-hero::after {
+    filter: none !important;
   }
 }
+

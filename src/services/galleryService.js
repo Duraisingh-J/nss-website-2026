@@ -5,9 +5,12 @@ import { formatDateDisplay } from "./eventService.js";
 /**
  * Normalizes event/session category to clean editorial label
  */
+/**
+ * Normalizes event/session category to clean editorial label
+ */
 function normalizeCategory(type) {
-  if (!type) return "Field Initiative";
-  const lower = type.toLowerCase();
+  if (!type) return "Campus Session";
+  const lower = String(type).toLowerCase();
   if (lower === "camp") return "Special Camp";
   if (lower === "outreach" || lower === "drive") return "Outreach Drive";
   if (lower === "orphanage" || lower === "visit") return "Community Visit";
@@ -16,9 +19,21 @@ function normalizeCategory(type) {
 }
 
 /**
- * Fetches all authentic photographs recorded in Supabase,
- * classifying them by group (events, sessions, team, posters, achievements)
- * and associating them with specific event IDs for granular filtering.
+ * Normalizes event/session type to filter group identifier
+ */
+function normalizeGroup(type) {
+  if (!type) return "monthly";
+  const lower = String(type).toLowerCase();
+  if (lower === "camp") return "camp";
+  if (lower === "outreach" || lower === "drive") return "outreach";
+  if (lower === "orphanage" || lower === "visit") return "orphanage";
+  return "monthly";
+}
+
+/**
+ * Fetches verified activity photographs from Supabase:
+ * Includes photographs from event_media, session_media, events (covers), and gallery_album_media.
+ * Strictly excludes media belonging to people (volunteers, incharge) and achievements.
  *
  * @returns {Promise<Array<{
  *   id: string,
@@ -26,8 +41,9 @@ function normalizeCategory(type) {
  *   title: string,
  *   caption?: string,
  *   date?: string,
+ *   rawDate?: string,
  *   category: string,
- *   group: "events" | "sessions" | "team" | "posters" | "achievements",
+ *   group: "camp" | "monthly" | "orphanage" | "outreach",
  *   eventId?: string,
  *   eventTitle?: string,
  *   sessionId?: string,
@@ -36,40 +52,39 @@ function normalizeCategory(type) {
  */
 export async function getGalleryImages() {
   try {
-    // 1. Fetch base media records ordered by creation date
-    const { data: mediaRows, error: mediaError } = await supabase
-      .from("media")
-      .select("id, file_name, storage_path, alt_text, caption, created_at, mime_type")
-      .order("created_at", { ascending: false });
-
-    if (mediaError) {
-      console.error("Error fetching media table:", mediaError.message);
-      throw mediaError;
-    }
-
-    if (!mediaRows || mediaRows.length === 0) {
-      return [];
-    }
-
-    // 2. Fetch associations across events, sessions, and people
-    const [eventMediaRes, sessionMediaRes, peopleRes] = await Promise.allSettled([
+    const [eventMediaRes, sessionMediaRes, eventsRes, albumMediaRes] = await Promise.allSettled([
+      // 1. Photos associated with events
       supabase
         .from("event_media")
         .select(`
-          media_id,
+          id,
           event_id,
+          media_id,
+          display_order,
           events (
             id,
             title,
             start_date,
             event_type
+          ),
+          media (
+            id,
+            storage_path,
+            caption,
+            alt_text,
+            created_at
           )
-        `),
+        `)
+        .order("display_order", { ascending: true }),
+
+      // 2. Photos associated with individual event sessions
       supabase
         .from("session_media")
         .select(`
-          media_id,
+          id,
           session_id,
+          media_id,
+          display_order,
           sessions (
             id,
             title,
@@ -80,137 +95,172 @@ export async function getGalleryImages() {
               title,
               event_type
             )
+          ),
+          media (
+            id,
+            storage_path,
+            caption,
+            alt_text,
+            created_at
           )
-        `),
+        `)
+        .order("display_order", { ascending: true }),
+
+      // 3. Official event cover photographs
       supabase
-        .from("people")
+        .from("events")
         .select(`
-          photo_media_id,
-          name,
-          designation,
-          roles (
-            name
+          id,
+          title,
+          start_date,
+          event_type,
+          cover_media:cover_media_id (
+            id,
+            storage_path,
+            caption,
+            alt_text,
+            created_at
+          )
+        `)
+        .not("cover_media_id", "is", null),
+
+      // 4. Photos from dedicated gallery albums (if any)
+      supabase
+        .from("gallery_album_media")
+        .select(`
+          id,
+          album_id,
+          media_id,
+          gallery_albums (
+            id,
+            title,
+            event_id
+          ),
+          media (
+            id,
+            storage_path,
+            caption,
+            alt_text,
+            created_at
           )
         `),
     ]);
 
-    // Build lookup maps
-    const eventMap = new Map();
-    if (eventMediaRes.status === "fulfilled" && Array.isArray(eventMediaRes.value.data)) {
-      eventMediaRes.value.data.forEach((row) => {
-        if (row.media_id && row.events) {
-          eventMap.set(row.media_id, {
-            eventId: row.event_id || row.events.id,
-            ...row.events,
-          });
-        }
-      });
-    }
-
-    const sessionMap = new Map();
-    if (sessionMediaRes.status === "fulfilled" && Array.isArray(sessionMediaRes.value.data)) {
-      sessionMediaRes.value.data.forEach((row) => {
-        if (row.media_id && row.sessions) {
-          sessionMap.set(row.media_id, {
-            sessionId: row.session_id || row.sessions.id,
-            sessionTitle: row.sessions.title,
-            sessionDate: row.sessions.session_date,
-            eventId: row.sessions.event_id || row.sessions.events?.id || null,
-            eventTitle: row.sessions.events?.title || null,
-            eventType: row.sessions.events?.event_type || null,
-          });
-        }
-      });
-    }
-
-    const peopleMap = new Map();
-    if (peopleRes.status === "fulfilled" && Array.isArray(peopleRes.value.data)) {
-      peopleRes.value.data.forEach((p) => {
-        if (p.photo_media_id) {
-          peopleMap.set(p.photo_media_id, p);
-        }
-      });
-    }
-
-    // 3. Map & classify into presentation items
-    const galleryItems = [];
+    const seenMediaIds = new Set();
     const seenUrls = new Set();
+    const galleryItems = [];
 
-    mediaRows.forEach((row) => {
-      if (!row.storage_path) return;
+    const addPhoto = ({ media, eventId, eventTitle, eventType, date, title, caption, sessionId, sessionTitle }) => {
+      if (!media || !media.storage_path) return;
+      if (seenMediaIds.has(media.id)) return;
 
-      const publicUrl = getMediaPublicUrl(row.storage_path);
+      const path = (media.storage_path || "").toLowerCase();
+      // Strictly exclude any media stored in people/ or achievements/ folders
+      if (path.startsWith("people/") || path.startsWith("achievements/")) return;
+
+      const publicUrl = getMediaPublicUrl(media.storage_path);
       if (!publicUrl || seenUrls.has(publicUrl)) return;
+
+      seenMediaIds.add(media.id);
       seenUrls.add(publicUrl);
 
-      const associatedEvent = eventMap.get(row.id);
-      const associatedSession = sessionMap.get(row.id);
-      const associatedPerson = peopleMap.get(row.id);
-
-      const pathPrefix = (row.storage_path.split("/")[0] || "").toLowerCase();
-
-      // Determine classification group
-      let group = "events";
-      let category = "Field Initiative";
-      let title = row.caption || row.alt_text || null;
-      let date = null;
-      let eventId = null;
-      let eventTitle = null;
-
-      if (associatedPerson || pathPrefix === "people") {
-        group = "team";
-        category = "Team & Volunteers";
-        title = associatedPerson
-          ? `${associatedPerson.name} · ${associatedPerson.roles?.name || associatedPerson.designation || "Volunteer"}`
-          : row.caption || "NSS Team Member";
-        date = formatDateDisplay(row.created_at);
-      } else if (pathPrefix === "heroes" || pathPrefix === "hero" || pathPrefix === "banners") {
-        group = "posters";
-        category = "Posters & Banners";
-        title = row.caption || row.alt_text || "NSS Event Poster";
-        date = formatDateDisplay(row.created_at);
-      } else if (pathPrefix === "achievements") {
-        group = "achievements";
-        category = "Achievements";
-        title = row.caption || row.alt_text || "NSS MIT Recognition";
-        date = formatDateDisplay(row.created_at);
-      } else if (associatedSession || pathPrefix === "sessions") {
-        group = "sessions";
-        category = normalizeCategory(associatedSession?.eventType || "Campus Session");
-        title = associatedSession?.sessionTitle || row.caption || "Campus Session";
-        date = associatedSession?.sessionDate
-          ? formatDateDisplay(associatedSession.sessionDate)
-          : formatDateDisplay(row.created_at);
-        eventId = associatedSession?.eventId || null;
-        eventTitle = associatedSession?.eventTitle || null;
-      } else {
-        group = "events";
-        if (associatedEvent) {
-          category = normalizeCategory(associatedEvent.event_type);
-          title = associatedEvent.title || row.caption || "Field Documentation";
-          date = formatDateDisplay(associatedEvent.start_date);
-          eventId = associatedEvent.eventId || associatedEvent.id;
-          eventTitle = associatedEvent.title;
-        } else {
-          category = "Field Documentation";
-          title = row.caption || row.alt_text || "Field Initiative";
-          date = formatDateDisplay(row.created_at);
-        }
-      }
+      const group = normalizeGroup(eventType);
+      const category = normalizeCategory(eventType);
 
       galleryItems.push({
-        id: row.id,
+        id: media.id,
         url: publicUrl,
-        title: title || "NSS MIT Initiative",
-        caption: row.caption || "",
-        date: date || "",
+        title: title || caption || media.caption || media.alt_text || eventTitle || "NSS MIT Initiative",
+        caption: caption || media.caption || media.alt_text || "",
+        date: date ? formatDateDisplay(date) : formatDateDisplay(media.created_at),
+        rawDate: date || media.created_at,
         category,
         group,
-        eventId,
-        eventTitle,
-        storagePath: row.storage_path,
-        createdAt: row.created_at,
+        eventId: eventId || null,
+        eventTitle: eventTitle || null,
+        sessionId: sessionId || null,
+        sessionTitle: sessionTitle || null,
+        storagePath: media.storage_path,
+        createdAt: media.created_at,
       });
+    };
+
+    // Process event_media
+    if (eventMediaRes.status === "fulfilled" && Array.isArray(eventMediaRes.value.data)) {
+      eventMediaRes.value.data.forEach((row) => {
+        if (row.media) {
+          addPhoto({
+            media: row.media,
+            eventId: row.event_id || row.events?.id,
+            eventTitle: row.events?.title,
+            eventType: row.events?.event_type,
+            date: row.events?.start_date,
+            title: row.events?.title,
+            caption: row.media.caption || row.media.alt_text,
+          });
+        }
+      });
+    }
+
+    // Process session_media
+    if (sessionMediaRes.status === "fulfilled" && Array.isArray(sessionMediaRes.value.data)) {
+      sessionMediaRes.value.data.forEach((row) => {
+        if (row.media) {
+          const ev = row.sessions?.events;
+          addPhoto({
+            media: row.media,
+            eventId: ev?.id || row.sessions?.event_id,
+            eventTitle: ev?.title || row.sessions?.title,
+            eventType: ev?.event_type || "monthly",
+            date: row.sessions?.session_date || ev?.start_date,
+            title: row.sessions?.title || ev?.title,
+            caption: row.media.caption || row.media.alt_text,
+            sessionId: row.sessions?.id,
+            sessionTitle: row.sessions?.title,
+          });
+        }
+      });
+    }
+
+    // Process event covers
+    if (eventsRes.status === "fulfilled" && Array.isArray(eventsRes.value.data)) {
+      eventsRes.value.data.forEach((ev) => {
+        if (ev.cover_media) {
+          addPhoto({
+            media: ev.cover_media,
+            eventId: ev.id,
+            eventTitle: ev.title,
+            eventType: ev.event_type,
+            date: ev.start_date,
+            title: ev.title,
+            caption: ev.cover_media.caption || ev.cover_media.alt_text,
+          });
+        }
+      });
+    }
+
+    // Process gallery_album_media
+    if (albumMediaRes.status === "fulfilled" && Array.isArray(albumMediaRes.value.data)) {
+      albumMediaRes.value.data.forEach((row) => {
+        if (row.media) {
+          addPhoto({
+            media: row.media,
+            eventId: row.gallery_albums?.event_id,
+            eventTitle: row.gallery_albums?.title,
+            eventType: "monthly",
+            date: row.media.created_at,
+            title: row.gallery_albums?.title,
+            caption: row.media.caption || row.media.alt_text,
+          });
+        }
+      });
+    }
+
+    // Chronological order: newest activities first
+    galleryItems.sort((a, b) => {
+      const dateA = new Date(a.rawDate || a.createdAt).getTime();
+      const dateB = new Date(b.rawDate || b.createdAt).getTime();
+      return dateB - dateA;
     });
 
     return galleryItems;

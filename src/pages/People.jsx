@@ -56,7 +56,7 @@ export default function People() {
   const hasAnyPeople = peopleData.all && peopleData.all.length > 0;
 
   return (
-    <div className="page-wrapper people-page">
+    <div className="people-page">
       {/* ── 1. Hero Section ── */}
       <PeopleHero />
 

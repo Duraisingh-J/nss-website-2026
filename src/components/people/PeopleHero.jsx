@@ -9,10 +9,14 @@ import PageHero from "../ui/PageHero";
 export default function PeopleHero() {
   return (
     <PageHero
-      watermark="TEAM"
-      eyebrow="The Team"
-      title="OUR PEOPLE"
-      description="Meet the dedicated faculty leaders and student coordinators driving NSS at Madras Institute of Technology, Anna University."
+      title="PEOPLE"
+      statement={
+        <>
+          Leadership, driven <em>by service.</em>
+        </>
+      }
+      description="Meet the dedicated faculty leaders, programme officers, and student coordinators driving NSS at Madras Institute of Technology, Anna University."
+      watermark="PEOPLE"
     />
   );
 }

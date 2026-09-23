@@ -13,19 +13,16 @@ import {
   AlertCircle,
   RefreshCw,
   Image as ImageIcon,
-  Filter,
-  Calendar,
-  X,
+  RotateCcw,
 } from "lucide-react";
 import "./Gallery.css";
 
 const CATEGORY_TABS = [
-  { id: "activities", label: "Field Documentation" },
-  { id: "events", label: "Special Camps & Drives" },
-  { id: "sessions", label: "Campus Sessions" },
-  { id: "team", label: "Team & Volunteers" },
-  { id: "posters", label: "Posters & Creative" },
   { id: "all", label: "All Photos" },
+  { id: "camp", label: "Special Camps" },
+  { id: "monthly", label: "Campus Sessions" },
+  { id: "orphanage", label: "Community Visits" },
+  { id: "outreach", label: "Outreach Drives" },
 ];
 
 // If there are fewer than 8 photos in a view, render a clean static card showcase
@@ -38,7 +35,7 @@ export default function Gallery() {
   const [error, setError] = useState(null);
 
   // Filter states
-  const [selectedCategory, setSelectedCategory] = useState("activities");
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedEventId, setSelectedEventId] = useState("all");
 
   // Lightbox state
@@ -63,10 +60,13 @@ export default function Gallery() {
     fetchImages();
   }, [fetchImages]);
 
-  // Extract unique events that possess photos
+  // Extract unique events that possess photos (scoped to selected category if applicable)
   const availableEvents = useMemo(() => {
-    return getGalleryEventsList(images);
-  }, [images]);
+    const pool = selectedCategory === "all"
+      ? images
+      : images.filter((img) => img.group === selectedCategory);
+    return getGalleryEventsList(pool);
+  }, [images, selectedCategory]);
 
   // Apply filters
   const filteredImages = useMemo(() => {
@@ -74,26 +74,12 @@ export default function Gallery() {
 
     let result = images;
 
-    // 1. If an event is selected from the dropdown, prioritize event filtering
-    if (selectedEventId !== "all") {
-      result = result.filter((img) => img.eventId === selectedEventId);
-      return result;
+    if (selectedCategory !== "all") {
+      result = result.filter((img) => img.group === selectedCategory);
     }
 
-    // 2. Otherwise filter by organized category
-    if (selectedCategory === "activities") {
-      // Clean field documentation (camps, sessions, achievements) without passport headshots
-      result = result.filter(
-        (img) => img.group === "events" || img.group === "sessions" || img.group === "achievements"
-      );
-    } else if (selectedCategory === "events") {
-      result = result.filter((img) => img.group === "events");
-    } else if (selectedCategory === "sessions") {
-      result = result.filter((img) => img.group === "sessions");
-    } else if (selectedCategory === "team") {
-      result = result.filter((img) => img.group === "team");
-    } else if (selectedCategory === "posters") {
-      result = result.filter((img) => img.group === "posters");
+    if (selectedEventId !== "all") {
+      result = result.filter((img) => img.eventId === selectedEventId);
     }
 
     return result;
@@ -107,17 +93,6 @@ export default function Gallery() {
     if (!isMarqueeMode) return { row1: [], row2: [] };
     return distributeGalleryRows(filteredImages);
   }, [filteredImages, isMarqueeMode]);
-
-  // Active event detail
-  const activeEvent = useMemo(() => {
-    if (selectedEventId === "all") return null;
-    return availableEvents.find((e) => e.id === selectedEventId) || null;
-  }, [selectedEventId, availableEvents]);
-
-  // Reset event filter
-  const handleClearEventFilter = () => {
-    setSelectedEventId("all");
-  };
 
   // Handle category tab click
   const handleCategorySelect = (categoryId) => {
@@ -147,89 +122,100 @@ export default function Gallery() {
   };
 
   return (
-    <div className="page-wrapper gallery-page">
-      {/* ── 1. Compact Page Hero with Subtle Watermark ─────────── */}
+    <div className="gallery-page">
+      {/* ── 1. Page Hero (Matching Events & Achievements Header) ── */}
       <PageHero
+        title="GALLERY"
+        statement={
+          <>
+            Moments, captured <em>in action.</em>
+          </>
+        }
+        description="A visual archive of NSS initiatives, field documentation, community outreach drives, and volunteer moments."
         watermark="GALLERY"
-        eyebrow="NSS GALLERY"
-        title="Visual Archive"
-        description="A visual archive of NSS initiatives, field documentation, community outreach, and volunteer moments."
       />
 
       <main className="gallery-main-container">
-        {/* ── 2. FILTER & CONTROLS TOOLBAR ─────────────────────── */}
+        {/* ── 2. ELEVATED FILTER TOOLBAR (MATCHING ACHIEVEMENTS) ── */}
         {!loading && !error && images.length > 0 && (
-          <section className="gallery-controls-section" aria-label="Gallery Filters">
-            <div className="gallery-controls-container">
-              {/* Top Row: Category Pills & Motion Pause Button */}
-              <div className="gallery-controls-header">
-                {/* Category Pills */}
-                <div className="gallery-category-tabs" role="tablist" aria-label="Photo categories">
-                  {CATEGORY_TABS.map((tab) => {
-                    const isActive = selectedEventId === "all" && selectedCategory === tab.id;
-                    return (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        role="tab"
-                        aria-selected={isActive}
-                        onClick={() => handleCategorySelect(tab.id)}
-                        className={`gallery-category-pill ${isActive ? "gallery-category-pill--active" : ""}`}
-                      >
-                        {tab.label}
-                      </button>
-                    );
-                  })}
+          <div className="gallery-shell">
+            <div className="gallery-filters-toolbar" role="toolbar" aria-label="Gallery filters">
+              <div className="gallery-filters-groups">
+                {/* Category Chips */}
+                <div className="gallery-filter-section">
+                  <span className="gallery-filter-label">Category</span>
+                  <div className="gallery-chips-track">
+                    {CATEGORY_TABS.map((tab) => {
+                      const isActive = selectedCategory === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          role="tab"
+                          aria-selected={isActive}
+                          className={`gallery-chip-btn ${isActive ? "gallery-chip-btn--active" : ""}`}
+                          onClick={() => handleCategorySelect(tab.id)}
+                        >
+                          {tab.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
+
+                {/* Divider between Category and Event */}
+                {availableEvents.length > 0 && (
+                  <div className="gallery-filter-sep" aria-hidden="true" />
+                )}
+
+                {/* Event Select Dropdown */}
+                {availableEvents.length > 0 && (
+                  <div className="gallery-filter-section">
+                    <span className="gallery-filter-label">Event</span>
+                    <div className="gallery-event-select-wrapper">
+                      <select
+                        id="gallery-event-filter"
+                        value={selectedEventId}
+                        onChange={(e) => setSelectedEventId(e.target.value)}
+                        className="gallery-event-select"
+                        aria-label="Filter photographs by specific event"
+                      >
+                        <option value="all">
+                          All Events ({availableEvents.length})
+                        </option>
+                        {availableEvents.map((ev) => (
+                          <option key={ev.id} value={ev.id}>
+                            {ev.title} ({ev.count})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Bottom Row: Event Dropdown & Active Filter Badge */}
-              <div className="gallery-controls-subbar">
-                <div className="gallery-event-picker-wrap">
-                  <label htmlFor="gallery-event-select" className="gallery-event-label">
-                    <Filter className="w-3.5 h-3.5 text-red-600" />
-                    <span>Filter by Event:</span>
-                  </label>
-                  <select
-                    id="gallery-event-select"
-                    value={selectedEventId}
-                    onChange={(e) => setSelectedEventId(e.target.value)}
-                    className="gallery-event-select"
+              {/* Meta actions (Reset & Record counter) */}
+              <div className="gallery-filters-meta">
+                {(selectedCategory !== "all" || selectedEventId !== "all") && (
+                  <button
+                    type="button"
+                    className="gallery-reset-filter-btn"
+                    onClick={() => {
+                      setSelectedCategory("all");
+                      setSelectedEventId("all");
+                    }}
+                    title="Reset filters to All"
                   >
-                    <option value="all">All Events ({availableEvents.length})</option>
-                    {availableEvents.map((evt) => (
-                      <option key={evt.id} value={evt.id}>
-                        {evt.title} ({evt.count} {evt.count === 1 ? "photo" : "photos"})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Status Indicator & Active Event Tag */}
-                <div className="gallery-status-indicator">
-                  {activeEvent ? (
-                    <span className="gallery-active-event-tag">
-                      <Calendar className="w-3 h-3 text-red-600" />
-                      <span className="truncate max-w-[280px]">{activeEvent.title}</span>
-                      <button
-                        type="button"
-                        onClick={handleClearEventFilter}
-                        className="gallery-active-event-clear"
-                        aria-label="Clear event filter"
-                        title="Show all activities"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ) : null}
-
-                  <span className="gallery-photo-count">
-                    {filteredImages.length} {filteredImages.length === 1 ? "photograph" : "photographs"}
-                  </span>
-                </div>
+                    <RotateCcw size={11} />
+                    <span>Reset</span>
+                  </button>
+                )}
+                <span className="gallery-count-badge">
+                  <strong>{filteredImages.length}</strong> {filteredImages.length === 1 ? "Photograph" : "Photographs"}
+                </span>
               </div>
             </div>
-          </section>
+          </div>
         )}
 
         {/* ── LOADING STATE: 2 Static Skeleton Strip Rows ──────── */}
