@@ -23,6 +23,8 @@ export default function UnitSelector({
   onSelectYear,
 }) {
   const tabsRef = useRef([]);
+  const navRef = useRef(null);
+  const isFirstMount = useRef(true);
   const [sliderStyle, setSliderStyle] = useState({ left: 0, width: 0 });
 
   useEffect(() => {
@@ -34,18 +36,29 @@ export default function UnitSelector({
         width: el.offsetWidth,
       });
 
-      // Scroll into view on mobile if needed
-      el.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-        inline: "center",
-      });
+      // Prevent page auto-scrolling on initial mount
+      if (isFirstMount.current) {
+        isFirstMount.current = false;
+        return;
+      }
+
+      // If user deliberately changes unit, scroll only the horizontal tab container, never the window
+      if (navRef.current) {
+        const container = navRef.current;
+        const targetScrollLeft =
+          el.offsetLeft - (container.clientWidth - el.offsetWidth) / 2;
+        container.scrollTo({
+          left: targetScrollLeft,
+          behavior: "smooth",
+        });
+      }
     }
   }, [selectedUnit]);
 
   return (
     <div className="unit-selector-wrapper">
       <nav
+        ref={navRef}
         className="unit-selector"
         role="tablist"
         aria-label="NSS Units Navigation"

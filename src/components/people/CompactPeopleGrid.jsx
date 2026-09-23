@@ -23,7 +23,20 @@ export default function CompactPeopleGrid({ people = [], fallbackRole = "Head" }
           initials,
         } = person;
 
-        const roleText = role || badge || fallbackRole;
+        const baseRole = role || badge || fallbackRole;
+        const roleWithYear = year && !baseRole.toLowerCase().includes("year")
+          ? `${baseRole} · ${year}`
+          : baseRole;
+
+        const cleanDept = dept
+          ? dept
+              .replace(/^Dept\.\s*of\s+/i, "")
+              .replace(/^Dept\.\s*/i, "")
+              .replace(/^Department\s*of\s+/i, "")
+              .replace(/^Department\s*/i, "")
+              .trim()
+          : null;
+        const deptText = cleanDept ? `Department of ${cleanDept}` : null;
 
         return (
           <div key={reg || name || idx} className="compact-person-card">
@@ -46,22 +59,28 @@ export default function CompactPeopleGrid({ people = [], fallbackRole = "Head" }
                 </div>
               )}
 
-              {roleText && (
-                <div className="compact-person-card__badge">{roleText}</div>
+              {baseRole && (
+                <div className="compact-person-card__badge">{baseRole}</div>
               )}
             </div>
 
             <div className="compact-person-card__body">
-              <div className="compact-person-card__role">{roleText}</div>
+              <div className="compact-person-card__role">{roleWithYear}</div>
               <h3 className="compact-person-card__name">{name}</h3>
-              {dept && (
+              {deptText && (
                 <div className="compact-person-card__dept">
-                  {year && `${year} · `}
-                  {dept.startsWith("Dept.") ? dept : `${dept}`}
+                  {deptText}
                 </div>
               )}
               {reg && (
-                <div className="compact-person-card__reg">Reg: {reg}</div>
+                <div
+                  className="compact-person-card__reg"
+                  title={`Registration Number: ${reg}`}
+                >
+                  <span className="compact-person-card__reg-label">REG</span>
+                  <span className="compact-person-card__reg-dot">·</span>
+                  <span className="compact-person-card__reg-val">{reg}</span>
+                </div>
               )}
             </div>
           </div>

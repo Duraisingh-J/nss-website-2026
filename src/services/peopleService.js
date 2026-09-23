@@ -1,7 +1,8 @@
 import { supabase } from "../lib/supabase.js";
 import { uploadMedia, getMediaPublicUrl } from "./mediaService.js";
+import { getStaffProfileUrl } from "../data/staffProfileLinks.js";
 
-export { getMediaPublicUrl };
+export { getMediaPublicUrl, getStaffProfileUrl };
 
 /**
  * Maps numeric unit (1-7) to Roman numeral unit string ("Unit I" - "Unit VII")
@@ -47,6 +48,24 @@ export function getInitials(name) {
 }
 
 /**
+ * Standardizes department names to "Department of ..." format (replacing "Dept.")
+ */
+export function formatDepartment(dept) {
+  if (!dept || typeof dept !== "string") return null;
+  const trimmed = dept.trim();
+  if (!trimmed) return null;
+
+  const cleaned = trimmed
+    .replace(/^Dept\.\s*of\s+/i, "")
+    .replace(/^Dept\.\s*/i, "")
+    .replace(/^Department\s*of\s+/i, "")
+    .replace(/^Department\s*/i, "")
+    .trim();
+
+  return cleaned ? `Department of ${cleaned}` : null;
+}
+
+/**
  * Transforms a raw Supabase relational row into the shape expected by UI components
  */
 export function transformPerson(row) {
@@ -58,11 +77,7 @@ export function transformPerson(row) {
   const photoUrl = getMediaPublicUrl(row.media?.storage_path);
 
   const rawDept = row.department || row.bio || "";
-  const deptFormatted = rawDept
-    ? rawDept.startsWith("Dept.") || rawDept.startsWith("Department")
-      ? rawDept
-      : `Dept. of ${rawDept}`
-    : null;
+  const deptFormatted = formatDepartment(rawDept);
 
   return {
     id: row.id,
@@ -86,6 +101,15 @@ export function transformPerson(row) {
     photo_media_id: row.photo_media_id,
     image: photoUrl,
     initials: getInitials(row.name),
+    profileUrl:
+      getStaffProfileUrl({
+        id: row.id,
+        name: row.name,
+        unit: formattedUnit,
+        rawUnit: row.unit,
+        role: roleName,
+        roleName: roleName,
+      }) || "",
     badge: formattedUnit ? `${roleName} · ${formattedUnit}` : roleName,
     is_active: Boolean(row.is_active),
     created_at: row.created_at,
@@ -166,17 +190,17 @@ export async function getPublicPeople() {
       !programOfficers.includes(p) &&
       !unitIncharges.includes(p)
   ).sort((a, b) => {
-      // 1. Year: Final Years (4) first, then Pre-Final (3)
-      const yearDiff = (Number(b.rawYear) || 0) - (Number(a.rawYear) || 0);
-      if (yearDiff !== 0) return yearDiff;
+    // 1. Year: Final Years (4) first, then Pre-Final (3)
+    const yearDiff = (Number(b.rawYear) || 0) - (Number(a.rawYear) || 0);
+    if (yearDiff !== 0) return yearDiff;
 
-      // 2. Specific role order: Treasurer -> Joint Treasurer -> Session -> Report -> Design
-      const priorityDiff = getRolePriority(a.roleName) - getRolePriority(b.roleName);
-      if (priorityDiff !== 0) return priorityDiff;
+    // 2. Specific role order: Treasurer -> Joint Treasurer -> Session -> Report -> Design
+    const priorityDiff = getRolePriority(a.roleName) - getRolePriority(b.roleName);
+    if (priorityDiff !== 0) return priorityDiff;
 
-      // 3. Alphabetical by Name if same year & role
-      return (a.name || "").localeCompare(b.name || "");
-    });
+    // 3. Alphabetical by Name if same year & role
+    return (a.name || "").localeCompare(b.name || "");
+  });
 
   return {
     all: allPeople,

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Phone, Mail } from "lucide-react";
+import { getStaffProfileUrl } from "../../data/staffProfileLinks.js";
 import "./ActivePersonInfo.css";
 
 /**
@@ -61,16 +62,30 @@ export default function ActivePersonInfo({
     email,
     badge,
     year,
+    profileUrl: rawProfileUrl,
   } = displayedPerson;
+
+  const profileUrl = (rawProfileUrl || getStaffProfileUrl(displayedPerson) || "").trim();
+  const isClickable = Boolean(profileUrl);
 
   const roleText =
     role || (unit ? `Program Officer – ${unit}` : badge || fallbackRole);
 
-  const deptText = dept
-    ? dept.startsWith("Dept.")
-      ? dept
-      : `Department of ${dept}`
+  // Include year after the role/post text (e.g. "Senior Volunteer · Final Year")
+  const displayPost = post
+    ? (year && !post.toLowerCase().includes("year") ? `${post} · ${year}` : post)
+    : (year || null);
+
+  // Standardize department to "Department of ..." (replacing "Dept.")
+  const cleanDeptName = dept
+    ? dept
+        .replace(/^Dept\.\s*of\s+/i, "")
+        .replace(/^Dept\.\s*/i, "")
+        .replace(/^Department\s*of\s+/i, "")
+        .replace(/^Department\s*/i, "")
+        .trim()
     : null;
+  const deptText = cleanDeptName ? `Department of ${cleanDeptName}` : null;
 
   return (
     <div
@@ -80,30 +95,72 @@ export default function ActivePersonInfo({
       <div
         className={`active-person-info__content active-person-info__content--${animState}`}
       >
-        {/* Role Pill */}
-        {roleText && (
-          <div className="active-person-info__role">{roleText}</div>
+        {/* Profile Content Area - clickable if profileUrl exists */}
+        {isClickable ? (
+          <a
+            href={profileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="active-person-info__header-link"
+            aria-label={`View external profile of ${name}`}
+          >
+            {/* Role Pill */}
+            {roleText && (
+              <div className="active-person-info__role">{roleText}</div>
+            )}
+
+            {/* Person Name */}
+            <h3 className="active-person-info__name active-person-info__name--link">
+              {name}
+            </h3>
+
+            {/* Academic / Staff Post / Designation + Year */}
+            {displayPost && (
+              <div className="active-person-info__post">{displayPost}</div>
+            )}
+
+            {/* Department Highlight Chip */}
+            {deptText && (
+              <div className="active-person-info__dept">
+                {deptText}
+              </div>
+            )}
+
+            {/* Institutional Unit */}
+            <div className="active-person-info__institution">
+              <span className="active-person-info__institution-dot" />
+              <span>NSS MIT Anna University</span>
+            </div>
+          </a>
+        ) : (
+          <>
+            {/* Role Pill */}
+            {roleText && (
+              <div className="active-person-info__role">{roleText}</div>
+            )}
+
+            {/* Person Name */}
+            <h3 className="active-person-info__name">{name}</h3>
+
+            {/* Academic / Staff Post / Designation + Year */}
+            {displayPost && (
+              <div className="active-person-info__post">{displayPost}</div>
+            )}
+
+            {/* Department Highlight Chip */}
+            {deptText && (
+              <div className="active-person-info__dept">
+                {deptText}
+              </div>
+            )}
+
+            {/* Institutional Unit */}
+            <div className="active-person-info__institution">
+              <span className="active-person-info__institution-dot" />
+              <span>NSS MIT Anna University</span>
+            </div>
+          </>
         )}
-
-        {/* Person Name */}
-        <h3 className="active-person-info__name">{name}</h3>
-
-        {/* Academic / Staff Post / Designation */}
-        {post && <div className="active-person-info__post">{post}</div>}
-
-        {/* Department / Year */}
-        {(deptText || year) && (
-          <div className="active-person-info__dept">
-            {year && `${year} · `}
-            {deptText}
-          </div>
-        )}
-
-        {/* Institutional Unit */}
-        <div className="active-person-info__institution">
-          <span className="active-person-info__institution-dot" />
-          <span>NSS MIT Anna University</span>
-        </div>
 
         {/* Subtle separator rule */}
         <div className="active-person-info__rule" />
@@ -111,21 +168,25 @@ export default function ActivePersonInfo({
         {/* Contact info or Registration ID */}
         <div className="active-person-info__meta">
           {reg && (
-            <span className="active-person-info__meta-item">
-              <span className="active-person-info__reg-badge">
-                Reg: {reg}
-              </span>
-            </span>
+            <div
+              className="active-person-info__reg-badge"
+              title={`Registration Number: ${reg}`}
+            >
+              <span className="active-person-info__reg-label">REG</span>
+              <span className="active-person-info__reg-dot">·</span>
+              <span className="active-person-info__reg-val">{reg}</span>
+            </div>
           )}
 
           {phone && (
             <a
               href={`tel:${phone}`}
               className="active-person-info__meta-item active-person-info__link"
-              title="Call phone"
+              title={`Call ${phone}`}
+              aria-label="Call"
+              onClick={(e) => e.stopPropagation()}
             >
               <Phone size={13} strokeWidth={2} />
-              <span>{phone}</span>
             </a>
           )}
 
@@ -133,10 +194,11 @@ export default function ActivePersonInfo({
             <a
               href={`mailto:${email}`}
               className="active-person-info__meta-item active-person-info__link"
-              title="Send email"
+              title={`Send email to ${email}`}
+              aria-label="Send email"
+              onClick={(e) => e.stopPropagation()}
             >
               <Mail size={13} strokeWidth={2} />
-              <span>{email}</span>
             </a>
           )}
         </div>

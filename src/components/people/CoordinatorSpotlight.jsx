@@ -1,5 +1,6 @@
 import React from "react";
 import { Phone, Mail, Award } from "lucide-react";
+import { getStaffProfileUrl } from "../../data/staffProfileLinks.js";
 import "./CoordinatorSpotlight.css";
 
 /**
@@ -13,14 +14,43 @@ export default function CoordinatorSpotlight({ coordinator }) {
     name = "Dr. K.M. VEERABADRAN",
     role = "NSS CAMPUS COORDINATOR",
     post = "Assistant Professor (Sr. Gr.)",
-    dept = "Dept. of Applied Science and Humanities",
+    dept = "Department of Applied Science and Humanities",
     phone = "04422516142",
     email = "kmveera@mitindia.edu",
     image = null,
+    profileUrl: rawProfileUrl,
   } = coordinator;
 
+  const cleanDept = dept
+    ? dept
+        .replace(/^Dept\.\s*of\s+/i, "")
+        .replace(/^Dept\.\s*/i, "")
+        .replace(/^Department\s*of\s+/i, "")
+        .replace(/^Department\s*/i, "")
+        .trim()
+    : null;
+  const deptText = cleanDept ? `Department of ${cleanDept}` : null;
+
+  const profileUrl = (rawProfileUrl || getStaffProfileUrl(coordinator) || "").trim();
+  const isClickable = Boolean(profileUrl);
+
   return (
-    <div className="coordinator-spotlight">
+    <div
+      className={`coordinator-spotlight ${
+        isClickable ? "coordinator-spotlight--clickable" : ""
+      }`}
+    >
+      {/* External profile link overlay when URL exists */}
+      {isClickable && (
+        <a
+          href={profileUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="coordinator-spotlight__card-link-overlay"
+          aria-label={`View external profile of ${name}`}
+        />
+      )}
+
       <div className="coordinator-spotlight__card">
         {/* Large Portrait / Initials Avatar */}
         <div className="coordinator-spotlight__portrait">
@@ -52,7 +82,7 @@ export default function CoordinatorSpotlight({ coordinator }) {
 
           <h2 className="coordinator-spotlight__name">{name}</h2>
           <div className="coordinator-spotlight__post">{post}</div>
-          <div className="coordinator-spotlight__dept">{dept}</div>
+          {deptText && <div className="coordinator-spotlight__dept">{deptText}</div>}
 
           <div className="coordinator-spotlight__divider" />
 
@@ -61,10 +91,11 @@ export default function CoordinatorSpotlight({ coordinator }) {
               <a
                 href={`tel:${phone}`}
                 className="coordinator-spotlight__contact-item"
-                title="Call office phone"
+                title={`Call ${phone}`}
+                aria-label="Call"
+                onClick={(e) => e.stopPropagation()}
               >
-                <Phone size={14} />
-                <span>{phone}</span>
+                <Phone size={13} strokeWidth={2} />
               </a>
             )}
 
@@ -72,10 +103,11 @@ export default function CoordinatorSpotlight({ coordinator }) {
               <a
                 href={`mailto:${email}`}
                 className="coordinator-spotlight__contact-item"
-                title="Send official email"
+                title={`Send email to ${email}`}
+                aria-label="Send email"
+                onClick={(e) => e.stopPropagation()}
               >
-                <Mail size={14} />
-                <span>{email}</span>
+                <Mail size={13} strokeWidth={2} />
               </a>
             )}
           </div>

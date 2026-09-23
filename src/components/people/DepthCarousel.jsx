@@ -349,6 +349,8 @@ export default function DepthCarousel({
         <div className="depth-carousel__stage">
           {items.map((item, idx) => {
             const isActive = idx === activeIndex;
+            const profileUrl = (item.profileUrl || "").trim();
+            const isClickable = Boolean(isActive && profileUrl);
 
             return (
               <div
@@ -356,7 +358,7 @@ export default function DepthCarousel({
                 ref={(el) => (cardRefs.current[idx] = el)}
                 className={`depth-carousel__card ${
                   isActive ? "depth-carousel__card--active" : ""
-                }`}
+                } ${isClickable ? "depth-carousel__card--clickable" : ""}`}
                 style={{
                   borderRadius: `${radius}px`,
                 }}
@@ -368,6 +370,23 @@ export default function DepthCarousel({
                 aria-label={`${item.name} (${idx + 1} of ${total})`}
                 aria-current={isActive ? "true" : "false"}
               >
+                {/* External profile link overlay on active card */}
+                {isClickable && (
+                  <a
+                    href={profileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="depth-carousel__card-link-overlay"
+                    aria-label={`View external profile of ${item.name}`}
+                    onClick={(e) => {
+                      if (Math.abs(dragDeltaX.current) > 10) {
+                        e.preventDefault();
+                      }
+                      e.stopPropagation();
+                    }}
+                  />
+                )}
+
                 {/* Media representation */}
                 <div className="depth-carousel__card-media">
                   {item.image ? (
