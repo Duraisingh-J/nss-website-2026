@@ -144,7 +144,7 @@ export default function Footer() {
 
       {/* ── Oversized Background Branding (Clipped at Bottom) ───── */}
       <div className="w-full overflow-hidden flex justify-center items-end select-none pointer-events-none -mt-4 pb-0">
-        <span className="footer-embossed-watermark text-[11vw] sm:text-[9.5vw] md:text-[8.5vw] tracking-wider whitespace-nowrap">
+        <span className="footer-embossed-watermark tracking-wider whitespace-nowrap">
           NATIONAL SERVICE SCHEME
         </span>
       </div>
