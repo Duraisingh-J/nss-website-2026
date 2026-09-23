@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import PageHero from "../components/ui/PageHero";
 import Footer from "../components/Footer";
+import AchievementsCarousel from "../components/ui/AchievementsCarousel";
 import { getPublicAchievements } from "../services/achievementService";
 import {
   Award,
@@ -9,10 +10,8 @@ import {
   X,
   ArrowRight,
   ArrowLeft,
-  Shield,
   RotateCcw,
   AlertCircle,
-  Sparkles,
 } from "lucide-react";
 import "./Achievements.css";
 
@@ -108,29 +107,6 @@ export default function Achievements() {
     });
   }, [achievements, selectedYear, selectedCategory]);
 
-  // Group filtered achievements chronologically by year
-  const groupedByYear = useMemo(() => {
-    const groups = {};
-    filteredAchievements.forEach((item) => {
-      const yearKey = item.year || "Archived";
-      if (!groups[yearKey]) {
-        groups[yearKey] = [];
-      }
-      groups[yearKey].push(item);
-    });
-
-    const sortedKeys = Object.keys(groups).sort((a, b) => {
-      if (a === "Archived") return 1;
-      if (b === "Archived") return -1;
-      return b.localeCompare(a);
-    });
-
-    return sortedKeys.map((year) => ({
-      year,
-      items: groups[year],
-    }));
-  }, [filteredAchievements]);
-
   // Detail drawer index and navigation
   const currentDetailIndex = useMemo(() => {
     if (!activeDetail) return -1;
@@ -166,7 +142,7 @@ export default function Achievements() {
   }, [activeDetail, handlePrevDetail, handleNextDetail]);
 
   return (
-    <div className="achievements-page">
+    <div className="page-wrapper achievements-page">
       {/* ── 1. Shared Editorial Hero ── */}
       <PageHero
         watermark="ACHIEVEMENTS"
@@ -178,7 +154,7 @@ export default function Achievements() {
       {/* ── 2. Content Experience ── */}
       <main className="achievements-main">
         <div className="achievements-shell">
-          {/* Editorial Section Introduction */}
+          {/* Editorial Section Introduction & Filter Toolbar */}
           <header className="achievements-header">
             <div className="achievements-header__titles">
               <span className="achievements-header__eyebrow">NSS RECOGNITION ARCHIVE</span>
@@ -188,7 +164,7 @@ export default function Achievements() {
               </p>
             </div>
 
-            {/* Filter Pills — only rendered when real achievements exist and options are multiple */}
+            {/* Filter Pills — directly controls the interactive Carousel */}
             {achievements.length > 0 && (availableYears.length > 1 || availableCategories.length > 1) && (
               <div className="achievements-filters" role="toolbar" aria-label="Archive filters">
                 {availableYears.length > 1 && (
@@ -251,10 +227,6 @@ export default function Achievements() {
                 <div className="achievements-loading__num" />
                 <div className="achievements-loading__body" />
               </div>
-              <div className="achievements-loading__entry">
-                <div className="achievements-loading__num" />
-                <div className="achievements-loading__body" />
-              </div>
             </div>
           ) : error ? (
             <div className="achievements-error" role="alert">
@@ -272,7 +244,7 @@ export default function Achievements() {
               </button>
             </div>
           ) : achievements.length === 0 ? (
-            /* ── Genuine Institutional Empty State (Section 30) ── */
+            /* ── Genuine Institutional Empty State ── */
             <div className="achievements-empty" aria-label="Achievements archive status">
               <div className="achievements-empty__inner">
                 <div className="achievements-empty__seal-wrap">
@@ -304,121 +276,16 @@ export default function Achievements() {
               </button>
             </div>
           ) : (
-            /* ── 4. Editorial Broadsheet Archive ── */
-            <div className="achievements-archive">
-              {groupedByYear.map((group) => (
-                <section key={group.year} className="achievements-year-section" aria-label={`Archive ${group.year}`}>
-                  {/* Year Divider */}
-                  <div className="achievements-year-divider">
-                    <span className="achievements-year-divider__year">{group.year}</span>
-                    <div className="achievements-year-divider__line" />
-                    <span className="achievements-year-divider__count">
-                      {group.items.length} {group.items.length === 1 ? "RECORD" : "RECORDS"}
-                    </span>
-                  </div>
-
-                  {/* Editorial Entry Rows */}
-                  <div className="achievements-entries">
-                    {group.items.map((item, itemIdx) => {
-                      const displayIndex = String(itemIdx + 1).padStart(2, "0");
-                      const isSelected = activeDetail?.id === item.id;
-
-                      return (
-                        <article
-                          key={item.id}
-                          className={`achievement-entry ${isSelected ? "achievement-entry--active" : ""}`}
-                          onClick={() => setActiveDetail(item)}
-                          tabIndex={0}
-                          role="button"
-                          aria-label={`View recognition for ${item.title}`}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              setActiveDetail(item);
-                            }
-                          }}
-                        >
-                          {/* Accent Marker line */}
-                          <div className="achievement-entry__marker-line" aria-hidden="true" />
-
-                          {/* Left Column: Number, Seal & Year */}
-                          <div className="achievement-entry__left">
-                            <span className="achievement-entry__index">{displayIndex}</span>
-                            <RecognitionSeal category={item.category} />
-                            <span className="achievement-entry__year-tag">{item.year || group.year}</span>
-                          </div>
-
-                          {/* Center Column: Recognition Content */}
-                          <div className="achievement-entry__main">
-                            <div className="achievement-entry__eyebrow-row">
-                              <span className="achievement-entry__category">
-                                <Award size={13} />
-                                {item.category || "RECOGNITION"}
-                              </span>
-                              {item.formattedDate && item.formattedDate !== "—" && (
-                                <span className="achievement-entry__date">
-                                  <Calendar size={13} />
-                                  {item.formattedDate}
-                                </span>
-                              )}
-                              {item.unitLabel && (
-                                <span className="achievement-entry__unit-tag">
-                                  <Shield size={12} />
-                                  {item.unitLabel}
-                                </span>
-                              )}
-                            </div>
-
-                            <h3 className="achievement-entry__title">{item.title}</h3>
-
-                            {item.description && (
-                              <p className="achievement-entry__desc">{item.description}</p>
-                            )}
-
-                            {/* Linked Recipient Attribution */}
-                            {item.personName && (
-                              <div className="achievement-entry__attribution">
-                                <span className="achievement-entry__recipient">
-                                  <User size={12} />
-                                  {item.personName}
-                                  {item.personDesignation ? ` · ${item.personDesignation}` : ""}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Optional Thumbnail Image */}
-                          {item.imageUrl && (
-                            <div className="achievement-entry__thumb-wrap">
-                              <img
-                                src={item.imageUrl}
-                                alt={item.title}
-                                className="achievement-entry__thumb"
-                                loading="lazy"
-                              />
-                              <div className="achievement-entry__thumb-overlay">
-                                <Sparkles size={13} />
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Interactive CTA */}
-                          <div className="achievement-entry__cta">
-                            <span className="achievement-entry__cta-text">View Recognition</span>
-                            <ArrowRight size={15} className="achievement-entry__cta-arrow" />
-                          </div>
-                        </article>
-                      );
-                    })}
-                  </div>
-                </section>
-              ))}
-            </div>
+            /* ── Interactive Spotlight Carousel Showcase (Only Stored Records) ── */
+            <AchievementsCarousel
+              achievements={filteredAchievements}
+              onSelectAchievement={(item) => setActiveDetail(item)}
+            />
           )}
         </div>
       </main>
 
-      {/* ── 5. Detail Drawer Panel ── */}
+      {/* ── 4. Redesigned Premium Exhibition Detail Modal ── */}
       {activeDetail && (
         <div
           className="achievement-drawer-overlay"
@@ -431,7 +298,7 @@ export default function Achievements() {
             className="achievement-drawer"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Drawer Topbar */}
+            {/* Topbar with Nav Controls & Close */}
             <div className="achievement-drawer__topbar">
               <div className="achievement-drawer__nav">
                 <button
@@ -442,11 +309,12 @@ export default function Achievements() {
                   aria-label="Previous achievement (Left arrow)"
                   title="Previous achievement"
                 >
-                  <ArrowLeft size={16} />
+                  <ArrowLeft size={15} />
                 </button>
-                <span className="achievement-drawer__counter">
-                  {currentDetailIndex + 1} of {filteredAchievements.length}
-                </span>
+                <div className="achievement-drawer__counter">
+                  <span className="achievement-drawer__counter-dot" />
+                  <span>{currentDetailIndex + 1} OF {filteredAchievements.length}</span>
+                </div>
                 <button
                   type="button"
                   className="achievement-drawer__nav-btn"
@@ -455,85 +323,114 @@ export default function Achievements() {
                   aria-label="Next achievement (Right arrow)"
                   title="Next achievement"
                 >
-                  <ArrowRight size={16} />
+                  <ArrowRight size={15} />
                 </button>
               </div>
 
-              <button
-                type="button"
-                className="achievement-drawer__close-btn"
-                onClick={() => setActiveDetail(null)}
-                aria-label="Close detail panel (ESC)"
-                title="Close"
-              >
-                <X size={18} />
-              </button>
+              <div className="achievement-drawer__topbar-right">
+                <span className="achievement-drawer__category-badge">
+                  <Award size={12} />
+                  {activeDetail.category || "HONOUR"}
+                </span>
+                <button
+                  type="button"
+                  className="achievement-drawer__close-btn"
+                  onClick={() => setActiveDetail(null)}
+                  aria-label="Close detail panel (ESC)"
+                  title="Close"
+                >
+                  <X size={16} />
+                </button>
+              </div>
             </div>
 
-            {/* Drawer Scrollable Content */}
+            {/* Scrollable Modal Body */}
             <div className="achievement-drawer__scrollable">
-              {/* Image Preview with Containment */}
-              {activeDetail.imageUrl && (
-                <div className="achievement-drawer__image-wrap">
+              {/* Cinematic Image Showcase */}
+              <div className="achievement-drawer__image-showcase">
+                {activeDetail.imageUrl ? (
                   <img
                     src={activeDetail.imageUrl}
                     alt={activeDetail.title}
                     className="achievement-drawer__image"
                   />
+                ) : (
+                  <div className="achievement-drawer__image-fallback">
+                    <img
+                      src={`${process.env.PUBLIC_URL}/images/NSS_logo.png`}
+                      alt="National Service Scheme"
+                      className="achievement-drawer__image-fallback-logo"
+                      onError={(e) => {
+                        if (!e.currentTarget.dataset.fallback) {
+                          e.currentTarget.dataset.fallback = "true";
+                          e.currentTarget.src = `${process.env.PUBLIC_URL}/NSS_logo.png`;
+                        }
+                      }}
+                    />
+                    <span className="achievement-drawer__image-fallback-text">
+                      National Service Scheme · MIT Campus
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Title & Metadata Badges */}
+              <div className="achievement-drawer__header-block">
+                {activeDetail.formattedDate && activeDetail.formattedDate !== "—" && (
+                  <div className="achievement-drawer__date-row">
+                    <Calendar size={13} />
+                    <span>Conferred: {activeDetail.formattedDate}</span>
+                  </div>
+                )}
+                <h2 className="achievement-drawer__title">{activeDetail.title}</h2>
+              </div>
+
+              {/* Conferred Recipient Card */}
+              {activeDetail.personName && (
+                <div className="achievement-drawer__recipient-card">
+                  <div className="achievement-drawer__recipient-avatar">
+                    <User size={18} />
+                  </div>
+                  <div className="achievement-drawer__recipient-info">
+                    <span className="achievement-drawer__recipient-label">HONOUR RECIPIENT</span>
+                    <h3 className="achievement-drawer__recipient-name">{activeDetail.personName}</h3>
+                    {activeDetail.personDesignation && (
+                      <p className="achievement-drawer__recipient-designation">{activeDetail.personDesignation}</p>
+                    )}
+                    {activeDetail.personUnit && (
+                      <span className="achievement-drawer__recipient-unit">{activeDetail.personUnit}</span>
+                    )}
+                  </div>
                 </div>
               )}
 
-              <div className="achievement-drawer__content">
-                <div className="achievement-drawer__badges">
-                  <span className="achievement-drawer__category-badge">
-                    <Award size={13} />
-                    {activeDetail.category || "Recognition"}
-                  </span>
-                  {activeDetail.formattedDate && activeDetail.formattedDate !== "—" && (
-                    <span className="achievement-drawer__date-badge">
-                      <Calendar size={13} />
-                      {activeDetail.formattedDate}
-                    </span>
-                  )}
-                  {activeDetail.unitLabel && (
-                    <span className="achievement-drawer__unit-badge">
-                      <Shield size={13} />
-                      {activeDetail.unitLabel}
-                    </span>
-                  )}
+              {/* Citation Details */}
+              <div className="achievement-drawer__citation-block">
+                <div className="achievement-drawer__citation-header">
+                  <span className="achievement-drawer__citation-dot" />
+                  <h4 className="achievement-drawer__citation-title">CITATION & RECOGNITION DETAILS</h4>
                 </div>
+                <p className="achievement-drawer__citation-text">
+                  {activeDetail.description || "Official milestone awarded by the National Service Scheme in recognition of exceptional service and social development."}
+                </p>
+              </div>
 
-                <h2 className="achievement-drawer__title">{activeDetail.title}</h2>
-
-                {/* Recipient Profile Card if Linked */}
-                {activeDetail.personName && (
-                  <div className="achievement-drawer__recipient-card">
-                    <div className="achievement-drawer__recipient-avatar">
-                      <User size={18} />
-                    </div>
-                    <div className="achievement-drawer__recipient-info">
-                      <span className="achievement-drawer__recipient-label">HONOUR RECIPIENT</span>
-                      <strong>{activeDetail.personName}</strong>
-                      {activeDetail.personDesignation && (
-                        <span>{activeDetail.personDesignation}</span>
-                      )}
-                      {activeDetail.personUnit && (
-                        <small>{activeDetail.personUnit}</small>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Accomplishment Narrative */}
-                <div className="achievement-drawer__description">
-                  <h4 className="achievement-drawer__desc-heading">ACCOMPLISHMENT DETAILS</h4>
-                  <p>{activeDetail.description || "Milestone achieved under the National Service Scheme, Anna University MIT Campus."}</p>
-                </div>
-
-                {/* Institutional Accreditation Footnote */}
-                <div className="achievement-drawer__footnote">
-                  <RecognitionSeal category={activeDetail.category} />
-                  <span>National Service Scheme · Madras Institute of Technology, Anna University</span>
+              {/* Institutional Accreditation Footnote with Official Colored NSS Logo */}
+              <div className="achievement-drawer__footnote">
+                <img
+                  src={`${process.env.PUBLIC_URL}/images/NSS_logo.png`}
+                  alt="National Service Scheme Emblem"
+                  className="achievement-drawer__emblem"
+                  onError={(e) => {
+                    if (!e.currentTarget.dataset.fallback) {
+                      e.currentTarget.dataset.fallback = "true";
+                      e.currentTarget.src = `${process.env.PUBLIC_URL}/NSS_logo.png`;
+                    }
+                  }}
+                />
+                <div className="achievement-drawer__footnote-text">
+                  <strong>National Service Scheme</strong>
+                  <span>Madras Institute of Technology Campus · Anna University, Chennai</span>
                 </div>
               </div>
             </div>
@@ -541,7 +438,7 @@ export default function Achievements() {
         </div>
       )}
 
-      {/* ── 6. Public Footer ── */}
+      {/* ── 5. Public Footer ── */}
       <Footer />
     </div>
   );
