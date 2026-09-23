@@ -74,7 +74,8 @@ export function transformPerson(row) {
   const roleName = row.roles?.name || "Member";
   const formattedUnit = formatUnit(row.unit);
   const formattedYear = formatYear(row.year);
-  const photoUrl = getMediaPublicUrl(row.media?.storage_path);
+  const rawPhotoSource = row.media?.storage_path || row.photo_url || row.image || row.photo || null;
+  const photoUrl = getMediaPublicUrl(rawPhotoSource);
 
   const rawDept = row.department || row.bio || "";
   const deptFormatted = formatDepartment(rawDept);
@@ -100,6 +101,7 @@ export function transformPerson(row) {
     email: row.email,
     photo_media_id: row.photo_media_id,
     image: photoUrl,
+    originalImage: rawPhotoSource,
     initials: getInitials(row.name),
     profileUrl:
       getStaffProfileUrl({

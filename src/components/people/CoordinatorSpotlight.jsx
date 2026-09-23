@@ -3,6 +3,8 @@ import { Phone, Mail, Award } from "lucide-react";
 import { getStaffProfileUrl } from "../../data/staffProfileLinks.js";
 import "./CoordinatorSpotlight.css";
 
+import ProfileImage from "./ProfileImage";
+
 /**
  * CoordinatorSpotlight
  * Premium spotlight card for the NSS Campus Coordinator establishing visual hierarchy.
@@ -11,6 +13,7 @@ export default function CoordinatorSpotlight({ coordinator }) {
   if (!coordinator) return null;
 
   const {
+    id,
     name = "Dr. K.M. VEERABADRAN",
     role = "NSS CAMPUS COORDINATOR",
     post = "Assistant Professor (Sr. Gr.)",
@@ -19,6 +22,8 @@ export default function CoordinatorSpotlight({ coordinator }) {
     email = "kmveera@mitindia.edu",
     image = null,
     profileUrl: rawProfileUrl,
+    originalImage = null,
+    initials = "KMV",
   } = coordinator;
 
   const cleanDept = dept
@@ -54,24 +59,24 @@ export default function CoordinatorSpotlight({ coordinator }) {
       <div className="coordinator-spotlight__card">
         {/* Large Portrait / Initials Avatar */}
         <div className="coordinator-spotlight__portrait">
-          {image ? (
-            <img
-              src={image}
-              alt={name}
-              className="coordinator-spotlight__img"
-              loading="lazy"
-            />
-          ) : (
-            <div className="coordinator-spotlight__avatar-fallback">
-              <div className="coordinator-spotlight__initials">
-                KMV
+          <ProfileImage
+            src={image}
+            alt={name}
+            className="coordinator-spotlight__img"
+            priority={true}
+            personInfo={{ id, name, originalSrc: originalImage || image }}
+            fallback={
+              <div className="coordinator-spotlight__avatar-fallback">
+                <div className="coordinator-spotlight__initials">
+                  {initials}
+                </div>
+                <div className="coordinator-spotlight__portrait-crest">
+                  <Award size={13} />
+                  MIT Campus
+                </div>
               </div>
-              <div className="coordinator-spotlight__portrait-crest">
-                <Award size={13} />
-                MIT Campus
-              </div>
-            </div>
-          )}
+            }
+          />
         </div>
 
         {/* Content Details */}

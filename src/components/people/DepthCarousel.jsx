@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import gsap from "gsap";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import ProfileImage from "./ProfileImage";
 import "./DepthCarousel.css";
 
 /**
@@ -389,26 +390,30 @@ export default function DepthCarousel({
 
                 {/* Media representation */}
                 <div className="depth-carousel__card-media">
-                  {item.image ? (
-                    <img
-                      src={item.image}
-                      alt={item.name || "Profile Photo"}
-                      className="depth-carousel__card-img"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="depth-carousel__card-initials">
-                      {item.initials ||
-                        (item.name
-                          ? item.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .filter(Boolean)
-                              .slice(0, 2)
-                              .join("")
-                          : "NSS")}
-                    </div>
-                  )}
+                  <ProfileImage
+                    src={item.image}
+                    alt={item.name || "Profile Photo"}
+                    className="depth-carousel__card-img"
+                    priority={isActive}
+                    personInfo={{
+                      id: item.id,
+                      name: item.name,
+                      originalSrc: item.originalImage || item.image,
+                    }}
+                    fallback={
+                      <div className="depth-carousel__card-initials">
+                        {item.initials ||
+                          (item.name
+                            ? item.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .filter(Boolean)
+                                .slice(0, 2)
+                                .join("")
+                            : "NSS")}
+                      </div>
+                    }
+                  />
 
                   {/* Role or Unit Badge */}
                   {item.badge && (

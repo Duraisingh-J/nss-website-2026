@@ -25,9 +25,8 @@ export default function PersonCard({
 
   return (
     <div
-      className={`person-card person-card--${size} ${
-        isClickable ? "person-card--clickable" : ""
-      }`}
+      className={`person-card person-card--${size} ${isClickable ? "person-card--clickable" : ""
+        }`}
     >
       {isClickable && (
         <a
@@ -39,20 +38,18 @@ export default function PersonCard({
         />
       )}
       <div className="person-avatar">
-        {image ? (
-          <img
-            src={image}
-            alt={name}
-            className="person-photo"
-          />
-        ) : (
-          <span className="person-initials">{initials}</span>
-        )}
+        <ProfileImage
+          src={image}
+          alt={name}
+          className="person-photo"
+          personInfo={{ name, originalSrc: image }}
+          fallback={<span className="person-initials">{initials}</span>}
+        />
         {badge && <div className="person-badge">{badge}</div>}
       </div>
       <div className="person-info">
         <h4 className="person-name">{name}</h4>
-      
+
         {reg && (
           <div className="person-reg-badge" title={`Registration Number: ${reg}`}>
             <span className="person-reg-label">REG</span>

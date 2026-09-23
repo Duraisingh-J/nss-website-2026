@@ -572,10 +572,12 @@ export default function PeopleManagement() {
                             src={person.image}
                             alt={person.name}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                            }}
                           />
-                        ) : (
-                          <span>{person.initials}</span>
-                        )}
+                        ) : null}
+                        <span>{person.initials}</span>
                       </div>
                     </td>
 

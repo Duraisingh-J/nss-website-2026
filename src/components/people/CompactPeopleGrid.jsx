@@ -1,4 +1,4 @@
-import React from "react";
+import ProfileImage from "./ProfileImage";
 import "./CompactPeopleGrid.css";
 
 /**
@@ -13,6 +13,7 @@ export default function CompactPeopleGrid({ people = [], fallbackRole = "Head" }
     <div className="compact-people-grid">
       {people.map((person, idx) => {
         const {
+          id,
           name,
           role,
           badge,
@@ -20,6 +21,7 @@ export default function CompactPeopleGrid({ people = [], fallbackRole = "Head" }
           year,
           reg,
           image,
+          originalImage,
           initials,
         } = person;
 
@@ -41,23 +43,23 @@ export default function CompactPeopleGrid({ people = [], fallbackRole = "Head" }
         return (
           <div key={reg || name || idx} className="compact-person-card">
             <div className="compact-person-card__media">
-              {image ? (
-                <img
-                  src={image}
-                  alt={name}
-                  className="compact-person-card__img"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="compact-person-card__initials">
-                  {initials ||
-                    name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .slice(0, 2)
-                      .join("")}
-                </div>
-              )}
+              <ProfileImage
+                src={image}
+                alt={name}
+                className="compact-person-card__img"
+                priority={idx < 2}
+                personInfo={{ id, name, originalSrc: originalImage || image }}
+                fallback={
+                  <div className="compact-person-card__initials">
+                    {initials ||
+                      name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .slice(0, 2)
+                        .join("")}
+                  </div>
+                }
+              />
 
               {baseRole && (
                 <div className="compact-person-card__badge">{baseRole}</div>

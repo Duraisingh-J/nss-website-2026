@@ -5,11 +5,25 @@ import { motion } from "motion/react";
 import { cn } from "../../lib/utils";
 
 export const ThreeDMarquee = ({ images = [], className = "" }) => {
+  // Ensure array has elements
+  const validImages = images.length > 0 ? images : [
+    `${process.env.PUBLIC_URL || ""}/images/Hero1.jpg`,
+    `${process.env.PUBLIC_URL || ""}/images/Hero2.jpg`,
+    `${process.env.PUBLIC_URL || ""}/images/Hero3.jpg`,
+    `${process.env.PUBLIC_URL || ""}/images/Hero4.jpg`,
+  ];
+
+  // Populate enough items so all 4 columns are rich
+  const filledImages = [...validImages];
+  while (filledImages.length < 24) {
+    filledImages.push(...validImages);
+  }
+
   // Split the images array into 4 equal parts
-  const chunkSize = Math.max(1, Math.ceil(images.length / 4));
+  const chunkSize = Math.max(1, Math.ceil(filledImages.length / 4));
   const chunks = Array.from({ length: 4 }, (_, colIndex) => {
     const start = colIndex * chunkSize;
-    return images.slice(start, start + chunkSize);
+    return filledImages.slice(start, start + chunkSize);
   });
 
   return (
@@ -39,26 +53,34 @@ export const ThreeDMarquee = ({ images = [], className = "" }) => {
                 className="flex flex-col items-start gap-8"
               >
                 <GridLineVertical className="-left-4" offset="80px" />
-                {subarray.map((image, imageIndex) => (
-                  <div className="relative" key={imageIndex + (typeof image === 'string' ? image : image?.url || imageIndex)}>
-                    <GridLineHorizontal className="-top-4" offset="20px" />
-                    <motion.img
-                      whileHover={{
-                        y: -10,
-                      }}
-                      transition={{
-                        duration: 0.3,
-                        ease: "easeInOut",
-                      }}
-                      key={imageIndex + (typeof image === 'string' ? image : image?.url || imageIndex)}
-                      src={typeof image === 'string' ? image : image?.url}
-                      alt={typeof image === 'object' && image?.altText ? image.altText : `Activity ${imageIndex + 1}`}
-                      className="aspect-[970/700] rounded-lg object-cover ring ring-gray-950/5 hover:shadow-2xl"
-                      width={970}
-                      height={700}
-                    />
-                  </div>
-                ))}
+                {subarray.map((image, imageIndex) => {
+                  const src = typeof image === "string" ? image : image?.url;
+                  const alt =
+                    typeof image === "object" && image?.altText
+                      ? image.altText
+                      : `NSS Activity ${imageIndex + 1}`;
+
+                  return (
+                    <div className="relative" key={imageIndex + (src || "")}>
+                      <GridLineHorizontal className="-top-4" offset="20px" />
+                      <motion.img
+                        whileHover={{
+                          y: -10,
+                        }}
+                        transition={{
+                          duration: 0.3,
+                          ease: "easeInOut",
+                        }}
+                        key={imageIndex + (src || "")}
+                        src={src}
+                        alt={alt}
+                        className="aspect-[970/700] rounded-xl object-cover ring-1 ring-white/15 hover:ring-[#E0533C]/60 hover:shadow-2xl transition-all duration-300"
+                        width={970}
+                        height={700}
+                      />
+                    </div>
+                  );
+                })}
               </motion.div>
             ))}
           </div>

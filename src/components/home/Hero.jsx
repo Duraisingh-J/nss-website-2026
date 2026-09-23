@@ -6,24 +6,17 @@ import { ThreeDMarquee } from "../ui/3d-marquee";
 import { getHeroMedia, DEFAULT_HERO_MEDIA } from "../../services/mediaService";
 import { getPublicHeroSlides } from "../../services/heroSlideService";
 
-// Curated high-impact NSS action placeholders for 3D isometric marquee
+// Curated NSS action images for 3D isometric marquee from /public/images/Hero*
 const CURATED_NSS_PLACEHOLDERS = [
-  "https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=900&q=80", // Community volunteer teamwork
-  "https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?auto=format&fit=crop&w=900&q=80", // Medical checkup & health camp
-  "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=900&q=80", // Tree plantation & environmental care
-  "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=900&q=80", // Education & youth empowerment
-  "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&w=900&q=80", // Student leadership & collaboration
-  "https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=900&q=80", // Social service & community care
-  "https://images.unsplash.com/photo-1617870952348-7524edfb61b7?auto=format&fit=crop&w=900&q=80", // Blood donation & awareness drive
-  "https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?auto=format&fit=crop&w=900&q=80", // Village development & outreach
-  "https://images.unsplash.com/photo-1526976668912-1a811878dd37?auto=format&fit=crop&w=900&q=80", // Youth rally & civic engagement
-  "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=900&q=80", // Classroom teaching & digital literacy
-  "https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=900&q=80", // Clean India campaign & waste management
-  "https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=900&q=80", // Student assembly & flag ceremony
-  "https://images.unsplash.com/photo-1594708767771-a7502209ff51?auto=format&fit=crop&w=900&q=80", // Rural support & humanitarian relief
-  "https://images.unsplash.com/photo-1569098644584-210bcd375b59?auto=format&fit=crop&w=900&q=80", // Tree sapling nurture
-  "https://images.unsplash.com/photo-1531206715517-5c0ba140b2b8?auto=format&fit=crop&w=900&q=80", // Youth conference & workshop
-  "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=900&q=80", // Community celebration & harmony
+  `${process.env.PUBLIC_URL || ""}/images/Hero1.jpg`,
+  `${process.env.PUBLIC_URL || ""}/images/Hero2.jpg`,
+  `${process.env.PUBLIC_URL || ""}/images/Hero3.jpg`,
+  `${process.env.PUBLIC_URL || ""}/images/Hero4.jpg`,
+  `${process.env.PUBLIC_URL || ""}/images/Hero5.jpg`,
+  `${process.env.PUBLIC_URL || ""}/images/Hero6.jpg`,
+  `${process.env.PUBLIC_URL || ""}/images/Hero7.jpg`,
+  `${process.env.PUBLIC_URL || ""}/images/Hero8.jpg`,
+  `${process.env.PUBLIC_URL || ""}/images/Hero9.jpg`,
 ];
 
 export default function Hero() {
@@ -70,23 +63,11 @@ export default function Hero() {
 
   // Build a rich 24+ image array for the 4-column 3D marquee
   const marqueeImages = useMemo(() => {
-    // Local assets from DEFAULT_HERO_MEDIA
-    const localDefaults = DEFAULT_HERO_MEDIA.map((m) => m.url);
-
-    // Combine database images + local defaults + curated placeholders
-    const combined = [
-      ...dbImages,
-      ...localDefaults,
-      ...CURATED_NSS_PLACEHOLDERS,
-    ].filter(Boolean);
-
-    // Ensure we have at least 24 images for smooth multi-column scrolling
-    const pool = combined.length > 0 ? combined : CURATED_NSS_PLACEHOLDERS;
-    const result = [];
-    while (result.length < 24) {
-      result.push(...pool);
+    // If database images exist, combine them with local Hero photos
+    if (dbImages.length > 0) {
+      return Array.from(new Set([...dbImages, ...CURATED_NSS_PLACEHOLDERS]));
     }
-    return result.slice(0, 32);
+    return CURATED_NSS_PLACEHOLDERS;
   }, [dbImages]);
 
   // GSAP Entrance Animations
@@ -161,7 +142,7 @@ export default function Hero() {
   return (
     <section
       ref={heroRef}
-      className="relative min-h-[92vh] flex items-center bg-[#070e1b] text-white overflow-hidden pt-28 pb-20 md:pt-32 md:pb-24 lg:pt-36 lg:pb-28"
+      className="relative min-h-[88vh] lg:min-h-[90vh] flex items-center bg-[#070e1b] text-white overflow-hidden pt-8 pb-14 sm:pt-10 sm:pb-16 md:pt-12 md:pb-20 lg:pt-14 lg:pb-20"
       aria-label="NSS MIT Hero Section"
     >
       {/* ── 3D ISOMETRIC MARQUEE BACKGROUND ────────────────────────── */}
@@ -192,10 +173,10 @@ export default function Hero() {
       {/* ── MAIN HERO CONTENT CONTAINER ────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-          
+
           {/* Left Column: Mission, Typography, Actions, Focus Areas */}
           <div className="lg:col-span-7 flex flex-col justify-center">
-            
+
             {/* Eyebrow / Live Indicator */}
             <div className="hero-eyebrow inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-700/80 text-slate-200 text-[11px] sm:text-xs font-semibold tracking-[0.2em] uppercase mb-4 w-fit shadow-md">
               <Sparkles className="w-3.5 h-3.5 text-[#E0533C]" />
@@ -246,7 +227,7 @@ export default function Hero() {
 
             {/* Focus Pillars Row */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 pt-4 border-t border-slate-800/80 max-w-2xl">
-              
+
               {/* Item 1: Students */}
               <div className="hero-feature-item flex items-center gap-3 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/60">
                 <div className="w-9 h-9 rounded-lg border border-slate-700 flex items-center justify-center text-[#E0533C] shrink-0 bg-slate-800/80 shadow-inner">
@@ -298,7 +279,7 @@ export default function Hero() {
 
           {/* Right Column: Cursive Tag & High-Contrast Motto Card */}
           <div className="lg:col-span-5 flex flex-col items-center lg:items-end justify-between relative min-h-[360px] lg:min-h-[440px]">
-            
+
             {/* Handwritten Script Tag */}
             <div className="hero-cursive-tag font-script text-white text-3xl sm:text-4xl leading-tight text-center lg:text-right select-none drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)] mb-8 lg:mb-0 lg:mr-4">
               <span className="block">Together</span>
@@ -308,7 +289,7 @@ export default function Hero() {
 
             {/* Floating Motto Card with Reduced Transparency */}
             <div className="hero-motto-card relative w-full max-w-[270px] bg-[#091524]/95 border border-slate-700/80 rounded-3xl p-6 sm:p-7 text-center shadow-2xl">
-              
+
               {/* NSS Official Emblem */}
               <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-white p-1.5 shadow-md flex items-center justify-center border-2 border-slate-700 overflow-hidden">
                 <img

@@ -1,5 +1,6 @@
 import { supabase } from "../lib/supabase.js";
 import { optimizeImage } from "../utils/imageOptimizer.js";
+import { resolveImageUrl } from "../utils/imageUrlResolver.js";
 
 /**
  * Generates a standard RFC4122 v4 UUID
@@ -20,14 +21,7 @@ function generateUUID() {
  * Resolves a public URL for a given storage path within 'public-media' bucket
  */
 export function getMediaPublicUrl(storagePath) {
-  if (!storagePath) return null;
-  if (storagePath.startsWith("http://") || storagePath.startsWith("https://")) {
-    return storagePath;
-  }
-  const { data } = supabase.storage
-    .from("public-media")
-    .getPublicUrl(storagePath);
-  return data?.publicUrl || null;
+  return resolveImageUrl(storagePath, "public-media");
 }
 
 /**
