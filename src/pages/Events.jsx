@@ -5,7 +5,7 @@ import { EVENT_TYPE_DEFINITIONS } from "../data/mockEventsData";
 import { getPublicEvents, getPublicEventDetail } from "../services/eventService";
 import { getEventStatus, getSessionStatus, STATUS } from "../utils/timeStatusUtils";
 import useLiveTime from "../hooks/useLiveTime";
-import { ArrowLeft, ArrowRight, CalendarDays, ChevronRight, Clock3, Images, MapPin, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarDays, ChevronRight, Clock3, MapPin, Users } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import "./Events.css";
 
@@ -270,14 +270,17 @@ export default function Events() {
       </main>
 
       <Footer />
-      <LightboxModal
-        isOpen={lightbox.open}
-        images={lightbox.images}
-        currentIndex={lightbox.index}
-        onClose={() => setLightbox(v => ({ ...v, open:false }))}
-        onNext={() => setLightbox(v => ({ ...v, index:(v.index + 1) % v.images.length }))}
-        onPrev={() => setLightbox(v => ({ ...v, index:(v.index - 1 + v.images.length) % v.images.length }))}
-      />
+      {lightbox.open && (
+        <LightboxModal
+          isOpen={lightbox.open}
+          images={lightbox.images}
+          currentIndex={lightbox.index}
+          onClose={() => setLightbox(v => ({ ...v, open: false }))}
+          onNavigate={(newIdx) => setLightbox(v => ({ ...v, index: newIdx }))}
+          onNext={() => setLightbox(v => ({ ...v, index: (v.index + 1) % v.images.length }))}
+          onPrev={() => setLightbox(v => ({ ...v, index: (v.index - 1 + v.images.length) % v.images.length }))}
+        />
+      )}
     </div>
   );
 }

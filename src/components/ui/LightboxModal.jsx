@@ -5,37 +5,80 @@ import "./LightboxModal.css";
 /**
  * LightboxModal — Accessible, minimal image gallery modal
  */
-export default function LightboxModal({ images = [], currentIndex = 0, onClose, onNavigate }) {
+export default function LightboxModal({
+  isOpen = true,
+  images = [],
+  currentIndex = 0,
+  onClose,
+  onNavigate,
+  onNext,
+  onPrev,
+}) {
+  const active = Boolean(
+    isOpen &&
+    Array.isArray(images) &&
+    images.length > 0 &&
+    currentIndex >= 0 &&
+    currentIndex < images.length
+  );
+
   useEffect(() => {
+    if (!active) return;
+
     function handleKeyDown(e) {
       if (e.key === "Escape") {
         onClose && onClose();
       } else if (e.key === "ArrowRight") {
-        if (images.length > 1 && onNavigate) {
-          onNavigate((currentIndex + 1) % images.length);
+        if (images.length > 1) {
+          if (onNavigate) {
+            onNavigate((currentIndex + 1) % images.length);
+          } else if (onNext) {
+            onNext();
+          }
         }
       } else if (e.key === "ArrowLeft") {
-        if (images.length > 1 && onNavigate) {
-          onNavigate((currentIndex - 1 + images.length) % images.length);
+        if (images.length > 1) {
+          if (onNavigate) {
+            onNavigate((currentIndex - 1 + images.length) % images.length);
+          } else if (onPrev) {
+            onPrev();
+          }
         }
       }
     }
 
     window.addEventListener("keydown", handleKeyDown);
+    const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "auto";
+      document.body.style.overflow = originalOverflow || "";
     };
-  }, [images, currentIndex, onClose, onNavigate]);
+  }, [active, images, currentIndex, onClose, onNavigate, onNext, onPrev]);
 
-  if (!images || images.length === 0 || currentIndex < 0 || currentIndex >= images.length) {
+  if (!active) {
     return null;
   }
 
   const currentImg = images[currentIndex];
   const total = images.length;
+
+  const handlePrev = () => {
+    if (onNavigate) {
+      onNavigate((currentIndex - 1 + total) % total);
+    } else if (onPrev) {
+      onPrev();
+    }
+  };
+
+  const handleNext = () => {
+    if (onNavigate) {
+      onNavigate((currentIndex + 1) % total);
+    } else if (onNext) {
+      onNext();
+    }
+  };
 
   return (
     <div
@@ -67,7 +110,7 @@ export default function LightboxModal({ images = [], currentIndex = 0, onClose, 
             <button
               type="button"
               className="nss-lightbox-nav-btn nss-lightbox-prev"
-              onClick={() => onNavigate((currentIndex - 1 + total) % total)}
+              onClick={handlePrev}
               aria-label="Previous photograph"
             >
               <ChevronLeft className="w-6 h-6" />
@@ -91,7 +134,7 @@ export default function LightboxModal({ images = [], currentIndex = 0, onClose, 
             <button
               type="button"
               className="nss-lightbox-nav-btn nss-lightbox-next"
-              onClick={() => onNavigate((currentIndex + 1) % total)}
+              onClick={handleNext}
               aria-label="Next photograph"
             >
               <ChevronRight className="w-6 h-6" />
