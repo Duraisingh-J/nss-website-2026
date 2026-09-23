@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { name: "Events", link: "/events" },
   { name: "People", link: "/people" },
   { name: "Achievements", link: "/achievements" },
+  { name: "Gallery", link: "/gallery" },
 ];
 
 export default function Navbar() {

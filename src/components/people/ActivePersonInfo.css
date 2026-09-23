@@ -53,6 +53,42 @@
   transform: translateY(-6px);
 }
 
+/* Clickable Header Link */
+.active-person-info__header-link {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  outline: none;
+}
+
+.active-person-info--left .active-person-info__header-link {
+  align-items: flex-start;
+}
+
+.active-person-info--center .active-person-info__header-link {
+  align-items: center;
+}
+
+.active-person-info__name--link {
+  transition: color 0.2s ease;
+  cursor: pointer;
+}
+
+.active-person-info__header-link:hover .active-person-info__name--link,
+.active-person-info__header-link:hover .active-person-info__name,
+.active-person-info__name--link:hover {
+  color: var(--red) !important;
+}
+
+.active-person-info__header-link:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
 /* Eyebrow / Role Badge */
 .active-person-info__role {
   display: inline-flex;
@@ -91,13 +127,37 @@
   margin-bottom: 4px;
 }
 
-/* Department */
+/* Department Highlight Badge */
 .active-person-info__dept {
   font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
-  color: var(--gray);
-  margin-bottom: 6px;
-  line-height: 1.45;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  background: var(--surface);
+  border: 1px solid rgba(217, 75, 75, 0.22);
+  box-shadow: 0 2px 8px -2px rgba(217, 75, 75, 0.14),
+              0 1px 3px rgba(217, 75, 75, 0.06);
+  padding: 3px 10px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  line-height: 1.4;
+  margin-top: 3px;
+  margin-bottom: 10px;
+  transition: all 0.2s ease;
+}
+
+.active-person-info__dept:hover {
+  border-color: rgba(217, 75, 75, 0.38);
+  box-shadow: 0 3px 10px -2px rgba(217, 75, 75, 0.2);
+}
+
+.active-person-info--center .active-person-info__dept {
+  justify-content: center;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Institutional Affiliation */
@@ -149,35 +209,81 @@
 .active-person-info__meta-item {
   font-family: 'DM Sans', sans-serif;
   font-size: 12.5px;
-  color: var(--gray);
+  color: var(--ink);
   display: inline-flex;
   align-items: center;
   gap: 6px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(217, 75, 75, 0.22);
   padding: 4px 10px;
   border-radius: 6px;
+  box-shadow: 0 2px 8px -2px rgba(217, 75, 75, 0.14),
+              0 1px 3px rgba(217, 75, 75, 0.06);
   transition: all 0.2s ease;
 }
 
 .active-person-info__meta-item:hover {
-  border-color: rgba(217, 75, 75, 0.35);
+  border-color: rgba(217, 75, 75, 0.42);
+  box-shadow: 0 4px 12px -2px rgba(217, 75, 75, 0.22);
   color: var(--red);
+  transform: translateY(-1px);
 }
 
 .active-person-info__link {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: inherit;
   text-decoration: none;
   font-weight: 500;
+  flex-shrink: 0;
 }
 
+/* Registration Badge (Option 1: Clean Monospace University ID Badge with Red Theme) */
 .active-person-info__reg-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  background: var(--surface);
+  border: 1px solid rgba(217, 75, 75, 0.22);
+  border-radius: 6px;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.2s ease;
+  user-select: all;
+  box-shadow: 0 2px 8px -2px rgba(217, 75, 75, 0.14),
+              0 1px 3px rgba(217, 75, 75, 0.06);
+}
+
+.active-person-info__reg-badge:hover {
+  border-color: rgba(217, 75, 75, 0.42);
+  box-shadow: 0 4px 12px -2px rgba(217, 75, 75, 0.22);
+}
+
+.active-person-info__reg-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--red);
+}
+
+.active-person-info__reg-dot {
   font-size: 11px;
+  color: rgba(217, 75, 75, 0.4);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.active-person-info__reg-val {
+  font-family: 'JetBrains Mono', 'SF Mono', Consolas, 'Roboto Mono', monospace;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.04em;
-  background: var(--light);
   color: var(--ink);
-  padding: 2px 8px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
 }

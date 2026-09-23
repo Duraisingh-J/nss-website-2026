@@ -1,5 +1,4 @@
 import React, { useRef, useLayoutEffect } from "react";
-import { Mail, Landmark, Calendar, Users2 } from "lucide-react";
 import { gsap, isReducedMotion } from "../../lib/animations";
 
 export default function AboutSection() {
@@ -11,12 +10,12 @@ export default function AboutSection() {
     const ctx = gsap.context(() => {
       gsap.fromTo(
         ".about-reveal",
-        { opacity: 0, y: 20 },
+        { opacity: 0, y: 24 },
         {
           opacity: 1,
           y: 0,
-          duration: 0.7,
-          stagger: 0.12,
+          duration: 0.75,
+          stagger: 0.15,
           ease: "power2.out",
           scrollTrigger: {
             trigger: sectionRef.current,
@@ -34,118 +33,63 @@ export default function AboutSection() {
     <section
       id="about-nss"
       ref={sectionRef}
-      className="py-24 bg-surface border-b border-border text-foreground"
+      className="py-16 sm:py-20 lg:py-24 bg-[#F8FAFC] border-b border-border text-foreground"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        {/* Official Ministry Banner Header Card - Clean Institutional Integration */}
-        <div className="about-reveal bg-slate-50/90 border border-slate-200/90 rounded-xl p-5 sm:p-7 mb-16 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white p-1 border border-slate-200 shadow-sm flex items-center justify-center shrink-0">
-              <img
-                src={`${process.env.PUBLIC_URL}/NSS_logo.png`}
-                alt="Government of India - National Service Scheme"
-                className="w-full h-full object-contain rounded-full"
-                onError={(e) => {
-                  if (!e.currentTarget.dataset.fallback) {
-                    e.currentTarget.dataset.fallback = "true";
-                    e.currentTarget.src = `${process.env.PUBLIC_URL}/images/NSS_logo.png`;
-                  }
-                }}
-              />
-            </div>
-            <div>
-              <span className="block font-sans font-bold text-base sm:text-lg text-slate-900 tracking-tight leading-tight">
-                National Service Scheme
-              </span>
-              <span className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mt-0.5">
-                Government of India
-              </span>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-6 sm:gap-8 text-sm text-slate-700 font-medium">
-            <span className="flex items-center gap-2">
-              <Landmark className="w-4 h-4 text-primary shrink-0" />
-              <span>Ministry of Youth Affairs & Sports</span>
-            </span>
-            <span className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-primary shrink-0" />
-              <span>Founded 24th September 1969</span>
-            </span>
-            <span className="flex items-center gap-2">
-              <Users2 className="w-4 h-4 text-accent shrink-0" />
-              <span>Central Sector Scheme</span>
-            </span>
-          </div>
-        </div>
-
-        {/* Editorial Storytelling Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
+        {/* Split-Tone Editorial Container: Dark Left, Light Right */}
+        <div className="about-reveal rounded-3xl overflow-hidden border border-slate-200/90 shadow-xl grid grid-cols-1 lg:grid-cols-12">
           
-          {/* Left Column: Heading & Institutional Metadata */}
-          <div className="lg:col-span-5 about-reveal">
-            <div className="text-xs font-bold tracking-wider text-accent uppercase mb-3">
-              Institutional Heritage & Purpose
+          {/* Left Column: Deep Navy Dark Background */}
+          <div className="lg:col-span-5 bg-gradient-to-br from-[#0a1526] via-[#0d1b32] to-[#07101e] p-8 sm:p-12 lg:p-14 text-white relative overflow-hidden flex flex-col justify-between">
+            {/* Ambient subtle glow */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#E0533C]/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-10 -left-10 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative z-10">
+              <span className="block text-[11px] font-bold tracking-[0.2em] text-[#f87171] uppercase mb-3">
+                Institutional Heritage & Purpose
+              </span>
+              <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight mb-4">
+                About <br />
+                <span className="text-[#E0533C]">NSS MIT</span>
+              </h2>
+              <div className="w-14 h-1 bg-[#E0533C] mb-8 rounded-full" />
+
+              <p className="text-slate-300 text-[15px] sm:text-base leading-relaxed font-normal">
+                The National Service Scheme is an initiative of the Government of India under the Ministry of Youth Affairs and Sports. It was launched on 24th September 1969, during the centenary year of Mahatma Gandhi, with the aim of developing personality, social awareness, and a sense of responsibility through voluntary service.
+              </p>
             </div>
-            <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-tight mb-5">
-              About <br />
-              <span className="text-primary font-sans">NSS MIT</span>
-            </h2>
-            <div className="w-14 h-1 bg-accent mb-6" />
 
-            <p className="text-base text-slate-600 leading-relaxed mb-6 font-normal">
-              The National Service Scheme is an initiative of the Government of India under the Ministry of Youth Affairs and Sports. Launched on 24th September 1969 during Mahatma Gandhi's centenary year, it develops personality and civic consciousness through voluntary community action.
-            </p>
-
-            {/* Official Contact Pill */}
-            <div className="inline-flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-700">
-              <Mail className="w-4 h-4 text-accent shrink-0" />
-              <span className="text-muted">Official Inquiries:</span>
-              <a
-                href="mailto:nssmit7@gmail.com"
-                className="font-semibold text-primary hover:underline"
-              >
-                nssmit7@gmail.com
-              </a>
+            {/* Faint Decorative Watermark */}
+            <div
+              className="absolute -right-6 -bottom-6 font-serif text-[130px] font-bold text-white/[0.03] select-none pointer-events-none leading-none"
+              aria-hidden="true"
+            >
+              NSS
             </div>
           </div>
 
-          {/* Right Column: Lead Narrative & 3 Institutional Pillars */}
-          <div className="lg:col-span-7 about-reveal space-y-6">
-            <div className="border-l-2 border-primary/40 pl-6 py-1">
-              <p className="font-display italic text-lg sm:text-xl text-slate-800 leading-relaxed">
+          {/* Right Column: Crisp Light Surface */}
+          <div className="lg:col-span-7 bg-white p-8 sm:p-12 lg:p-14 flex flex-col justify-center space-y-6">
+            {/* Editorial Quote */}
+            <div className="border-l-3 border-[#BC3A26] pl-6 py-2 bg-slate-50/70 rounded-r-xl">
+              <p className="font-serif italic text-lg sm:text-xl text-slate-900 leading-relaxed">
                 "Nurturing empathetic engineering minds through dedicated social engagement and grassroots community partnership."
               </p>
             </div>
 
-            <p className="text-base text-slate-600 leading-relaxed font-normal">
-              At Madras Institute of Technology (Anna University), NSS operates across seven active units (Unit I through Unit VII), each guided by dedicated Programme Officers. Our volunteers bridge technical education with social empathy, working directly with adopted rural communities, schools, health authorities, and civic bodies.
-            </p>
-
-            <p className="text-base text-slate-600 leading-relaxed font-normal">
-              Through residential 7-day Special Camps, regular blood donation drives, village empowerment programs, environmental conservation walks, literacy drives, and disaster response support, NSS MIT inculcates democratic attitudes, group responsibility, and proactive leadership among engineering scholars.
-            </p>
-
-            {/* Restrained Institutional Pillars (Clean, non-dashboard style) */}
-            <div className="pt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-5 rounded-lg bg-slate-50/70 border border-slate-200">
-                <span className="block font-bold text-base text-foreground mb-1.5">Democratic Living</span>
-                <span className="text-sm text-muted leading-relaxed">Emphasizing selfless service and shared societal responsibility.</span>
-              </div>
-              <div className="p-5 rounded-lg bg-slate-50/70 border border-slate-200">
-                <span className="block font-bold text-base text-foreground mb-1.5">Rural Engagement</span>
-                <span className="text-sm text-muted leading-relaxed">Structured village adoption and infrastructure improvement camps.</span>
-              </div>
-              <div className="p-5 rounded-lg bg-slate-50/70 border border-slate-200">
-                <span className="block font-bold text-base text-foreground mb-1.5">Youth Leadership</span>
-                <span className="text-sm text-muted leading-relaxed">Cultivating crisis readiness, civic duty, and community mobilization.</span>
-              </div>
+            {/* Narrative Paragraphs */}
+            <div className="space-y-4 text-[15px] sm:text-[15.5px] text-slate-600 leading-relaxed font-normal">
+              <p>
+                At Madras Institute of Technology (Anna University), NSS operates across seven active units (Unit I through Unit VII), each guided by dedicated Programme Officers. Our volunteers connect their academic knowledge with real-world needs by working with adopted villages, schools, healthcare teams, and local authorities.
+              </p>
+              <p>
+                Through 7-day residential Special Camps, blood donation drives, village development activities, environmental initiatives, literacy programmes, and disaster relief efforts, NSS MIT helps students build teamwork, responsibility, leadership, and a strong sense of service.
+              </p>
             </div>
-
           </div>
 
         </div>
-
       </div>
     </section>
   );

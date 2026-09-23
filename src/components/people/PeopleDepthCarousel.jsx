@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import DepthCarousel from "./DepthCarousel";
 import ActivePersonInfo from "./ActivePersonInfo";
+import { getStaffProfileUrl } from "../../data/staffProfileLinks.js";
 import "./PeopleDepthCarousel.css";
 
 /**
@@ -63,13 +64,27 @@ export default function PeopleDepthCarousel({
       : 145;
 
   // Format people items for DepthCarousel
-  const carouselItems = people.map((p, idx) => ({
-    ...p,
-    id: p.reg || p.name || idx,
-    badge: p.badge || p.unit || p.role || (p.year ? `${p.year}` : null),
-  }));
+  const carouselItems = people.map((p, idx) => {
+    const profileUrl = (p.profileUrl || getStaffProfileUrl(p) || "").trim();
+    return {
+      ...p,
+      id: p.id || p.reg || p.name || idx,
+      profileUrl,
+      badge: p.badge || p.unit || p.role || (p.year ? `${p.year}` : null),
+    };
+  });
 
-  const activePerson = people[activeIndex] || people[0];
+  const rawActivePerson = people[activeIndex] || people[0];
+  const activePerson = rawActivePerson
+    ? {
+        ...rawActivePerson,
+        profileUrl: (
+          rawActivePerson.profileUrl ||
+          getStaffProfileUrl(rawActivePerson) ||
+          ""
+        ).trim(),
+      }
+    : null;
 
   return (
     <div className={`people-split-layout ${className}`}>

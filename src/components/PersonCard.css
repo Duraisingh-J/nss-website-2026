@@ -1,9 +1,21 @@
 .person-card {
+  position: relative;
   background: white;
   border-bottom: 3px solid transparent;
   transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
   text-align: center;
   overflow: hidden;
+}
+
+.person-card--clickable {
+  cursor: pointer;
+}
+
+.person-card__link-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  outline: none;
 }
 
 .person-card:hover {
@@ -94,10 +106,63 @@
   margin-bottom: 4px;
 }
 
+/* Registration Badge (Option 1: Clean Monospace University ID Badge) */
+.person-reg-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--surface);
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid rgba(217, 75, 75, 0.22);
+  box-shadow: 0 2px 6px -2px rgba(217, 75, 75, 0.14);
+  margin-bottom: 6px;
+  transition: all 0.2s ease;
+}
+
+.person-reg-badge:hover {
+  border-color: rgba(217, 75, 75, 0.42);
+  box-shadow: 0 3px 10px -2px rgba(217, 75, 75, 0.22);
+}
+
+.person-reg-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--red);
+}
+
+.person-reg-dot {
+  font-size: 10px;
+  color: rgba(217, 75, 75, 0.4);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.person-reg-val {
+  font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--ink);
+}
+
 .person-dept {
   font-size: 12px;
-  color: var(--gray);
-  margin-bottom: 4px;
+  font-weight: 600;
+  color: #334155;
+  background: var(--surface);
+  border: 1px solid rgba(217, 75, 75, 0.22);
+  box-shadow: 0 2px 6px -2px rgba(217, 75, 75, 0.14);
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+  width: fit-content;
 }
 
 .person-contact {

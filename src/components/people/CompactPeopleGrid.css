@@ -105,22 +105,64 @@
   line-height: 1.3;
 }
 
+/* Department Highlight Badge */
 .compact-person-card__dept {
   font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  color: var(--gray);
-  margin-bottom: 8px;
-}
-
-.compact-person-card__reg {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--ink);
-  background: var(--light);
+  color: #334155;
+  background: var(--surface);
+  border: 1px solid rgba(217, 75, 75, 0.22);
+  box-shadow: 0 2px 6px -2px rgba(217, 75, 75, 0.14);
   padding: 2px 8px;
   border-radius: 4px;
-  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 8px;
+  width: fit-content;
+  max-width: 100%;
+}
+
+/* Registration Badge (Option 1: Clean Monospace University ID Badge with Red Theme) */
+.compact-person-card__reg {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--surface);
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid rgba(217, 75, 75, 0.22);
+  box-shadow: 0 2px 6px -2px rgba(217, 75, 75, 0.14);
+  transition: all 0.2s ease;
+}
+
+.compact-person-card__reg:hover {
+  border-color: rgba(217, 75, 75, 0.42);
+  box-shadow: 0 3px 10px -2px rgba(217, 75, 75, 0.22);
+}
+
+.compact-person-card__reg-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--red);
+}
+
+.compact-person-card__reg-dot {
+  font-size: 10px;
+  color: rgba(217, 75, 75, 0.4);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.compact-person-card__reg-val {
+  font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--ink);
 }
 
 @media (max-width: 600px) {

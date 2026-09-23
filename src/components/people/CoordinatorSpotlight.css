@@ -139,6 +139,11 @@
   color: var(--navy);
   margin: 0 0 8px 0;
   line-height: 1.2;
+  transition: color 0.2s ease;
+}
+
+.coordinator-spotlight--clickable:hover .coordinator-spotlight__name {
+  color: var(--red);
 }
 
 .coordinator-spotlight__post {
@@ -149,11 +154,31 @@
   margin-bottom: 4px;
 }
 
+/* Department Highlight Badge */
 .coordinator-spotlight__dept {
   font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
-  color: var(--gray);
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  background: var(--surface);
+  border: 1px solid rgba(217, 75, 75, 0.22);
+  box-shadow: 0 2px 8px -2px rgba(217, 75, 75, 0.14),
+              0 1px 3px rgba(217, 75, 75, 0.06);
+  padding: 3px 10px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  line-height: 1.4;
+  margin-top: 2px;
   margin-bottom: 16px;
+  transition: all 0.2s ease;
+}
+
+.coordinator-spotlight__dept:hover {
+  border-color: rgba(217, 75, 75, 0.38);
+  box-shadow: 0 3px 10px -2px rgba(217, 75, 75, 0.2);
 }
 
 .coordinator-spotlight__divider {
@@ -163,38 +188,61 @@
   margin-bottom: 18px;
 }
 
+/* Clickable State & Overlay */
+.coordinator-spotlight--clickable {
+  cursor: pointer;
+}
+
+.coordinator-spotlight__card-link-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  outline: none;
+}
+
+.coordinator-spotlight__card-link-overlay:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 2px;
+}
+
 /* Contacts */
 .coordinator-spotlight__contacts {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
 }
 
 .coordinator-spotlight__contact-item {
+  width: 32px;
+  height: 32px;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13.5px;
-  color: var(--gray);
+  justify-content: center;
+  color: var(--ink);
   text-decoration: none;
-  padding: 6px 12px;
-  background: var(--canvas);
+  font-weight: 500;
+  background: var(--surface);
   border-radius: 6px;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(217, 75, 75, 0.22);
+  box-shadow: 0 2px 8px -2px rgba(217, 75, 75, 0.14),
+              0 1px 3px rgba(217, 75, 75, 0.06);
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .coordinator-spotlight__contact-item:hover {
+  border-color: rgba(217, 75, 75, 0.42);
+  box-shadow: 0 4px 12px -2px rgba(217, 75, 75, 0.22);
   color: var(--red);
-  border-color: rgba(217, 75, 75, 0.4);
-  background: #ffffff;
   transform: translateY(-1px);
 }
 
 .coordinator-spotlight__contact-item svg {
-  color: var(--red);
+  color: inherit;
   flex-shrink: 0;
 }
 

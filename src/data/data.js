@@ -133,7 +133,7 @@ export const PEOPLE = {
   nssCoordinator: {
     name: "Dr. K.M. VEERABADRAN",
     role: "NSS CAMPUS COORDINATOR",
-    dept:"Dept.of Applied Science and Humanities",
+    dept:"Department of Applied Science and Humanities",
     post: "Assistant Professor (Sr. Gr.)",
     phone: "04422516142",
     email: "kmveera@mitindia.edu",

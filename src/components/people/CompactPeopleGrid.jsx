@@ -1,4 +1,4 @@
-import React from "react";
+import ProfileImage from "./ProfileImage";
 import "./CompactPeopleGrid.css";
 
 /**
@@ -13,6 +13,7 @@ export default function CompactPeopleGrid({ people = [], fallbackRole = "Head" }
     <div className="compact-people-grid">
       {people.map((person, idx) => {
         const {
+          id,
           name,
           role,
           badge,
@@ -20,48 +21,68 @@ export default function CompactPeopleGrid({ people = [], fallbackRole = "Head" }
           year,
           reg,
           image,
+          originalImage,
           initials,
         } = person;
 
-        const roleText = role || badge || fallbackRole;
+        const baseRole = role || badge || fallbackRole;
+        const roleWithYear = year && !baseRole.toLowerCase().includes("year")
+          ? `${baseRole} · ${year}`
+          : baseRole;
+
+        const cleanDept = dept
+          ? dept
+              .replace(/^Dept\.\s*of\s+/i, "")
+              .replace(/^Dept\.\s*/i, "")
+              .replace(/^Department\s*of\s+/i, "")
+              .replace(/^Department\s*/i, "")
+              .trim()
+          : null;
+        const deptText = cleanDept ? `Department of ${cleanDept}` : null;
 
         return (
           <div key={reg || name || idx} className="compact-person-card">
             <div className="compact-person-card__media">
-              {image ? (
-                <img
-                  src={image}
-                  alt={name}
-                  className="compact-person-card__img"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="compact-person-card__initials">
-                  {initials ||
-                    name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .slice(0, 2)
-                      .join("")}
-                </div>
-              )}
+              <ProfileImage
+                src={image}
+                alt={name}
+                className="compact-person-card__img"
+                priority={idx < 2}
+                personInfo={{ id, name, originalSrc: originalImage || image }}
+                fallback={
+                  <div className="compact-person-card__initials">
+                    {initials ||
+                      name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .slice(0, 2)
+                        .join("")}
+                  </div>
+                }
+              />
 
-              {roleText && (
-                <div className="compact-person-card__badge">{roleText}</div>
+              {baseRole && (
+                <div className="compact-person-card__badge">{baseRole}</div>
               )}
             </div>
 
             <div className="compact-person-card__body">
-              <div className="compact-person-card__role">{roleText}</div>
+              <div className="compact-person-card__role">{roleWithYear}</div>
               <h3 className="compact-person-card__name">{name}</h3>
-              {dept && (
+              {deptText && (
                 <div className="compact-person-card__dept">
-                  {year && `${year} · `}
-                  {dept.startsWith("Dept.") ? dept : `${dept}`}
+                  {deptText}
                 </div>
               )}
               {reg && (
-                <div className="compact-person-card__reg">Reg: {reg}</div>
+                <div
+                  className="compact-person-card__reg"
+                  title={`Registration Number: ${reg}`}
+                >
+                  <span className="compact-person-card__reg-label">REG</span>
+                  <span className="compact-person-card__reg-dot">·</span>
+                  <span className="compact-person-card__reg-val">{reg}</span>
+                </div>
               )}
             </div>
           </div>

@@ -6,6 +6,7 @@ import Home from "./pages/Home";
 import Events from "./pages/Events";
 import People from "./pages/People";
 import Achievements from "./pages/Achievements";
+import Gallery from "./pages/Gallery";
 import "./styles/global.css";
 
 // Admin CMS Imports
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="/events/:eventId/sessions/:sessionId" element={<Navigate to="/events" replace />} />
           <Route path="/people" element={<People />} />
           <Route path="/achievements" element={<Achievements />} />
+          <Route path="/gallery" element={<Gallery />} />
 
           {/* Admin CMS Authentication */}
           <Route path="/admin/login" element={<Login />} />

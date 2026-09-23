@@ -48,22 +48,22 @@ function HeritageWatermark({ className }) {
       <rect x="112" y="98" width="56" height="8" opacity="0.7" />
       <rect x="122" y="106" width="36" height="50" opacity="0.5" />
       <path d="M130 130 a10 10 0 0 1 20 0 v26 h-20 z" opacity="0.8" />
-      
+
       {/* Main Building Base & Wings */}
       <rect x="80" y="156" width="120" height="12" opacity="0.7" />
       <rect x="50" y="168" width="180" height="150" opacity="0.4" />
-      
+
       {/* Arched Portico Windows */}
       <path d="M65 190 a12 12 0 0 1 24 0 v40 h-24 z" opacity="0.65" />
       <path d="M100 190 a12 12 0 0 1 24 0 v40 h-24 z" opacity="0.65" />
       <path d="M135 190 a12 12 0 0 1 24 0 v40 h-24 z" opacity="0.75" />
       <path d="M170 190 a12 12 0 0 1 24 0 v40 h-24 z" opacity="0.65" />
-      
+
       {/* Ground Floor Grand Arches */}
       <path d="M70 250 a16 16 0 0 1 32 0 v68 h-32 z" opacity="0.7" />
       <path d="M124 240 a16 16 0 0 1 32 0 v78 h-32 z" opacity="0.85" />
       <path d="M178 250 a16 16 0 0 1 32 0 v68 h-32 z" opacity="0.7" />
-      
+
       {/* Surrounding Trees / Foliage Silhouette */}
       <path d="M10 280 q15 -40 35 -30 q20 -20 30 10 q15 30 -5 60 z" opacity="0.3" />
       <path d="M220 270 q20 -50 45 -25 q25 15 15 55 z" opacity="0.3" />
@@ -146,19 +146,19 @@ export default function MottoSection() {
       aria-label="Our Guiding Philosophy: Not Me But You"
     >
       <div className="max-w-7xl mx-auto relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-          
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 xl:gap-10 items-center">
+
           {/* =========================================================
               LEFT COLUMN: Tall Photo Card with Compassionate Hands
               ========================================================= */}
           <div className="lg:col-span-5 flex justify-center lg:justify-start">
-            <div className="motto-image-col relative w-full max-w-md sm:max-w-[420px] lg:max-w-[440px] xl:max-w-[460px] rounded-2xl overflow-hidden shadow-2xl border border-stone-200/80 group">
-              
+            <div className="motto-image-col relative w-full max-w-[395px] sm:max-w-[425px] lg:max-w-[455px] xl:max-w-[470px] rounded-2xl overflow-hidden shadow-2xl border border-stone-200/80 group">
+
               {/* Hands Photograph with Integrated Editorial Typography */}
               <img
                 src={`${process.env.PUBLIC_URL}/images/motto-hands.png`}
                 alt="People Serve People Grow Nations Rise - Not Me But You"
-                className="w-full h-auto object-cover object-center transform transition-transform duration-700 group-hover:scale-102"
+                className="w-full h-auto max-h-[660px] object-cover object-center transform transition-transform duration-700 group-hover:scale-102"
                 onError={(e) => {
                   if (!e.currentTarget.dataset.fallback) {
                     e.currentTarget.dataset.fallback = "true";
@@ -175,7 +175,7 @@ export default function MottoSection() {
               Motto Heading, Explanation, 3 Pillars, and Quote Callout
               ========================================================= */}
           <div className="lg:col-span-7 relative flex flex-col justify-between py-2">
-            
+
             {/* Background Watermarks: Ashoka Chakra & Heritage Building */}
             <div className="absolute top-1/2 right-0 sm:right-4 -translate-y-1/2 pointer-events-none z-0 select-none opacity-[0.10] text-[#A67C52]">
               <AshokaChakra className="w-[480px] sm:w-[560px] h-[480px] sm:h-[560px]" />
@@ -185,7 +185,7 @@ export default function MottoSection() {
             </div>
 
             <div className="relative z-10">
-              
+
               {/* Eyebrow */}
               <span className="motto-eyebrow text-[#BC3A26] font-bold text-xs tracking-[0.22em] uppercase mb-4 block select-none">
                 OUR GUIDING PHILOSOPHY
@@ -211,10 +211,10 @@ export default function MottoSection() {
 
               {/* Pillars & Quote Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-8 items-center pt-2">
-                
+
                 {/* 3 Core Values / Pillars (Takes 7 or 8 columns on sm/lg) */}
                 <div className="sm:col-span-7 grid grid-cols-3 gap-3 sm:gap-4">
-                  
+
                   {/* Pillar 1: Individual Responsibility */}
                   <div className="motto-pillar-item flex flex-col items-center sm:items-start text-center sm:text-left">
                     <div className="w-12 h-12 rounded-full bg-[#F3EDE2] border border-[#E5DAC8] flex items-center justify-center text-[#9E653A] mb-2.5 shadow-sm">

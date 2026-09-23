@@ -68,6 +68,24 @@
   cursor: default;
 }
 
+.depth-carousel__card--active.depth-carousel__card--clickable {
+  cursor: pointer;
+}
+
+.depth-carousel__card-link-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  border-radius: inherit;
+  cursor: pointer;
+  outline: none;
+}
+
+.depth-carousel__card-link-overlay:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 4px;
+}
+
 .depth-carousel__card:focus-visible {
   outline: 2px solid var(--red);
   outline-offset: 4px;
