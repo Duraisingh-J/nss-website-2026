@@ -4,10 +4,90 @@
   min-height: 100vh;
 }
 
+.people-hero {
+  position: relative;
+  height: 365px;
+  min-height: 365px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  background: #071a2d;
+  color: #ffffff;
+  padding: 78px 45px 0;
+}
+
+.people-hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 900px;
+}
+
+.people-hero-title {
+  margin: 0;
+  font-family: "Playfair Display", serif;
+  font-size: 54px;
+  line-height: 1.05;
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  color: #ffffff;
+}
+
+.people-hero-title em {
+  color: rgba(255, 255, 255, 0.58);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.people-hero-description {
+  margin: 24px 0 0;
+  max-width: 900px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.people-hero-watermark {
+  position: absolute;
+  right: -35px;
+  bottom: -42px;
+  z-index: 1;
+  font-family: "DM Sans", sans-serif;
+  font-size: 210px;
+  line-height: 0.9;
+  font-weight: 700;
+  letter-spacing: -0.07em;
+  color: rgba(255, 255, 255, 0.065);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
 .people-main-container {
   max-width: 1240px;
   margin: 0 auto;
   padding: 40px 32px 64px;
+}
+
+@media (max-width: 1024px) {
+  .people-hero {
+    height: 340px;
+    min-height: 340px;
+    padding: 72px 32px 0;
+  }
+  .people-hero-title {
+    font-size: 46px;
+  }
+  .people-hero-description {
+    max-width: 760px;
+    font-size: 15px;
+  }
+  .people-hero-watermark {
+    font-size: 170px;
+    right: -25px;
+    bottom: -32px;
+  }
 }
 
 /* Coordinator section specific wrapper */
@@ -120,10 +200,125 @@
 }
 
 @media (max-width: 640px) {
+  .people-hero {
+    height: 310px;
+    min-height: 310px;
+    padding: 58px 22px 0;
+  }
+  .people-hero-title {
+    font-size: 38px;
+    line-height: 1.08;
+  }
+  .people-hero-description {
+    margin-top: 18px;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  .people-hero-watermark {
+    right: -5px;
+    bottom: -15px;
+    font-size: 105px;
+  }
+
   .people-main-container {
     padding: 28px 16px 44px;
   }
   .coordinator-section-wrapper {
     margin-bottom: 32px;
+  }
+}
+
+/* People hero alignment override */
+.people-hero {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  min-height: 280px;
+  overflow: hidden;
+  background: #0d1726;
+  color: #ffffff;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.people-hero__shell {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+.people-hero__content {
+  position: relative;
+  top: -40px;
+  z-index: 2;
+  max-width: 900px;
+  padding: 0;
+}
+
+.people-hero__statement {
+  margin: 0;
+  color: #ffffff;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 54px;
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+}
+
+.people-hero__statement em {
+  color: #9ca6b6;
+  font-family: "Playfair Display", Georgia, serif;
+  font-weight: 400;
+  font-style: italic;
+}
+
+.people-hero__content p {
+  max-width: 850px;
+  margin: 24px 0 0;
+  color: #aeb7c5;
+  font-family: "DM Sans", Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.65;
+}
+
+.people-hero__background-word {
+  position: absolute;
+  z-index: 1;
+  right: 30px;
+  bottom: -25px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.075);
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 170px;
+  font-weight: 700;
+  line-height: 0.85;
+  letter-spacing: -0.05em;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+@media (max-width: 768px) {
+  .people-hero {
+    height: 320px;
+    min-height: 320px;
+  }
+  .people-hero__content {
+    padding: 58px 24px 0;
+  }
+  .people-hero__statement {
+    font-size: 38px;
+  }
+  .people-hero__content p {
+    margin-top: 18px;
+    font-size: 14px;
+  }
+  .people-hero__background-word {
+    right: -20px;
+    bottom: -20px;
+    font-size: 110px;
   }
 }

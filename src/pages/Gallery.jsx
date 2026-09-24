@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import PageHero from "../components/ui/PageHero";
 import Footer from "../components/Footer";
 import GalleryMarqueeRow from "../components/gallery/GalleryMarqueeRow";
 import GalleryShowcaseGrid from "../components/gallery/GalleryShowcaseGrid";
@@ -122,18 +121,24 @@ export default function Gallery() {
   };
 
   return (
-    <div className="gallery-page">
-      {/* ── 1. Page Hero (Matching Events & Achievements Header) ── */}
-      <PageHero
-        title="GALLERY"
-        statement={
-          <>
-            Moments, captured <em>in action.</em>
-          </>
-        }
-        description="A visual archive of NSS initiatives, field documentation, community outreach drives, and volunteer moments."
-        watermark="GALLERY"
-      />
+    <div className="page-wrapper gallery-page">
+      {/* ── 1. Gallery title card ───────────────────────────────── */}
+      <header className="gallery-hero">
+        <div className="gallery-hero__shell">
+          <div className="gallery-hero__content">
+            <div className="gallery-hero__statement">
+              Visual <em>archive.</em>
+            </div>
+            <p>
+              Moments from NSS activities, outreach programmes, camps, events, and
+              the people who make every initiative possible.
+            </p>
+          </div>
+          <div className="gallery-hero__background-word" aria-hidden="true">
+            GALLERY
+          </div>
+        </div>
+      </header>
 
       <main className="gallery-main-container">
         {/* ── 2. ELEVATED FILTER TOOLBAR (MATCHING ACHIEVEMENTS) ── */}

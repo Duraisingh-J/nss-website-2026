@@ -216,7 +216,6 @@ export default function Events() {
           <motion.header className="events-hero" initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-10 }}>
             <div className="events-shell">
               <div className="events-hero__content">
-                <h1>EVENTS</h1>
                 <div className="events-hero__statement">
                   Service, seen <em>through action.</em>
                 </div>
@@ -231,10 +230,13 @@ export default function Events() {
       <main className="events-main">
         <div className="events-shell">
           {view !== "types" && (
-            <div className="events-context">
-              <button type="button" className="events-back" onClick={back}><ArrowLeft size={16} /> All Event Types</button>
+            <div className={`events-context ${view === "collection" || view === "months" ? "events-context--collection" : ""}`}>
+              <button type="button" className="events-back" onClick={back} aria-label="Back to all event types">
+                <ArrowLeft size={view === "collection" || view === "months" ? 24 : 16} />
+                {view !== "collection" && view !== "months" && " All Event Types"}
+              </button>
               <div>
-                <span>{view === "event" ? "EVENT" : selectedType?.isMonthlyType ? "MONTHLY ARCHIVE" : "EVENT COLLECTION"}</span>
+                <span>{view === "event" ? "EVENT" : "EVENT COLLECTION"}</span>
                 <h1>{view === "event" ? selectedEvent?.title : selectedType?.title}</h1>
               </div>
             </div>
@@ -242,7 +244,7 @@ export default function Events() {
 
           {view === "types" && (
             <section className="event-types" aria-label="Event Types">
-              <div className="events-section-heading"><span>01 / COLLECTIONS</span><h2>Choose how you want to explore.</h2><p>Four ways to read the NSS archive. Select a collection to move from the overview into its events.</p></div>
+              <div className="events-section-heading"><span>01 / ARCHIVE</span><h2>Explore the story of NSS.</h2><p>From service activities and outreach programmes to camps, celebrations, and the people behind them — explore the moments that shaped NSS at MIT.</p></div>
               <div className="event-types-grid">
                 {EVENT_TYPE_DEFINITIONS.map(type => <TypePanel key={type.id} type={type} count={counts[type.id] || 0} onClick={() => chooseType(type)} />)}
               </div>
