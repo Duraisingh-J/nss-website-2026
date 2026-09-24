@@ -60,10 +60,6 @@ export default function CompactPeopleGrid({ people = [], fallbackRole = "Head" }
                   </div>
                 }
               />
-
-              {baseRole && (
-                <div className="compact-person-card__badge">{baseRole}</div>
-              )}
             </div>
 
             <div className="compact-person-card__body">

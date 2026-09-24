@@ -415,19 +415,6 @@ export default function DepthCarousel({
                     }
                   />
 
-                  {/* Role or Unit Badge */}
-                  {item.badge && (
-                    <div
-                      className={`depth-carousel__card-badge ${
-                        item.badge.includes("PO") || item.badge.includes("Unit")
-                          ? "depth-carousel__card-badge--accent"
-                          : ""
-                      }`}
-                    >
-                      {item.badge}
-                    </div>
-                  )}
-
                   {/* Gradient & subtle name preview on non-active cards */}
                   <div className="depth-carousel__card-gradient" />
                   {!isActive && (

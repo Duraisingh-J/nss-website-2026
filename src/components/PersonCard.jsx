@@ -45,9 +45,9 @@ export default function PersonCard({
           personInfo={{ name, originalSrc: image }}
           fallback={<span className="person-initials">{initials}</span>}
         />
-        {badge && <div className="person-badge">{badge}</div>}
       </div>
       <div className="person-info">
+        {badge && <div className="person-badge-inline">{badge}</div>}
         <h4 className="person-name">{name}</h4>
 
         {reg && (

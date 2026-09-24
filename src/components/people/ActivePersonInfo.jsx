@@ -68,8 +68,24 @@ export default function ActivePersonInfo({
   const profileUrl = (rawProfileUrl || getStaffProfileUrl(displayedPerson) || "").trim();
   const isClickable = Boolean(profileUrl);
 
-  const roleText =
-    role || (unit ? `Program Officer – ${unit}` : badge || fallbackRole);
+  // Derive full Role · Unit label (e.g. "PROGRAM OFFICER · UNIT I" or "UNIT INCHARGE · UNIT I")
+  const getRoleUnitText = () => {
+    // 1. If badge already combines role & unit with '·'
+    if (badge && unit && badge.includes("·")) {
+      return badge;
+    }
+    // 2. If role and unit both exist and role doesn't already contain unit
+    if (role && unit && !role.toLowerCase().includes(unit.toLowerCase())) {
+      return `${role} · ${unit}`;
+    }
+    // 3. Fallbacks
+    if (badge) return badge;
+    if (role) return role;
+    if (unit) return `${fallbackRole} · ${unit}`;
+    return fallbackRole || null;
+  };
+
+  const roleText = getRoleUnitText();
 
   // Include year after the role/post text (e.g. "Senior Volunteer · Final Year")
   const displayPost = post
@@ -128,8 +144,6 @@ export default function ActivePersonInfo({
 
             {/* Institutional Unit */}
             <div className="active-person-info__institution">
-              <span className="active-person-info__institution-dot" />
-              <span>NSS MIT Anna University</span>
             </div>
           </a>
         ) : (
@@ -156,8 +170,7 @@ export default function ActivePersonInfo({
 
             {/* Institutional Unit */}
             <div className="active-person-info__institution">
-              <span className="active-person-info__institution-dot" />
-              <span>NSS MIT Anna University</span>
+  
             </div>
           </>
         )}
