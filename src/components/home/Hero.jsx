@@ -158,11 +158,6 @@ export default function Hero() {
         className="absolute inset-0 z-[1] pointer-events-none bg-gradient-to-b from-[#070e1b]/95 via-transparent to-[#070e1b]"
         aria-hidden="true"
       />
-      {/* Subtle radial ambient glow */}
-      <div
-        className="absolute top-1/4 left-10 w-96 h-96 bg-[#BC3A26]/10 rounded-full blur-3xl pointer-events-none z-[1]"
-        aria-hidden="true"
-      />
 
       {/* ── MAIN HERO CONTENT CONTAINER ────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10">
@@ -189,7 +184,7 @@ export default function Hero() {
               <span className="hero-title-line font-display block text-5xl sm:text-6xl lg:text-7xl font-black text-white">
                 {currentTitle}
               </span>
-              <span className="hero-title-line font-display block text-5xl sm:text-6xl lg:text-7xl font-bold text-[#E0533C] mt-1 drop-shadow-[0_2px_10px_rgba(224,83,60,0.4)]">
+              <span className="hero-title-line font-display block text-5xl sm:text-6xl lg:text-7xl font-bold text-[#E0533C] mt-1">
                 {currentSubtitle}
               </span>
             </h1>
