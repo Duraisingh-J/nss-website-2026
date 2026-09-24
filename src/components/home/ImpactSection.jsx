@@ -81,34 +81,22 @@ export default function ImpactSection() {
             return (
               <div
                 key={domain.title}
-                className="domain-card group bg-white border border-slate-200/90 rounded-lg p-7 hover:border-slate-400/80 transition-all duration-200 flex flex-col justify-between"
+                className="domain-card bg-white border border-slate-200/90 rounded-lg p-7 flex flex-col"
               >
-                <div>
-                  {/* Clean unboxed icon */}
-                  <div className="text-primary mb-5 flex items-center justify-between">
-                    <IconComponent className="w-6 h-6" strokeWidth={1.75} />
-                    <span className="text-xs font-semibold text-muted uppercase tracking-wider">
-                      Focus Area
-                    </span>
-                  </div>
-
-                  <h3 className="font-sans font-bold text-lg text-foreground mb-2.5 group-hover:text-primary transition-colors">
-                    {domain.title}
-                  </h3>
-
-                  <p className="text-[15px] text-slate-600 leading-relaxed font-normal">
-                    {domain.desc}
-                  </p>
+                {/* Icon */}
+                <div className="text-primary mb-5">
+                  <IconComponent className="w-6 h-6" strokeWidth={1.75} />
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-muted">
-                  <span className="font-medium uppercase tracking-wide text-slate-500">
-                    NSS MIT Community Drive
-                  </span>
-                  <span className="text-accent font-bold text-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                    →
-                  </span>
-                </div>
+                {/* Title */}
+                <h3 className="font-sans font-bold text-lg text-foreground mb-2.5">
+                  {domain.title}
+                </h3>
+
+                {/* Description */}
+                <p className="text-[15px] text-slate-600 leading-relaxed font-normal">
+                  {domain.desc}
+                </p>
               </div>
             );
           })}
