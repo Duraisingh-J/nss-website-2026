@@ -77,7 +77,7 @@ export default function Footer() {
             <div className="flex items-center gap-4 pt-1">
               {/* Instagram */}
               <a
-                href="https://instagram.com"
+                href="https://www.instagram.com/nss_mit?stkn=eGFnZmZnejVjM2Rp"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Instagram"
@@ -90,7 +90,7 @@ export default function Footer() {
 
               {/* LinkedIn */}
               <a
-                href="https://linkedin.com"
+                href="https://www.linkedin.com/in/nss-mit?utm_source=share_via&utm_content=profile&utm_medium=member_android"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="LinkedIn"

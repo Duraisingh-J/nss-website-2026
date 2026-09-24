@@ -4,7 +4,7 @@ import "./index.css";
 const CONFIG = {
   // CHANGE ONLY THESE TWO VALUES WHEN NEEDED.
   targetDateTime: "2026-09-24T01:27:00+05:30",
-  mainWebsiteUrl: "https://localhost:3000//src//nss",
+  mainWebsiteUrl: "https://clubs.mitindia.edu/src/nss/",
 
   organization: "NATIONAL SERVICE SCHEME",
   campus: "Anna University • MIT Campus",
@@ -66,7 +66,9 @@ export default function App() {
   };
 
   const handleVideoEnded = () => {
-    window.location.href = CONFIG.mainWebsiteUrl;
+    setTimeout(() => {
+      window.location.href = CONFIG.mainWebsiteUrl;
+    }, 2000);
   };
 
   const handleVideoError = () => {
