@@ -71,7 +71,7 @@ export default function StatsSection() {
                   {stat.label}
                 </div>
                 <div className="text-xs sm:text-sm text-slate-400 mt-1.5 font-medium">
-                  {stat.id === "units" && "Unit I through Unit VII"}
+                  {stat.id === "units" && "Unit I to Unit VII"}
                   {stat.id === "pos" && "Faculty Leadership & Mentorship"}
                   {stat.id === "students" && "Enrolled Engineering Volunteers"}
                 </div>

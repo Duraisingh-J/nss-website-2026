@@ -5,7 +5,7 @@
 // ---------- STATS ----------
 export const STATS = [
   { id: "units",    label: "Units",             target: 7    },
-  { id: "pos",      label: "Program Officers",  target: 7    },
+  { id: "pos",      label: "Programme Officers",  target: 7    },
   { id: "students", label: "Volunteers", target: 350 },
 ];
 
@@ -94,7 +94,7 @@ export const EVENTS_BY_YEAR = {
       id: "ac-2425", title: "Annual Camp", type: "camp",
       date: "January 2025", location: "Vellanur Village, Thiruvallur District",
       days: [
-        { day: 1, title: "Arrival & Inauguration",        desc: "Camp opened by the Program Officer and Village President. Volunteers allocated duties, handed camp kits, and conducted a quick walkthrough survey of the village." },
+        { day: 1, title: "Arrival & Inauguration",        desc: "Camp opened by the Programme Officer and Village President. Volunteers allocated duties, handed camp kits, and conducted a quick walkthrough survey of the village." },
         { day: 2, title: "Infrastructure Improvement",    desc: "Repainting of school classrooms, repair of compound wall, and installation of handwash stations at the primary school and community hall." },
         { day: 3, title: "Medical & Dental Camp",         desc: "Comprehensive health camp including dental check-ups, blood glucose screening, eye testing, and free spectacle distribution to 40 identified beneficiaries." },
         { day: 4, title: "Environmental Awareness Walk",  desc: "5 km awareness walk through village with placards on plastic pollution, open defecation, and tree conservation. Followed by a sapling planting session." },
@@ -111,7 +111,7 @@ export const EVENTS_BY_YEAR = {
         { day: 1, title: "Inauguration Day",              desc: "Camp inaugurated with flag hoisting, NSS pledge, and a welcome address by the Block Development Officer. Volunteer units assigned to specific hamlets." },
         { day: 2, title: "Swachh Bharat Mission Day",     desc: "Large-scale sanitation drive covering 3 hamlets. Construction of two new soak pits and distribution of dustbins to 45 households." },
         { day: 3, title: "Farmers' Interaction & Help",   desc: "Sessions with farmers on soil health, crop insurance, PM-KISAN scheme registration, and introduction to drip irrigation with demonstration." },
-        { day: 4, title: "Youth & Career Guidance",       desc: "Motivational talks and career counselling sessions for local youth on government job opportunities, competitive exams, and skill development programs." },
+        { day: 4, title: "Youth & Career Guidance",       desc: "Motivational talks and career counselling sessions for local youth on government job opportunities, competitive exams, and skill development programmes." },
         { day: 5, title: "Wall Mural & Art Day",          desc: "Volunteers painted 15 awareness murals on village walls covering health, education, gender equality, and environmental protection." },
         { day: 6, title: "Night Cultural Programme",      desc: "Grand cultural night with folk art by local artistes, dance performances by volunteers, skit on drug awareness, and patriotic song competition." },
         { day: 7, title: "Closing & Flag-off",            desc: "Valedictory ceremony attended by RDO and media. Best volunteer and best unit awards presented. Camp formally concluded with the NSS song." },
@@ -141,7 +141,7 @@ export const PEOPLE = {
     image: null, // e.g. "/images/people/coordinator.jpg"
   },
 
-  // 3. Program Officers — Unit I to Unit VII
+  // 3. Programme Officers — Unit I to Unit VII
   programOfficers: [
     { name: "Dr. J. Ramajothi",   unit: "Unit I",  dept:"Applied Science and Humanities", post: "Assistant Professor",   phone: "04422516142", initials: "1", image: null },
     { name: "Dr. K. MARIAMMAL", unit: "Unit II",  dept:"Electronics and Communication Engineering",post: "Associate Professor",   phone: "044516238", initials: "2", image: null },

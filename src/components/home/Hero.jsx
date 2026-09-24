@@ -17,6 +17,14 @@ const CURATED_NSS_PLACEHOLDERS = [
   `${process.env.PUBLIC_URL || ""}/images/Hero7.jpg`,
   `${process.env.PUBLIC_URL || ""}/images/Hero8.jpg`,
   `${process.env.PUBLIC_URL || ""}/images/Hero9.jpg`,
+  `${process.env.PUBLIC_URL || ""}/images/Hero10.jpg`,
+  `${process.env.PUBLIC_URL || ""}/images/Hero11.jpg`,
+  `${process.env.PUBLIC_URL || ""}/images/Hero12.jpeg`,
+  `${process.env.PUBLIC_URL || ""}/images/Hero13.jpg`,
+  `${process.env.PUBLIC_URL || ""}/images/Hero14.webp`,
+  `${process.env.PUBLIC_URL || ""}/images/Hero15.webp`,
+  `${process.env.PUBLIC_URL || ""}/images/Hero16.webp`,
+  `${process.env.PUBLIC_URL || ""}/images/Hero17.webp`,
 ];
 
 export default function Hero() {
@@ -140,7 +148,7 @@ export default function Hero() {
       aria-label="NSS MIT Hero Section"
     >
       {/* ── 3D ISOMETRIC MARQUEE BACKGROUND ────────────────────────── */}
-      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-auto opacity-70">
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-auto opacity-100">
         <ThreeDMarquee
           images={marqueeImages}
           className="w-full h-full max-w-none rounded-none"
@@ -216,7 +224,7 @@ export default function Hero() {
                 onClick={scrollToAbout}
                 className="hero-btn inline-flex items-center justify-center gap-2.5 bg-slate-900/90 hover:bg-slate-800/90 border border-slate-700 hover:border-slate-500 text-white font-sans font-medium text-sm sm:text-base px-6 py-3.5 rounded-xl transition-all shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 cursor-pointer"
               >
-                <span>Learn About NSS</span>
+                <span>Know About NSS</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>

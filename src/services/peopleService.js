@@ -66,12 +66,33 @@ export function formatDepartment(dept) {
 }
 
 /**
+ * Helper to extract numeric unit (1-7) reliably from integer or Roman string
+ */
+export function getUnitNumber(unit) {
+  if (unit === null || unit === undefined) return 999;
+  if (typeof unit === "number") return unit;
+  const match = String(unit).match(/\b([1-7])\b/);
+  if (match) return parseInt(match[1], 10);
+  const u = String(unit).toUpperCase().trim();
+  if (u.includes("VII")) return 7;
+  if (u.includes("VI")) return 6;
+  if (u.includes("IV")) return 4;
+  if (u.includes("V")) return 5;
+  if (u.includes("III")) return 3;
+  if (u.includes("II")) return 2;
+  if (u.includes("I")) return 1;
+  return 999;
+}
+
+/**
  * Transforms a raw Supabase relational row into the shape expected by UI components
  */
 export function transformPerson(row) {
   if (!row) return null;
 
-  const roleName = row.roles?.name || "Member";
+  let rawRoleName = row.roles?.name || "Member";
+  // Standardize "Program Officer" to "Programme Officer"
+  const roleName = rawRoleName.replace(/\bProgram Officer\b/gi, "Programme Officer");
   const formattedUnit = formatUnit(row.unit);
   const formattedYear = formatYear(row.year);
   const rawPhotoSource = row.media?.storage_path || row.photo_url || row.image || row.photo || null;
@@ -168,13 +189,33 @@ export async function getPublicPeople() {
     (p) => p.roleName?.toLowerCase().includes("coordinator") && !p.roleName?.toLowerCase().includes("session")
   ) || null;
 
-  const programOfficers = allPeople.filter(
-    (p) => p.roleName?.toLowerCase().includes("program officer") || p.roleName?.toLowerCase().includes("programme officer")
-  );
+  const programOfficers = allPeople
+    .filter(
+      (p) =>
+        p.roleName?.toLowerCase().includes("program officer") ||
+        p.roleName?.toLowerCase().includes("programme officer")
+    )
+    .sort((a, b) => {
+      const unitA = getUnitNumber(a.rawUnit ?? a.unit);
+      const unitB = getUnitNumber(b.rawUnit ?? b.unit);
+      if (unitA !== unitB) return unitA - unitB;
+      return (a.name || "").localeCompare(b.name || "");
+    });
 
-  const unitIncharges = allPeople.filter(
-    (p) => p.roleName?.toLowerCase().includes("unit leader") || p.roleName?.toLowerCase().includes("unit incharge")
-  );
+  const unitIncharges = allPeople
+    .filter(
+      (p) =>
+        p.roleName?.toLowerCase().includes("unit leader") ||
+        p.roleName?.toLowerCase().includes("unit incharge")
+    )
+    .sort((a, b) => {
+      const unitA = getUnitNumber(a.rawUnit ?? a.unit);
+      const unitB = getUnitNumber(b.rawUnit ?? b.unit);
+      if (unitA !== unitB) return unitA - unitB;
+      const yearDiff = (Number(b.rawYear) || 0) - (Number(a.rawYear) || 0);
+      if (yearDiff !== 0) return yearDiff;
+      return (a.name || "").localeCompare(b.name || "");
+    });
 
   const getRolePriority = (roleName = "") => {
     const role = roleName.toLowerCase();

@@ -13,17 +13,21 @@ export const ThreeDMarquee = ({ images = [], className = "" }) => {
     `${process.env.PUBLIC_URL || ""}/images/Hero4.jpg`,
   ];
 
-  // Populate enough items so all 4 columns are rich
-  const filledImages = [...validImages];
-  while (filledImages.length < 24) {
-    filledImages.push(...validImages);
-  }
+  // 1. Partition photos into 4 disjoint, mutually exclusive sets across the 4 columns
+  // This guarantees that adjacent columns (like 2nd and 3rd) NEVER show the same photo at any time
+  const columnBuckets = Array.from({ length: 4 }, () => []);
+  validImages.forEach((img, idx) => {
+    columnBuckets[idx % 4].push(img);
+  });
 
-  // Split the images array into 4 equal parts
-  const chunkSize = Math.max(1, Math.ceil(filledImages.length / 4));
-  const chunks = Array.from({ length: 4 }, (_, colIndex) => {
-    const start = colIndex * chunkSize;
-    return filledImages.slice(start, start + chunkSize);
+  // 2. Fill each column with its dedicated photos and duplicate for the seamless continuous infinite scroll
+  const chunks = columnBuckets.map((bucket) => {
+    const baseList = [];
+    while (baseList.length < 12) {
+      baseList.push(...bucket);
+    }
+    // Duplicate list so 0% -> -50% translation is a seamless loop
+    return [...baseList, ...baseList];
   });
 
   return (
@@ -41,48 +45,54 @@ export const ThreeDMarquee = ({ images = [], className = "" }) => {
             }}
             className="relative top-96 right-[50%] grid size-full origin-top-left grid-cols-4 gap-8 transform-3d"
           >
-            {chunks.map((subarray, colIndex) => (
-              <motion.div
-                animate={{ y: colIndex % 2 === 0 ? 100 : -100 }}
-                transition={{
-                  duration: colIndex % 2 === 0 ? 10 : 15,
-                  repeat: Infinity,
-                  repeatType: "reverse",
-                }}
-                key={colIndex + "marquee"}
-                className="flex flex-col items-start gap-8"
-              >
-                <GridLineVertical className="-left-4" offset="80px" />
-                {subarray.map((image, imageIndex) => {
-                  const src = typeof image === "string" ? image : image?.url;
-                  const alt =
-                    typeof image === "object" && image?.altText
-                      ? image.altText
-                      : `NSS Activity ${imageIndex + 1}`;
+            {chunks.map((subarray, colIndex) => {
+              const isEven = colIndex % 2 === 0;
+              return (
+                <motion.div
+                  animate={{
+                    y: isEven ? ["0%", "-50%"] : ["-50%", "0%"],
+                  }}
+                  transition={{
+                    duration: isEven ? 150 : 180,
+                    ease: "linear",
+                    repeat: Infinity,
+                    repeatType: "loop",
+                  }}
+                  key={colIndex + "marquee"}
+                  className="flex flex-col items-start gap-8 will-change-transform"
+                >
+                  <GridLineVertical className="-left-4" offset="80px" />
+                  {subarray.map((image, imageIndex) => {
+                    const src = typeof image === "string" ? image : image?.url;
+                    const alt =
+                      typeof image === "object" && image?.altText
+                        ? image.altText
+                        : `NSS Activity ${imageIndex + 1}`;
 
-                  return (
-                    <div className="relative" key={imageIndex + (src || "")}>
-                      <GridLineHorizontal className="-top-4" offset="20px" />
-                      <motion.img
-                        whileHover={{
-                          y: -10,
-                        }}
-                        transition={{
-                          duration: 0.3,
-                          ease: "easeInOut",
-                        }}
-                        key={imageIndex + (src || "")}
-                        src={src}
-                        alt={alt}
-                        className="aspect-[970/700] rounded-xl object-cover ring-1 ring-white/15 hover:ring-[#E0533C]/60 hover:shadow-2xl transition-all duration-300"
-                        width={970}
-                        height={700}
-                      />
-                    </div>
-                  );
-                })}
-              </motion.div>
-            ))}
+                    return (
+                      <div className="relative" key={imageIndex + (src || "")}>
+                        <GridLineHorizontal className="-top-4" offset="20px" />
+                        <motion.img
+                          whileHover={{
+                            y: -10,
+                          }}
+                          transition={{
+                            duration: 0.3,
+                            ease: "easeInOut",
+                          }}
+                          key={imageIndex + (src || "")}
+                          src={src}
+                          alt={alt}
+                          className="aspect-[970/700] rounded-xl object-cover ring-1 ring-white/15 hover:ring-[#E0533C]/60 hover:shadow-2xl transition-all duration-300"
+                          width={970}
+                          height={700}
+                        />
+                      </div>
+                    );
+                  })}
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </div>

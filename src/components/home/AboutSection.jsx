@@ -81,7 +81,7 @@ export default function AboutSection() {
             {/* Narrative Paragraphs */}
             <div className="space-y-4 text-[15px] sm:text-[15.5px] text-slate-600 leading-relaxed font-normal">
               <p>
-                At Madras Institute of Technology (Anna University), NSS operates across seven active units (Unit I through Unit VII), each guided by dedicated Programme Officers. Our volunteers connect their academic knowledge with real-world needs by working with adopted villages, schools, healthcare teams, and local authorities.
+                At Madras Institute of Technology (Anna University), NSS operates across seven active units (Unit I to Unit VII), each guided by dedicated Programme Officers. Our volunteers connect their academic knowledge with real-world needs by working with adopted villages, schools, healthcare teams, and local authorities.
               </p>
               <p>
                 Through 7-day residential Special Camps, blood donation drives, village development activities, environmental initiatives, literacy programmes, and disaster relief efforts, NSS MIT helps students build teamwork, responsibility, leadership, and a strong sense of service.

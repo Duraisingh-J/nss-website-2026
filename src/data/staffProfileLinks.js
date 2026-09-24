@@ -23,26 +23,26 @@ export const staffProfileLinks = {
   // Dr. K.M. Veerabadran (NSS Campus Coordinator)
   "Dr. K.M. VEERABADRAN": "https://www.auegov.ac.in/HomePage/?Auth=wbNzRUw=",
 
-  // ── 2. FACULTY INCHARGES: PROGRAM OFFICERS ────────────────────────────────
-  // Unit I Program Officer
+  // ── 2. FACULTY INCHARGES: PROGRAMME OFFICERS ───────────────────────────────
+  // Unit I Programme Officer
   "Dr. J. Ramajothi": "https://www.auegov.ac.in/HomePage/?Auth=wbtzSUs=",
 
-  // Unit II Program Officer
+  // Unit II Programme Officer
   "Dr. K. MARIAMMAL": "https://www.auegov.ac.in/HomePage/?Auth=wbVxSE4=",
 
-  // Unit III Program Officer
+  // Unit III Programme Officer
   "Dr. S. NEELAVATHY PARI": "https://www.auegov.ac.in/HomePage/?Auth=wbVySUw=",
 
-  // Unit IV Program Officer
+  // Unit IV Programme Officer
   "Dr. A. DIVYA": "https://www.auegov.ac.in/HomePage/?Auth=wbt0R0o=",
 
-  // Unit V Program Officer
+  // Unit V Programme Officer
   "Dr. M. MANOJ": "https://www.auegov.ac.in/HomePage/?Auth=wLJzQE++",
 
-  // Unit VI Program Officer (Dr. K.M. Veerabadran)
+  // Unit VI Programme Officer (Dr. K.M. Veerabadran)
   // (Covered by Coordinator entry above)
 
-  // Unit VII Program Officer
+  // Unit VII Programme Officer
   "Dr. G. KUMARESAN": "",
 };
 

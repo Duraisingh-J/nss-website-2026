@@ -1029,7 +1029,7 @@ export default function EventsManagement() {
             Events
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Manage NSS events, camps, outreach programs, orphanage visits, and monthly activities.
+            Manage NSS events, camps, outreach programmes, orphanage visits, and monthly activities.
           </p>
         </div>
 
@@ -1319,7 +1319,7 @@ export default function EventsManagement() {
                 </div>
                 <h3 className="text-base font-semibold text-slate-900">No events found</h3>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  Create your first NSS event to get started with managing activities and programs.
+                  Create your first NSS event to get started with managing activities and programmes.
                 </p>
                 <button
                   type="button"

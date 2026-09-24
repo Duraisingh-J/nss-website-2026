@@ -380,7 +380,7 @@ export default function PeopleManagement() {
             People Management
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Configure and manage NSS campus leaders, program officers, heads, and unit personnel.
+            Configure and manage NSS campus leaders, programme officers, heads, and unit personnel.
           </p>
         </div>
 

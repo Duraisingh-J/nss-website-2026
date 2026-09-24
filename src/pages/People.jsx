@@ -117,17 +117,17 @@ export default function People() {
               </section>
             )}
 
-            {/* ── 3. Program Officers ── */}
+            {/* ── 3. Programme Officers ── */}
             {peopleData.programOfficers.length > 0 && (
               <PeopleSection
                 eyebrow="Faculty Incharges"
-                title="Program Officers"
-                subtitle="Faculty members supervising and coordinating civic service across Units I through VII."
-                id="program-officers"
+                title="Programme Officers"
+                subtitle="Faculty members supervising and coordinating civic service across Units I to VII."
+                id="programme-officers"
               >
                 <PeopleDepthCarousel
                   people={peopleData.programOfficers}
-                  fallbackRole="Program Officer"
+                  fallbackRole="Programme Officer"
                 />
               </PeopleSection>
             )}
