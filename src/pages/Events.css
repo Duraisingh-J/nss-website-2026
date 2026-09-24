@@ -62,3 +62,17 @@
     font-size: 120px !important;
   }
 }
+
+/* =========================================================
+   EVENTS HERO — WATERMARK STAYS INSIDE THE BOX
+   ========================================================= */
+
+.events-hero__background-word {
+  bottom: -42px !important;
+  right: 20px !important;
+
+  font-size: 170px !important;
+  line-height: 0.85 !important;
+
+  color: rgba(255, 255, 255, 0.075) !important;
+}

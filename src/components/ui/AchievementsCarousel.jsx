@@ -265,20 +265,13 @@ export function AchievementsCarousel({ achievements = [], onSelectAchievement })
                     </div>
                   )}
 
-                  {/* Top Header Floating Badges */}
+                  {/* Top Header — Year Only */}
                   <div
                     className={cn(
-                      "absolute top-5 left-5 right-5 flex items-center justify-between transition-opacity duration-300 z-10",
+                      "absolute top-5 left-5 right-5 flex items-center justify-end transition-opacity duration-300 z-10",
                       isActive ? "opacity-100" : "opacity-0"
                     )}
                   >
-                    <div className="flex items-center gap-2 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15">
-                      <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse" />
-                      <span className="text-white text-[10px] font-bold uppercase tracking-[0.2em] font-mono">
-                        {item.tag}
-                      </span>
-                    </div>
-
                     <div className="bg-white/90 text-slate-900 text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full shadow">
                       {item.year}
                     </div>
@@ -294,10 +287,6 @@ export function AchievementsCarousel({ achievements = [], onSelectAchievement })
                         transition={{ duration: 0.35, ease: "easeOut" }}
                         className="absolute inset-x-0 bottom-0 p-6 md:p-8 pt-24 bg-gradient-to-t from-black/95 via-black/60 to-transparent flex flex-col justify-end"
                       >
-                        <div className="bg-[#D94B4B] text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] w-fit shadow-md mb-2.5">
-                          {item.category}
-                        </div>
-
                         <h3 className="text-white font-serif text-lg md:text-xl font-bold leading-tight drop-shadow mb-1.5 tracking-tight line-clamp-2">
                           {item.label}
                         </h3>
