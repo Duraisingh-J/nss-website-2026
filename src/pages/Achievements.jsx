@@ -146,12 +146,12 @@ export default function Achievements() {
       <header className="achievements-hero">
         <div className="achievements-shell achievements-hero__shell">
           <div className="achievements-hero__content">
-            <h1>ACHIEVEMENTS</h1>
             <div className="achievements-hero__statement">
-              Milestones <em>of distinction.</em>
+            Milestones <em>of distinction.</em>
             </div>
             <p>
-              Recognising the milestones, contributions, and accomplishments that shape the NSS journey at MIT — chronicling state awards, university citations, and community service honours.
+              A record of recognition, impact, and achievements built through
+              sustained NSS service at Madras Institute of Technology.
             </p>
           </div>
           <div className="achievements-hero__background-word" aria-hidden="true">

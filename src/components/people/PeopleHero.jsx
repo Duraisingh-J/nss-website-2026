@@ -1,18 +1,25 @@
 import React from "react";
-import PageHero from "../ui/PageHero";
 
 /**
- * PeopleHero — Uses the shared PageHero component.
- * Keeps the TEAM watermark and OUR PEOPLE eyebrow/title hierarchy
- * with a reduced, more compact visual footprint.
+ * PeopleHero — Editorial title card for the personnel directory.
  */
 export default function PeopleHero() {
   return (
-    <PageHero
-      watermark="TEAM"
-      eyebrow="The Team"
-      title="OUR PEOPLE"
-      description="Meet the dedicated faculty leaders and student coordinators driving NSS at Madras Institute of Technology, Anna University."
-    />
+    <header className="people-hero">
+      <div className="people-hero__shell">
+        <div className="people-hero__content">
+          <div className="people-hero__statement">
+          People, <em>in service.</em>
+          </div>
+          <p>
+          Meet the dedicated faculty leaders and student coordinators driving NSS
+          at Madras Institute of Technology, Anna University.
+          </p>
+        </div>
+        <div className="people-hero__background-word" aria-hidden="true">
+          PEOPLE
+        </div>
+      </div>
+    </header>
   );
 }

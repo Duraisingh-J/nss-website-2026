@@ -10,10 +10,111 @@
   overflow-x: hidden;
 }
 
+.gallery-hero {
+  position: relative;
+  height: 365px;
+  min-height: 365px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  background: #071a2d;
+  color: #ffffff;
+  padding: 78px 45px 0;
+}
+
+.gallery-hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 900px;
+}
+
+.gallery-hero-title {
+  margin: 0;
+  font-family: "Playfair Display", serif;
+  font-size: 54px;
+  line-height: 1.05;
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  color: #ffffff;
+}
+
+.gallery-hero-title em {
+  color: rgba(255, 255, 255, 0.58);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.gallery-hero-description {
+  margin: 24px 0 0;
+  max-width: 900px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.gallery-hero-watermark {
+  position: absolute;
+  z-index: 1;
+  right: -35px;
+  bottom: -42px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 210px;
+  line-height: 0.9;
+  font-weight: 700;
+  letter-spacing: -0.07em;
+  color: rgba(255, 255, 255, 0.065);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
 .gallery-main-container {
   position: relative;
   width: 100%;
   padding-bottom: 72px;
+}
+
+@media (max-width: 1024px) {
+  .gallery-hero {
+    height: 340px;
+    min-height: 340px;
+    padding: 72px 32px 0;
+  }
+  .gallery-hero-title {
+    font-size: 46px;
+  }
+  .gallery-hero-description {
+    font-size: 15px;
+    max-width: 760px;
+  }
+  .gallery-hero-watermark {
+    font-size: 170px;
+    right: -25px;
+    bottom: -32px;
+  }
+}
+
+@media (max-width: 720px) {
+  .gallery-hero {
+    height: 310px;
+    min-height: 310px;
+    padding: 58px 22px 0;
+  }
+  .gallery-hero-title {
+    font-size: 38px;
+    line-height: 1.08;
+  }
+  .gallery-hero-description {
+    margin-top: 18px;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  .gallery-hero-watermark {
+    right: -15px;
+    bottom: -15px;
+    font-size: 105px;
+  }
 }
 
 /* ── 1. Controls & Filter Toolbar ────────────────────────────────────────── */
@@ -846,6 +947,98 @@
   animation: gallery-scale-in 0.25s ease-out;
 }
 
+/* Gallery hero alignment override */
+.gallery-hero {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  min-height: 300px;
+  display: block;
+  overflow: hidden;
+  background: #0d1726;
+  color: #ffffff;
+}
+
+.gallery-hero__shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  z-index: 2;
+}
+
+.gallery-hero__content {
+  position: relative;
+  z-index: 3;
+  width: auto;
+  max-width: 900px;
+  padding: 0;
+}
+
+.gallery-hero__statement {
+  margin: 0;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 54px;
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  color: #ffffff;
+}
+
+.gallery-hero__statement em {
+  color: #9ca6b6;
+  font-weight: 400;
+  font-style: italic;
+}
+
+.gallery-hero__content p {
+  max-width: 900px;
+  margin: 24px 0 0;
+  font-family: "DM Sans", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  color: #aeb7c5;
+}
+
+.gallery-hero__background-word {
+  position: absolute;
+  z-index: 1;
+  right: -35px;
+  bottom: -48px;
+  margin: 0;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 210px;
+  font-weight: 700;
+  line-height: 0.75;
+  letter-spacing: -0.075em;
+  color: rgba(255, 255, 255, 0.09);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+@media (max-width: 720px) {
+  .gallery-hero {
+    height: 320px;
+    min-height: 320px;
+  }
+  .gallery-hero__content {
+    padding: 58px 24px 0;
+  }
+  .gallery-hero__statement {
+    font-size: 38px;
+  }
+  .gallery-hero__content p {
+    font-size: 14px;
+    margin-top: 18px;
+  }
+  .gallery-hero__background-word {
+    right: -20px;
+    bottom: -20px;
+    font-size: 110px;
+  }
+}
+
 .gallery-lightbox__meta {
   position: absolute;
   bottom: 20px;
@@ -1082,4 +1275,33 @@
   .gallery-lightbox__image {
     animation: none !important;
   }
+}
+
+/* =========================================================
+   GALLERY WATERMARK
+   FULL WORD + TOUCHES BOTTOM EDGE
+   ========================================================= */
+
+.gallery-hero__background-word {
+  position: absolute !important;
+
+  right: 20px !important;
+  bottom: 0 !important;
+
+  top: auto !important;
+  transform: none !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  font-family: "Playfair Display", Georgia, serif !important;
+  font-size: 135px !important;
+  font-weight: 700 !important;
+
+  line-height: 1 !important;
+  letter-spacing: -0.055em !important;
+
+  color: rgba(255, 255, 255, 0.075) !important;
+
+  white-space: nowrap !important;
 }

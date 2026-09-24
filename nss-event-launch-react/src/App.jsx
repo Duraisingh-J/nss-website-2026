@@ -66,7 +66,9 @@ export default function App() {
   };
 
   const handleVideoEnded = () => {
-    window.location.href = CONFIG.mainWebsiteUrl;
+    setTimeout(() => {
+      window.location.href = CONFIG.mainWebsiteUrl;
+    }, 4000);
   };
 
   const handleVideoError = () => {
