@@ -68,24 +68,56 @@ export default function ActivePersonInfo({
   const profileUrl = (rawProfileUrl || getStaffProfileUrl(displayedPerson) || "").trim();
   const isClickable = Boolean(profileUrl);
 
-  // Derive full Role · Unit label (e.g. "PROGRAM OFFICER · UNIT I" or "UNIT INCHARGE · UNIT I")
-  const getRoleUnitText = () => {
-    // 1. If badge already combines role & unit with '·'
-    if (badge && unit && badge.includes("·")) {
-      return badge;
+  const formatUnitString = (u) => {
+    if (!u && u !== 0) return null;
+    const str = String(u).trim();
+    const romanMap = {
+      1: "UNIT I",
+      2: "UNIT II",
+      3: "UNIT III",
+      4: "UNIT IV",
+      5: "UNIT V",
+      6: "UNIT VI",
+      7: "UNIT VII",
+    };
+    const num = parseInt(str.replace(/^unit\s*/i, ""), 10);
+    if (num && romanMap[num]) return romanMap[num];
+    return str.toUpperCase();
+  };
+
+  // Derive individual role / unit badge text
+  const getBadgeLabel = () => {
+    const isPO =
+      fallbackRole === "Program Officer" ||
+      role?.toLowerCase().includes("program officer") ||
+      role?.toLowerCase().includes("programme officer");
+
+    const isUI =
+      fallbackRole === "Unit Incharge" ||
+      role?.toLowerCase().includes("unit incharge") ||
+      role?.toLowerCase().includes("unit leader");
+
+    // 1. Program Officers and Unit Incharges: display ONLY unit (e.g. "UNIT I", "UNIT II")
+    if (isPO || isUI) {
+      if (unit) return formatUnitString(unit);
+      if (badge && badge.includes("·")) {
+        const parts = badge.split("·");
+        return formatUnitString(parts[parts.length - 1].trim());
+      }
+      return unit ? formatUnitString(unit) : null;
     }
-    // 2. If role and unit both exist and role doesn't already contain unit
+
+    // 2. For Office Bearers & others: show specific role (e.g. "Treasurer", "Joint Treasurer")
     if (role && unit && !role.toLowerCase().includes(unit.toLowerCase())) {
       return `${role} · ${unit}`;
     }
-    // 3. Fallbacks
     if (badge) return badge;
     if (role) return role;
-    if (unit) return `${fallbackRole} · ${unit}`;
+    if (unit) return formatUnitString(unit);
     return fallbackRole || null;
   };
 
-  const roleText = getRoleUnitText();
+  const badgeText = getBadgeLabel();
 
   // Include year after the role/post text (e.g. "Senior Volunteer · Final Year")
   const displayPost = post
@@ -120,9 +152,9 @@ export default function ActivePersonInfo({
             className="active-person-info__header-link"
             aria-label={`View external profile of ${name}`}
           >
-            {/* Role Pill */}
-            {roleText && (
-              <div className="active-person-info__role">{roleText}</div>
+            {/* Role / Unit Badge */}
+            {badgeText && (
+              <div className="active-person-info__role">{badgeText}</div>
             )}
 
             {/* Person Name */}
@@ -141,16 +173,12 @@ export default function ActivePersonInfo({
                 {deptText}
               </div>
             )}
-
-            {/* Institutional Unit */}
-            <div className="active-person-info__institution">
-            </div>
           </a>
         ) : (
           <>
-            {/* Role Pill */}
-            {roleText && (
-              <div className="active-person-info__role">{roleText}</div>
+            {/* Role / Unit Badge */}
+            {badgeText && (
+              <div className="active-person-info__role">{badgeText}</div>
             )}
 
             {/* Person Name */}
@@ -167,11 +195,6 @@ export default function ActivePersonInfo({
                 {deptText}
               </div>
             )}
-
-            {/* Institutional Unit */}
-            <div className="active-person-info__institution">
-  
-            </div>
           </>
         )}
 
